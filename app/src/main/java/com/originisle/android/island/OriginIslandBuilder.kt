@@ -33,16 +33,35 @@ object OriginIslandBuilder {
         val pendingIntent: PendingIntent?,
     )
 
+    /**
+     * [grantScenes] runs on every process start AND every card post, so the reflective method
+     * lookup is cached. Once the lookup has failed (non-vivo build), don't retry OR re-log —
+     * previously every single post threw + caught NoSuchMethodException, which is a stack trace
+     * per card for nothing.
+     */
+    @Volatile
+    private var scenesMethod: java.lang.reflect.Method? = null
+    @Volatile
+    private var scenesUnavailable = false
+
     /** Colour has no alpha byte set -> treat as "unspecified / use default". */
     private fun isDefaultColor(color: Int): Boolean = (color ushr 24) == 0
 
     fun grantScenes(context: Context) {
+        if (scenesUnavailable) return
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
-        try {
-            val method = NotificationManager::class.java.getMethod(
+        val method = scenesMethod ?: runCatching {
+            NotificationManager::class.java.getMethod(
                 "setSuperXInfosSceneList",
                 List::class.java, List::class.java, List::class.java, List::class.java,
             )
+        }.getOrElse {
+            scenesUnavailable = true
+            Log.w(TAG, "setSuperXInfosSceneList unavailable: ${it.message}")
+            return
+        }
+        scenesMethod = method
+        try {
             val scenes = ArrayList(OriginIslandConstants.SUPERX_SCENES)
             val enabled = ArrayList<String>()
             val pkgs = ArrayList<String>()
@@ -55,7 +74,9 @@ object OriginIslandBuilder {
             method.invoke(nm, scenes, enabled, pkgs, allowed)
             Log.d(TAG, "setSuperXInfosSceneList granted for ${context.packageName}")
         } catch (e: Exception) {
-            Log.w(TAG, "setSuperXInfosSceneList unavailable: ${e.message}")
+            // The method exists but the call was refused (not vivo, permission revoked, …). Don't
+            // cache this as permanent — a refusal can be transient, unlike a missing method.
+            Log.w(TAG, "setSuperXInfosSceneList call failed: ${e.message}")
         }
     }
 

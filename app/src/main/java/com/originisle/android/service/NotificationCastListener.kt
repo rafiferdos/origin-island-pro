@@ -170,6 +170,10 @@ class NotificationCastListener : NotificationListenerService() {
             "de.motain.iliga",             // OneFootball
             "com.scores365",               // 365Scores
             "com.livescore",               // LiveScore
+            "eu.livesport.FlashScore_com", // FlashScore
+            "eu.livesport.flashscoreusa_com", // FlashScore (US variant)
+            "eu.livesport.FlashScores_co_uk", // FlashScore (UK variant)
+            "com.resultadosfutbol.mobile", // BeSoccer
         )
 
         /**
@@ -208,6 +212,16 @@ class NotificationCastListener : NotificationListenerService() {
             "com.getcurve.mobile",                      // Curve
             "com.klarna.mobile",                        // Klarna
             "co.mona.android",                          // Crypto.com
+            "com.venmo",                                // Venmo
+            "com.squareup.cash",                        // Cash App
+            "com.bunq.android",                         // bunq
+            "de.traderepublic.app",                     // Trade Republic
+            "com.starfinanz.smob.android.sfinanzstatus", // Sparkasse
+            "com.ing.diba.mbbr2",                      // ING (DE, "Banking to go")
+            "com.dkb.codefactory",                      // DKB
+            "de.comdirect.app",                         // comdirect
+            "com.nu.production",                        // Nubank
+            "com.mercadopago.wallet",                   // Mercado Pago
         )
 
         /** Payment verbs — any app whose notification pairs one of these with an amount is a payment. */
@@ -215,11 +229,17 @@ class NotificationCastListener : NotificationListenerService() {
             "paid", "payment", "you sent", "you received", "charged", "purchase",
             "transaction", "debited", "credited", "receipt", "spent", "approved",
             "bezahlt", "payé", "reçu", "pago", "pagamento", "betaling",
+            "sent you", "transferred", "überwiesen", "overgemaakt",
         )
 
-        /** "€12.90", "12,90 €", "$5", "£3.20", "EUR 40" … first match is used as the amount. */
+        /**
+         * "€12.90", "12,90 €", "$5", "£3.20", "₺250", "40 CHF" … first match is used as the amount.
+         * Symbols and ISO codes beyond the original €$£¥ set cover the currencies the extended
+         * PAYMENT_APPS list transacts in.
+         */
         private val AMOUNT = Regex(
-            """(?:[€$£¥]|\b(?:EUR|USD|GBP|CHF)\b)\s?\d[\d.,]*|\d[\d.,]*\s?(?:[€$£¥]|\b(?:EUR|USD|GBP|CHF)\b)""",
+            """(?:[€$£¥₹₽₺₩₪₫₴]|\b(?:EUR|USD|GBP|CHF|SEK|NOK|DKK|PLN|CZK|INR|TRY|RUB|KRW|THB|PHP)\b)\s?\d[\d.,]*""" +
+                """|\d[\d.,]*\s?(?:[€$£¥₹₽₺₩₪₫₴]|\b(?:EUR|USD|GBP|CHF|SEK|NOK|DKK|PLN|CZK|INR|TRY|RUB|KRW|THB|PHP)\b)""",
             RegexOption.IGNORE_CASE,
         )
     }
@@ -268,36 +288,45 @@ class NotificationCastListener : NotificationListenerService() {
                 val prefs = getSharedPreferences(PREFS, 0)
                 val castNotifs = prefs.getBoolean("cast_notifications", false)
                 val castMedia = prefs.getBoolean("cast_media_sessions", false)
-                activeNotifications?.forEach { sbn ->
-                    val extras = sbn.notification.extras
-                    val token = extras.getParcelable(
-                        NotificationCompat.EXTRA_MEDIA_SESSION, MediaSession.Token::class.java,
-                    )
-                    if (token != null) {
-                        if (castMedia && isAppEnabled(prefs, sbn.packageName)) {
-                            MediaCard.post(
-                                applicationContext, sbn,
-                                MediaController(this@NotificationCastListener, token),
-                            )
+                // Skip the sweep entirely when nothing can be cast — iterating every active
+                // notification each second with both switches off was pure waste.
+                if (castNotifs || castMedia) {
+                    activeNotifications?.forEach { sbn ->
+                        val extras = sbn.notification.extras
+                        val token = extras.getParcelable(
+                            NotificationCompat.EXTRA_MEDIA_SESSION, MediaSession.Token::class.java,
+                        )
+                        if (token != null) {
+                            if (castMedia && isAppEnabled(prefs, sbn.packageName)) {
+                                MediaCard.post(
+                                    applicationContext, sbn,
+                                    MediaController(this@NotificationCastListener, token),
+                                )
+                            }
+                        } else if (castNotifs && sbn.isOngoing &&
+                            extras.getBoolean(NotificationCompat.EXTRA_SHOW_CHRONOMETER, false)
+                        ) {
+                            onNotificationPosted(sbn) // refresh ticking chronometer
+                        } else if (castNotifs && sbn.packageName in SCORE_APPS &&
+                            prefs.getBoolean("cast_sports", true) &&
+                            isAppEnabled(prefs, sbn.packageName) &&
+                            lastScorePostTime.put(sbn.key, sbn.postTime) != sbn.postTime
+                        ) {
+                            onNotificationPosted(sbn) // catch a score update onNotificationPosted was slow to deliver
                         }
-                    } else if (castNotifs && sbn.isOngoing &&
-                        extras.getBoolean(NotificationCompat.EXTRA_SHOW_CHRONOMETER, false)
-                    ) {
-                        onNotificationPosted(sbn) // refresh ticking chronometer
-                    } else if (castNotifs && sbn.packageName in SCORE_APPS &&
-                        isAppEnabled(prefs, sbn.packageName) &&
-                        lastScorePostTime.put(sbn.key, sbn.postTime) != sbn.postTime
-                    ) {
-                        onNotificationPosted(sbn) // catch a score update onNotificationPosted was slow to deliver
                     }
                 }
-                SportsCard.refresh(applicationContext)
+                // refresh() makes a getActiveSessions() binder call per live card; 3s is plenty
+                // for a crowded-island re-layout and cuts the IPC to a third.
+                if (pollTicks % 3 == 0L) SportsCard.refresh(applicationContext)
             } catch (e: Exception) {
                 Log.e(TAG, "poll error", e)
             }
+            pollTicks++
             pollHandler.postDelayed(this, 1000L)
         }
     }
+    private var pollTicks = 0L
 
     override fun onListenerConnected() {
         super.onListenerConnected()
@@ -469,7 +498,9 @@ class NotificationCastListener : NotificationListenerService() {
 
         // Score apps: if the notification parses as a match, post a football card with crests.
         // If it doesn't (Google also posts news/weather/etc.), fall through to the normal path.
-        if (sbn.packageName in SCORE_APPS) {
+        // Turned off by the "Football scores" toggle in the Cards tab — with it off, score apps
+        // cast through the ordinary path like any other app.
+        if (sbn.packageName in SCORE_APPS && prefs.getBoolean("cast_sports", true)) {
             // A post-match "recap"/"highlights" notification isn't a live update - it's often sent
             // well after full time, sometimes repeatedly, and re-parsing its "<team> <score> -
             // <score> <team>" line as a match just pops the card back up for a game that's already
@@ -482,12 +513,15 @@ class NotificationCastListener : NotificationListenerService() {
 
         // Payments (Wallet, Revolut, PayPal, banks, …) -> Apple-Pay-style success card. This runs
         // BEFORE the "plain message" filter below, because a payment receipt isn't ongoing and has
-        // no progress bar, so it would otherwise be dropped.
-        detectPayment(sbn)?.let {
-            if (lastCastPostTime.put(sbn.key, sbn.postTime) == sbn.postTime) {
-                log(sbn, "skipped — duplicate delivery, unchanged", false); return
+        // no progress bar, so it would otherwise be dropped. Gated by the "Payments" toggle in the
+        // Cards tab; with it off, payment notifications cast through the ordinary path.
+        if (prefs.getBoolean("cast_payments", true)) {
+            detectPayment(sbn)?.let {
+                if (lastCastPostTime.put(sbn.key, sbn.postTime) == sbn.postTime) {
+                    log(sbn, "skipped — duplicate delivery, unchanged", false); return
+                }
+                castPayment(sbn, it); log(sbn, "cast — payment", true); return
             }
-            castPayment(sbn, it); log(sbn, "cast — payment", true); return
         }
 
         val isOngoing = (n.flags and Notification.FLAG_ONGOING_EVENT) != 0
@@ -608,6 +642,9 @@ class NotificationCastListener : NotificationListenerService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // onListenerDisconnected removes it too, but a direct destroy (service shut down while
+        // still bound) skips that path — without this the poll would keep firing on a dead service.
+        pollHandler.removeCallbacks(pollRunnable)
         unregisterBatteryReceiver()
         if (instance === this) instance = null
         scope.cancel()
@@ -735,6 +772,7 @@ class NotificationCastListener : NotificationListenerService() {
         lastOutcome.remove(sbn.key)
         lastScorePostTime.remove(sbn.key)
         lastCastPostTime.remove(sbn.key)
+        MediaCard.forget(IconCache.castIdFor(sbn))
 
         // Score cards are keyed by team names (matchCastId), not by this notification's own identity
         // (see handleScore) — cancelling by IconCache.castIdFor(sbn) here would target the wrong id and

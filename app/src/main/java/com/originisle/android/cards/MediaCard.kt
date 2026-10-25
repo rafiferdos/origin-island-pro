@@ -16,6 +16,7 @@ import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.IconCache
 import com.originisle.android.service.MediaControlReceiver
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 
 /**
@@ -24,6 +25,29 @@ import kotlin.math.abs
  * [MediaControlReceiver].
  */
 object MediaCard {
+
+    /**
+     * What a posted card actually showed, per cast id. The listener's 1s poll calls [post] for
+     * every active media notification, so without this a paused player (or a track with no
+     * chronometer) was re-posted EVERY second — a full notification parcel + notify() per session
+     * per second, most of which vivo drops anyway (it refuses SuperX updates closer than ~10s
+     * apart). With this, an unchanged card isn't re-posted; the chronometer chip is compared at
+     * 10s granularity, which is the cadence vivo actually renders.
+     */
+    private data class PostedState(
+        val track: String,
+        val artist: String,
+        val playing: Boolean,
+        val hasArt: Boolean,
+        val chipBucket: Long,
+    )
+
+    private val lastPosted = ConcurrentHashMap<Int, PostedState>()
+
+    /** Drop the dedupe state for [id] — its source notification is gone. */
+    fun forget(id: Int) {
+        lastPosted.remove(id)
+    }
 
     fun post(context: Context, sbn: StatusBarNotification, controller: MediaController) {
         val id = IconCache.castIdFor(sbn)
@@ -71,6 +95,15 @@ object MediaCard {
             // OriginIslandBuilder's template-4 path the same way).
             " "
         }
+
+        // Dedupe gate (see PostedState): skip the post when nothing observable changed and the card
+        // is still up. A card that's NOT in activeCardIds was dismissed/rejected — always re-post
+        // so the poll doubles as its resurrection path, exactly as it did before the dedupe.
+        val chipBucket =
+            if (showChrono && n.`when` > 0) abs(System.currentTimeMillis() - n.`when`) / 10_000L else 0L
+        val state = PostedState(track, artist, playing, albumArt != null, chipBucket)
+        if (id in PlaygroundService.activeCardIds && lastPosted[id] == state) return
+        lastPosted[id] = state
 
         fun mediaAction(action: String) = PendingIntent.getBroadcast(
             context, (id.toString() + action).hashCode(),

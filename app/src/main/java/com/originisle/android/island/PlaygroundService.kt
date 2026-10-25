@@ -374,7 +374,7 @@ class PlaygroundService : Service() {
         activeIds.add(id)
         originScenes[id] = scene
         activeCardIds = activeIds.toSet()
-        postSuperX(id, iconRes, title, text, sourceApp, isOngoing, scene, bundle)
+        postSuperX(id, iconRes, title, text, sourceApp, isOngoing, scene, bundle, intent.getLongExtra("when", 0L))
 
         // Auto-dismiss: only for non-live cards (isOngoing is the same live/persistent flag the
         // card posters set — media, sports and any ongoing/call/progress GenericCard all mark
@@ -398,6 +398,11 @@ class PlaygroundService : Service() {
      * Post the SuperX card exactly the way the original did: a HIGH-importance channel, real
      * title/text (NOT empty), no `setSilent`. On vivo a low-importance/silent/empty notification
      * is minimised and the island never renders it — that was the bug.
+     *
+     * [whenMs] is the source notification's own timestamp (carried by the card posters as the
+     * `when` extra). The island renders from the bundle, but setting it keeps the shade/AOD
+     * fallback — what vivo shows if it rejects the SuperX post — stamped with the real time
+     * instead of "now" (matters for messages, where "3m ago" is the useful part).
      */
     private fun postSuperX(
         id: Int,
@@ -408,6 +413,7 @@ class PlaygroundService : Service() {
         isOngoing: Boolean,
         scene: String,
         bundle: android.os.Bundle,
+        whenMs: Long,
     ) {
         OriginIslandBuilder.grantScenes(this)
         createNotificationChannel(ORIGIN_CHANNEL_ID)
@@ -428,6 +434,7 @@ class PlaygroundService : Service() {
             .setDeleteIntent(deletePi)
             .setSmallIcon(iconRes)
             .setExtras(bundle)
+        if (whenMs > 0) builder.setWhen(whenMs)
         if (sourceApp.isNotEmpty()) builder.setSubText(sourceApp)
         notificationManager.notify(OriginIslandConstants.SUPERX_TAG, id, builder.build())
     }

@@ -13,6 +13,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import java.text.Normalizer
@@ -30,6 +31,15 @@ object SportsFeed {
 
     private const val SEARCH = "https://www.thesportsdb.com/api/v1/json/123/searchteams.php?t="
     private const val CREST_PX = 96
+
+    /**
+     * Every HTTP call goes through [open] with explicit timeouts. URL.openStream()/readText()
+     * default to an INFINITE timeout, and fetchTeams holds [requestLock] across its read — one
+     * dead connection (flaky mobile data, captive portal) would block the mutex forever and
+     * silently kill every future crest fetch for the life of the process. 8s fails the request
+     * instead of hanging it.
+     */
+    private const val TIMEOUT_MS = 8000
     private val crestCache = ConcurrentHashMap<String, Bitmap>()
 
     private data class ClubEntry(val badge: String, val league: String)
@@ -206,7 +216,7 @@ object SportsFeed {
             val query = contextual ?: ALIASES[key] ?: team
 
             (lookupClub(team) ?: lookupClub(query))?.let { entry ->
-                val raw = URL(badgeUrl(entry.badge)).openStream().use { BitmapFactory.decodeStream(it) } ?: return@withContext null
+                val raw = decodeBadge(entry.badge) ?: return@withContext null
                 return@withContext Bitmap.createScaledBitmap(raw, CREST_PX, CREST_PX, true).also { crestCache[key] = it }
             }
             var teams = fetchTeams(query)
@@ -244,7 +254,7 @@ object SportsFeed {
             // the search returns no Soccer results at all - return null (no crest) instead.
             val badge = chosen?.optString("strBadge")
             if (badge.isNullOrBlank()) return@withContext null
-            val raw = URL(badgeUrl(badge)).openStream().use { BitmapFactory.decodeStream(it) } ?: return@withContext null
+            val raw = decodeBadge(badge) ?: return@withContext null
             Bitmap.createScaledBitmap(raw, CREST_PX, CREST_PX, true).also { crestCache[key] = it }
         } catch (e: Exception) {
             Log.w("SportsFeed", "crest fetch failed for '$team': ${e.message}")
@@ -271,8 +281,32 @@ object SportsFeed {
         val wait = MIN_REQUEST_GAP_MS - (System.currentTimeMillis() - lastRequestAt)
         if (wait > 0) delay(wait)
         lastRequestAt = System.currentTimeMillis()
-        val json = URL(SEARCH + URLEncoder.encode(query, "UTF-8")).readText()
-        JSONObject(json).optJSONArray("teams")
+        val conn = open(SEARCH + URLEncoder.encode(query, "UTF-8"))
+        try {
+            val json = conn.inputStream.bufferedReader().use { it.readText() }
+            JSONObject(json).optJSONArray("teams")
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    /** A connection with the timeouts from [TIMEOUT_MS] applied; callers must [HttpURLConnection.disconnect]. */
+    private fun open(url: String): HttpURLConnection =
+        (URL(url).openConnection() as HttpURLConnection).apply {
+            connectTimeout = TIMEOUT_MS
+            readTimeout = TIMEOUT_MS
+        }
+
+    private fun decodeBadge(url: String): Bitmap? {
+        val conn = open(badgeUrl(url))
+        return try {
+            conn.inputStream.use { BitmapFactory.decodeStream(it) }
+        } catch (e: Exception) {
+            Log.w("SportsFeed", "badge download failed: ${e.message}")
+            null
+        } finally {
+            conn.disconnect()
+        }
     }
 
     /** Fold accented/Nordic letters to plain ASCII and punctuation to spaces, for a fallback search. */

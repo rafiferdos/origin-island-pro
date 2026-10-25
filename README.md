@@ -1,16 +1,15 @@
-# Origin Isle
+# Origin Island Pro
 <div align="center">
   
-[![Release](https://img.shields.io/github/v/release/fvhde/origin-isle)](https://github.com/fvhde/origin-isle/releases)
-[![Downloads](https://img.shields.io/github/downloads/fvhde/origin-isle/total)](https://github.com/fvhde/origin-isle/releases)
+[![Release](https://img.shields.io/github/v/release/rafiferdos/origin-island-pro)](https://github.com/rafiferdos/origin-island-pro/releases)
+[![Downloads](https://img.shields.io/github/downloads/rafiferdos/origin-island-pro/total)](https://github.com/rafiferdos/origin-island-pro/releases)
 
 Brings the OriginOS **island** to *every* app: downloads, navigation, calls, payments, media and
 live football scores, including from European and international apps.
 
 **Credits** · OriginIsland api by [@theVakhovskeIsTaken](https://github.com/theVakhovskeIsTaken)
 · Navigation card by [@Martimborgss](https://github.com/Martimborgss)
-
-**Support** · [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/fvhde)
+· Original project by [@fvhde](https://github.com/fvhde/origin-isle)
 
 </div>
 
@@ -45,8 +44,10 @@ live football scores, including from European and international apps.
 
 - 🏝️ **Any notification** → island, with an allow/deny list per app
 - 👆 **Tap a card** to open the original notification
-- ⚽ **Live football scores** with team crests
-- 💳 **Apple Pay–style payment animation** (Google Wallet, Revolut, PayPal, N26, Monzo…)
+- ⚽ **Live football scores** with team crests (SofaScore, FotMob, FlashScore, 365Scores…)
+- 💳 **Apple Pay–style payment animation** (Google Wallet, Revolut, PayPal, N26, Monzo, Venmo,
+  Cash App…)
+- 🎛️ **Every card type has its own switch** — payments, football, login codes, charging…
 - 🎵 **Media controls** wired to the real app
 - 📋 **Log tab** showing what was cast or skipped, and why
 
@@ -62,20 +63,20 @@ live football scores, including from European and international apps.
 
 ## Install
 
-1. Download the APK from **[Releases](https://github.com/fvhde/origin-isle/releases)** and install it.
-2. Open Origin Isle and grant **notification access** (required).
+1. Download the APK from **[Releases](https://github.com/rafiferdos/origin-island-pro/releases)** and install it.
+2. Open Origin Island Pro and grant **notification access** (required).
 3. Test with a sample card in the **Cast** tab.
 
 > [!TIP]
 > For reliable background running, also enable:
-> **Battery → Unrestricted** · **Auto-start → Allow** · **Accessibility → Origin Isle keep-alive**
+> **Battery → Unrestricted** · **Auto-start → Allow** · **Accessibility → Origin Island Pro keep-alive**
 
 <details>
 <summary><b>Verify your download</b></summary>
 
 ```sh
-shasum -a 256 origin-isle-<version>.apk   # must match the .sha256 file
-apksigner verify --print-certs origin-isle-<version>.apk
+shasum -a 256 origin-island-pro-<version>.apk   # must match the .sha256 file
+apksigner verify --print-certs origin-island-pro-<version>.apk
 ```
 Expected certificate:
 ```

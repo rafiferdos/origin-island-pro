@@ -71,6 +71,8 @@ fun HomeScreen(
     var lockscreenLiveCard by remember { mutableStateOf(prefs.getBoolean("cast_lockscreen_live_card", false)) }
     var autoDismissSec by remember { mutableStateOf(prefs.getInt("cast_auto_dismiss_seconds", 0)) }
     var otpOn by remember { mutableStateOf(prefs.getBoolean("cast_otp", true)) }
+    var sportsOn by remember { mutableStateOf(prefs.getBoolean("cast_sports", true)) }
+    var paymentsOn by remember { mutableStateOf(prefs.getBoolean("cast_payments", true)) }
     var actionsOn by remember { mutableStateOf(prefs.getBoolean("cast_show_actions", true)) }
     var chargingOn by remember { mutableStateOf(prefs.getBoolean("cast_charging", true)) }
     var chargingKeep by remember { mutableStateOf(prefs.getBoolean("cast_charging_keep", false)) }
@@ -275,6 +277,20 @@ fun HomeScreen(
                         subtitle = "Show the code, tap to copy",
                     ) {
                         otpOn = it; prefs.edit().putBoolean("cast_otp", it).apply()
+                    }
+                    GroupDivider()
+                    ToggleRow(
+                        IsleIcons.Ball, IsleColors.TileRose, "Football scores", sportsOn,
+                        subtitle = "Live match cards from score apps",
+                    ) {
+                        sportsOn = it; prefs.edit().putBoolean("cast_sports", it).apply()
+                    }
+                    GroupDivider()
+                    ToggleRow(
+                        IsleIcons.Wallet, IsleColors.TileIndigo, "Payments", paymentsOn,
+                        subtitle = "Apple-style payment animation",
+                    ) {
+                        paymentsOn = it; prefs.edit().putBoolean("cast_payments", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(

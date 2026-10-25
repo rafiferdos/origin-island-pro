@@ -69,13 +69,14 @@ fi
 
 # --- stage artifacts + checksum -----------------------------------------------------------
 mkdir -p dist
-APK_OUT="dist/origin-isle-${VERSION}.apk"
+ARTIFACT="origin-island-pro-${VERSION}"
+APK_OUT="dist/${ARTIFACT}.apk"
 cp -f "$APK_IN" "$APK_OUT"
 
 if command -v shasum >/dev/null 2>&1; then
-  ( cd dist && shasum -a 256 "origin-isle-${VERSION}.apk" | tee "origin-isle-${VERSION}.apk.sha256" )
+  ( cd dist && shasum -a 256 "${ARTIFACT}.apk" | tee "${ARTIFACT}.apk.sha256" )
 elif command -v sha256sum >/dev/null 2>&1; then
-  ( cd dist && sha256sum "origin-isle-${VERSION}.apk" | tee "origin-isle-${VERSION}.apk.sha256" )
+  ( cd dist && sha256sum "${ARTIFACT}.apk" | tee "${ARTIFACT}.apk.sha256" )
 else
   echo "WARNING: no shasum/sha256sum available; skipping checksum file." >&2
 fi
