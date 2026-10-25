@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -248,7 +249,7 @@ fun HomeScreen(
                     }
                     GroupDivider()
                     ToggleRow(
-                        IsleIcons.Music, IsleColors.TileOrange, "Media", mediaOn,
+                        IsleIcons.Music, IsleColors.TileMedia, "Media", mediaOn,
                         subtitle = "Mimic OriginPlayer for media apps",
                     ) {
                         mediaOn = it; prefs.edit().putBoolean("cast_media_sessions", it).apply()
@@ -328,77 +329,77 @@ fun HomeScreen(
                 SectionLabel("Cards")
                 GroupCard {
                     ToggleRow(
-                        IsleIcons.Chat, IsleColors.TileGreen, "Messages", messagesOn,
+                        IsleIcons.Chat, IsleColors.TileChat, "Messages", messagesOn,
                         subtitle = "WhatsApp, Messenger, Telegram, IMO, SMS…",
                     ) {
                         messagesOn = it; prefs.edit().putBoolean("cast_messages", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(
-                        IsleIcons.Calendar, IsleColors.TileBlue, "Meetings & Events", meetingsOn,
+                        IsleIcons.Calendar, IsleColors.TileCalendar, "Meetings & Events", meetingsOn,
                         subtitle = "Countdown to events (Google Calendar, Meet, Zoom…)",
                     ) {
                         meetingsOn = it; prefs.edit().putBoolean("cast_meetings", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(
-                        IsleIcons.Car, IsleColors.TileCyan, "Rides & Taxis", ridesOn,
+                        IsleIcons.Car, IsleColors.TileRide, "Rides & Taxis", ridesOn,
                         subtitle = "Driver arrival & plate (Uber, Pathao Rides…)",
                     ) {
                         ridesOn = it; prefs.edit().putBoolean("cast_rides", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(
-                        IsleIcons.Clock, IsleColors.TileTeal, "Clock Timers", timerOn,
+                        IsleIcons.Clock, IsleColors.TileTimer, "Clock Timers", timerOn,
                         subtitle = "Live ticking timer countdown on island",
                     ) {
                         timerOn = it; prefs.edit().putBoolean("cast_timer", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(
-                        IsleIcons.Key, IsleColors.TileBlue, "Login codes", otpOn,
+                        IsleIcons.Key, IsleColors.TileAmber, "Login codes", otpOn,
                         subtitle = "Show the code, tap to copy",
                     ) {
                         otpOn = it; prefs.edit().putBoolean("cast_otp", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(
-                        IsleIcons.Shield, IsleColors.TileIndigo, "2FA & Sign-in", authOn,
+                        IsleIcons.Shield, IsleColors.TileAuth, "2FA & Sign-in", authOn,
                         subtitle = "Approve login requests with one tap",
                     ) {
                         authOn = it; prefs.edit().putBoolean("cast_auth", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(
-                        IsleIcons.Ball, IsleColors.TileRose, "Football scores", sportsOn,
+                        IsleIcons.Ball, IsleColors.TileSports, "Football scores", sportsOn,
                         subtitle = "Live match cards from score apps",
                     ) {
                         sportsOn = it; prefs.edit().putBoolean("cast_sports", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(
-                        IsleIcons.Wallet, IsleColors.TileIndigo, "Payments", paymentsOn,
+                        IsleIcons.Wallet, IsleColors.TilePayment, "Payments", paymentsOn,
                         subtitle = "Apple-style payment animation",
                     ) {
                         paymentsOn = it; prefs.edit().putBoolean("cast_payments", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(
-                        IsleIcons.Truck, IsleColors.TileCyan, "Delivery tracking", deliveryOn,
+                        IsleIcons.Truck, IsleColors.TileDelivery, "Delivery tracking", deliveryOn,
                         subtitle = "Parcel & shipping notifications (Amazon, DHL, FedEx…)",
                     ) {
                         deliveryOn = it; prefs.edit().putBoolean("cast_delivery", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(
-                        IsleIcons.CloudSun, IsleColors.TileOrange2, "Weather alerts", weatherOn,
+                        IsleIcons.CloudSun, IsleColors.TileWeather, "Weather alerts", weatherOn,
                         subtitle = "Storm warnings and forecast updates",
                     ) {
                         weatherOn = it; prefs.edit().putBoolean("cast_weather", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(
-                        IsleIcons.Buttons, IsleColors.TileTeal, "Action buttons", actionsOn,
+                        IsleIcons.Buttons, IsleColors.TileDownload, "Action buttons", actionsOn,
                         subtitle = "The app's own buttons on the card",
                     ) {
                         actionsOn = it; prefs.edit().putBoolean("cast_show_actions", it).apply()
@@ -563,6 +564,7 @@ private fun SampleTester(context: Context) {
                 .heightIn(min = 104.dp)
                 .clip(RoundedCornerShape(20.dp))
                 .background(IsleColors.PreviewBg)
+                .border(1.dp, IsleColors.PreviewBorder, RoundedCornerShape(20.dp))
                 .padding(start = 10.dp, end = 10.dp, top = 14.dp, bottom = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween,

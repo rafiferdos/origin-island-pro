@@ -17,59 +17,76 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.core.view.WindowCompat
 import com.originisle.android.R
 
-/** The redesign's palette: near-black ground, grouped grey cards, one blue accent. */
+/** The redesign's palette: luxury obsidian carbon, grouped frosted cards, refined dynamic accents. */
 object IsleColors {
     val Background = Color(0xFF0B0B0D)
-    val Surface = Color(0xFF1A1A1E)
+    val Surface = Color(0xFF16161A)
     /** Dividers, idle chips, segmented-control track. */
-    val SurfaceHigh = Color(0xFF26262B)
+    val SurfaceHigh = Color(0xFF222228)
     /** Selected segment. */
-    val SurfaceHigher = Color(0xFF3E3E46)
-    val Menu = Color(0xFF26262C)
+    val SurfaceHigher = Color(0xFF32323A)
+    val Menu = Color(0xFF202026)
 
-    val Text = Color(0xFFF4F4F6)
-    val TextSecondary = Color(0xFF8E8E96)
-    val TextTertiary = Color(0xFFA1A1AA)
-    val TextChip = Color(0xFFD4D4DA)
-    val Chevron = Color(0xFF6E6E78)
+    val Text = Color(0xFFF5F5F7)
+    val TextSecondary = Color(0xFF9898A0)
+    val TextTertiary = Color(0xFFA8A8B2)
+    val TextChip = Color(0xFFD6D6DC)
+    val Chevron = Color(0xFF70707A)
 
-    val Accent = Color(0xFF3A63F0)
-    val AccentText = Color(0xFF8FA8FF)
-    val SwitchOff = Color(0xFF3A3A40)
-    val Danger = Color(0xFFFF8A7A)
+    // Sleek Apple / OriginOS Electric Sapphire (replacing harsh raw blue)
+    val Accent = Color(0xFF2D6BF5)
+    val AccentText = Color(0xFF90B4FE)
+    val SwitchOff = Color(0xFF34343C)
+    val Danger = Color(0xFFFF6961)
 
-    val Good = Color(0xFF34C77B)
-    val GoodText = Color(0xFF5BD99A)
-    val GoodBg = Color(0xFF14261C)
-    val GoodButton = Color(0xFF1D3527)
-    val GoodSubtle = Color(0xFF9CCBB0)
-    val GoodIconBg = Color(0xFF173524)
+    val Good = Color(0xFF34C759)
+    val GoodText = Color(0xFF5CD985)
+    val GoodBg = Color(0xFF132519)
+    val GoodButton = Color(0xFF1B3825)
+    val GoodSubtle = Color(0xFF9ECCAF)
+    val GoodIconBg = Color(0xFF163822)
 
-    val Bad = Color(0xFFFF6B5E)
-    val BadText = Color(0xFFFF8A7A)
-    val BadBg = Color(0xFF2A1715)
-    val BadButton = Color(0xFF3A1F1C)
-    val BadSubtle = Color(0xFFD9A49C)
+    val Bad = Color(0xFFFF453A)
+    val BadText = Color(0xFFFF7B72)
+    val BadBg = Color(0xFF2B1615)
+    val BadButton = Color(0xFF3D1E1B)
+    val BadSubtle = Color(0xFFE2A199)
 
-    val Warn = Color(0xFFFFB35C)
-    val WarnBg = Color(0xFF2B2114)
+    val Warn = Color(0xFFFF9F0A)
+    val WarnBg = Color(0xFF2C2013)
 
-    val CastTagBg =Color(0xFF1F2A4D)
-    val CastTagFg = Color(0xFF9DB4FF)
-    val PreviewBg = Color(0xFF1E2335)
-    val PreviewLabel = Color(0xFF8C94B4)
+    // Deep frosted obsidian carbon container with crisp OLED contrast
+    val CastTagBg = Color(0xFF1C1E26)
+    val CastTagFg = Color(0xFFB0C4DE)
+    val PreviewBg = Color(0xFF121215)
+    val PreviewBorder = Color(0xFF24242C)
+    val PreviewLabel = Color(0xFF8E8E98)
 
-    // Icon tiles in settings rows.
-    val TileBlue = Color(0xFF3A63F0)
+    // Vibrant, category-specific modern pastel-neon tile accents:
+    val TileCall = Color(0xFF34C759)      // Vibrant Emerald for calls
+    val TileChat = Color(0xFF2AABEE)      // Telegram Azure for chats
+    val TileCalendar = Color(0xFFFF5A79)  // Coral Rose for meetings
+    val TileDownload = Color(0xFF00C2A0)  // Modern Aqua for downloads
+    val TileRide = Color(0xFFFFB800)      // Amber Gold for rides
+    val TileDelivery = Color(0xFFFF2B85)  // Magenta for deliveries
+    val TileTimer = Color(0xFFFF9500)     // Radiant Orange for timers
+    val TileAuth = Color(0xFF8B5CF6)      // Violet for 2FA / Login
+    val TileWeather = Color(0xFF29B6F6)   // Sky Blue for weather
+    val TileSports = Color(0xFF10B981)    // Emerald Green for sports
+    val TileMedia = Color(0xFFFA2D48)     // Apple Music Red for media
+    val TilePayment = Color(0xFFE2136E)   // bKash Magenta / Payment
+
+    // Legacy aliases preserved for backward compatibility
+    val TileBlue = Color(0xFF2D6BF5)
     val TileOrange = Color(0xFFF2683C)
-    val TileTeal = Color(0xFF2BA8C4)
-    val TilePurple = Color(0xFF7B5CFF)
-    val TileGreen = Color(0xFF20A36B)
-    val TileAmber = Color(0xFFE0A21B)
+    val TileTeal = Color(0xFF00C2A0)
+    val TilePurple = Color(0xFF8B5CF6)
+    val TileGreen = Color(0xFF34C759)
+    val TileAmber = Color(0xFFFFB800)
     val TileGray = Color(0xFF4A4A55)
-    val TileRose = Color(0xFFE05C8A)
+    val TileRose = Color(0xFFFF5A79)
     val TileIndigo = Color(0xFF5C6CFF)
-    val TileCyan = Color(0xFF0EA5C8)
+    val TileCyan = Color(0xFF00C2FF)
     val TileOrange2 = Color(0xFFE87040)
 }
 

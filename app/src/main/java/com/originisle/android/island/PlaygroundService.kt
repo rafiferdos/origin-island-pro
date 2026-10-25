@@ -294,6 +294,8 @@ class PlaygroundService : Service() {
         val leftDoubleLine = intent.getStringArrayListExtra("oi_left_doubleline") ?: emptyList()
         val rightDoubleLine = intent.getStringArrayListExtra("oi_right_doubleline") ?: emptyList()
         val buttonTitles = intent.getStringArrayListExtra("oi_button_titles") ?: emptyList()
+        val buttonBgColors = intent.getIntegerArrayListExtra("oi_button_bg_colors") ?: emptyList()
+        val buttonTextColors = intent.getIntegerArrayListExtra("oi_button_text_colors") ?: emptyList()
 
         // capsule / right-island chip text: prefer explicit chip, else right content.
         val chip = statusChip.ifBlank { rightContent }
@@ -345,6 +347,8 @@ class PlaygroundService : Service() {
             leftDoubleLine = leftDoubleLine,
             rightDoubleLine = rightDoubleLine,
             buttonTitles = buttonTitles,
+            buttonBgColors = buttonBgColors,
+            buttonTextColors = buttonTextColors,
             customTemplate = customTemplate,
             waveState = waveState,
             waveColorList = waveColorList,

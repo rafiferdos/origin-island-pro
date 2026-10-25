@@ -75,9 +75,9 @@ fun IslandPreviewView(preview: IslandPreview, modifier: Modifier = Modifier) {
     }
 }
 
-private val CameraGap = 36.dp
-private val MinHalf = 56.dp
-private val MaxHalf = 112.dp
+private val CameraGap = 34.dp
+private val MinHalf = 52.dp
+private val MaxHalf = 104.dp
 
 @Composable
 private fun IslandHalves(preview: IslandPreview) {
@@ -117,9 +117,9 @@ private fun IslandHalves(preview: IslandPreview) {
 private val IslandRim = Color(0xFF2E2E32)
 private val CapsuleGrey = Color(0xFF2C2C2E)
 private val IconTileGrey = Color(0xFF1C1C1E)
-private val SuccessGreen = Color(0xFF30C85A)
-/** vivo SuperX's default progress blue (R.color.vivo_super_x_progress_bar_default_color). */
-private val ProgressBlue = Color(0xFF3083F0)
+private val SuccessGreen = Color(0xFF34C759)
+/** Refined Electric Sapphire for progress rings (replacing harsh royal blue). */
+private val ProgressBlue = Color(0xFF2D6BF5)
 
 @Composable
 private fun IslandText(
@@ -152,8 +152,17 @@ private fun LeftIcon(res: Int) {
         Modifier.size(24.dp).clip(RoundedCornerShape(6.dp)).background(IconTileGrey),
         contentAlignment = Alignment.Center,
     ) {
-        // The payment icon carries its own green; the others are white glyphs.
-        val tint = if (res == R.drawable.ic_payment) Color.Unspecified else Color.White
+        val tint = when (res) {
+            R.drawable.ic_payment -> Color.Unspecified
+            R.drawable.ic_call -> IsleColors.TileCall
+            R.drawable.ic_call_end -> IsleColors.Bad
+            R.drawable.ic_download -> IsleColors.TileDownload
+            R.drawable.ic_charging -> IsleColors.Good
+            R.drawable.ic_car -> IsleColors.TileRide
+            R.drawable.ic_calendar -> IsleColors.TileCalendar
+            R.drawable.ic_timer -> IsleColors.TileTimer
+            else -> Color.White
+        }
         Icon(painterResource(res), null, Modifier.size(15.dp), tint = tint)
     }
 }
@@ -166,13 +175,18 @@ private fun Crest() {
 
 @Composable
 private fun ProgressRing(fraction: Float) {
+    val animatedFraction by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = fraction,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 500, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+        label = "progress_fraction",
+    )
     Canvas(Modifier.padding(end = 3.dp).size(22.dp)) {
-        val stroke = 3.dp.toPx()
+        val stroke = 2.8.dp.toPx()
         val inset = stroke / 2
         val arcSize = androidx.compose.ui.geometry.Size(size.width - stroke, size.height - stroke)
         val topLeft = androidx.compose.ui.geometry.Offset(inset, inset)
         drawArc(CapsuleGrey, 0f, 360f, false, topLeft, arcSize, style = Stroke(stroke))
-        drawArc(ProgressBlue, -90f, 360f * fraction, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+        drawArc(ProgressBlue, -90f, 360f * animatedFraction, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
     }
 }
 

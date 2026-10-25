@@ -86,6 +86,33 @@ object OriginIslandBuilder {
         defaultColor
     }
 
+    /** Intelligently resolves background color for action buttons based on their intent/label. */
+    fun resolveSemanticButtonBgColor(title: String, defaultColor: Int = 0): Int {
+        val t = title.lowercase()
+        return when {
+            listOf("decline", "reject", "hang up", "end", "cancel", "deny", "drop", "stop", "dismiss")
+                .any { t.contains(it) } -> 0xFFFF3B30.toInt() // Apple / OriginOS Crimson Red
+            listOf("answer", "accept", "approve", "yes", "join", "allow", "start", "confirm", "open")
+                .any { t.contains(it) } -> 0xFF34C759.toInt() // Apple / OriginOS Emerald Green
+            listOf("pause", "snooze", "later", "retry")
+                .any { t.contains(it) } -> 0xFFFF9500.toInt() // Radiant Amber
+            !isDefaultColor(defaultColor) -> defaultColor
+            else -> 0xFF2C2C2E.toInt() // Modern dark frosted pill
+        }
+    }
+
+    /** Intelligently resolves text color for action buttons. */
+    fun resolveSemanticButtonTextColor(title: String, defaultColor: Int = 0): Int {
+        val t = title.lowercase()
+        return when {
+            listOf("decline", "reject", "hang up", "end", "cancel", "deny", "drop", "stop", "dismiss",
+                   "answer", "accept", "approve", "yes", "join", "allow", "start", "confirm",
+                   "pause", "snooze", "later", "retry").any { t.contains(it) } -> 0xFFFFFFFF.toInt()
+            !isDefaultColor(defaultColor) -> defaultColor
+            else -> 0xFFFFFFFF.toInt()
+        }
+    }
+
     /** Bundle that removes/ends a previously-posted card for [scene]. */
     fun buildEndBundle(scene: String): Bundle = Bundle().apply {
         putInt(OriginIslandConstants.BUNDLE_KEY_OPERATION, 2)
@@ -171,6 +198,8 @@ object OriginIslandBuilder {
         leftDoubleLine: List<String> = emptyList(),
         rightDoubleLine: List<String> = emptyList(),
         buttonTitles: List<String> = emptyList(),
+        buttonBgColors: List<Int> = emptyList(),
+        buttonTextColors: List<Int> = emptyList(),
         customTemplate: RemoteViews? = null,
         waveState: Int = 1,
         waveColorList: List<String>? = null,
@@ -226,14 +255,10 @@ object OriginIslandBuilder {
                 base.putInt(C.BUNDLE_KEY_BASE_SUB_INFO, 2)
                 base.putString(C.BUNDLE_KEY_BASE_SUB_TEXT, actionTitle)
                 base.putParcelable(C.BUNDLE_KEY_BASE_SUB_INFO_CLICK_RESP, actionPi)
-                base.putInt(
-                    C.BUNDLE_KEY_BASE_SUB_TEXT_COLOR,
-                    if (!isDefaultColor(fgColor)) fgColor else Color.parseColor("#FF1C1C1E"),
-                )
-                base.putInt(
-                    C.BUNDLE_KEY_BASE_SUB_CAPSULE_BG_COLOR,
-                    if (!isDefaultColor(bgColor)) bgColor else Color.parseColor("#FFF2F2F2"),
-                )
+                val semanticBg = resolveSemanticButtonBgColor(actionTitle, bgColor)
+                val semanticFg = resolveSemanticButtonTextColor(actionTitle, fgColor)
+                base.putInt(C.BUNDLE_KEY_BASE_SUB_TEXT_COLOR, semanticFg)
+                base.putInt(C.BUNDLE_KEY_BASE_SUB_CAPSULE_BG_COLOR, semanticBg)
             }
             template == 2 -> base.putInt(C.BUNDLE_KEY_BASE_SUB_INFO, 0)
             template == 4 -> {
@@ -334,13 +359,17 @@ object OriginIslandBuilder {
                     else -> emptyList()
                 }.take(3)
                 if (triples.isNotEmpty()) {
-                    val textColor = if (!isDefaultColor(fgColor)) fgColor else Color.parseColor("#FF1A1A1A")
-                    val btnColor = if (!isDefaultColor(bgColor)) bgColor else Color.parseColor("#FFEFEFEF")
+                    val textColors = triples.mapIndexed { idx, item ->
+                        buttonTextColors.getOrNull(idx) ?: resolveSemanticButtonTextColor(item.first, fgColor)
+                    }
+                    val btnColors = triples.mapIndexed { idx, item ->
+                        buttonBgColors.getOrNull(idx) ?: resolveSemanticButtonBgColor(item.first, bgColor)
+                    }
                     infos.putInt(C.BUNDLE_KEY_INFO_BTN_TYPE, 1)
                     infos.putStringArrayList(C.BUNDLE_KEY_INFO_BTN_TEXT_LIST, ArrayList(triples.map { it.first }))
                     infos.putParcelableArrayList(C.BUNDLE_KEY_INFO_BTN_ICON_LIST, ArrayList(triples.map { it.second }))
-                    infos.putIntegerArrayList(C.BUNDLE_KEY_INFO_BTN_TEXT_COLOR_LIST, ArrayList(triples.map { textColor }))
-                    infos.putIntegerArrayList(C.BUNDLE_KEY_INFO_BTN_COLOR_LIST, ArrayList(triples.map { btnColor }))
+                    infos.putIntegerArrayList(C.BUNDLE_KEY_INFO_BTN_TEXT_COLOR_LIST, ArrayList(textColors))
+                    infos.putIntegerArrayList(C.BUNDLE_KEY_INFO_BTN_COLOR_LIST, ArrayList(btnColors))
                     infos.putParcelableArrayList(C.BUNDLE_KEY_INFO_BTN_CLICK_RESP_LIST, ArrayList(triples.map { it.third }))
                 }
             }

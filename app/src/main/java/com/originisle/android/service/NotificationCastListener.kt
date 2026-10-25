@@ -22,8 +22,10 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.originisle.android.cards.AuthPromptCard
+import com.originisle.android.cards.CallCard
 import com.originisle.android.cards.ChargingCard
 import com.originisle.android.cards.DeliveryCard
+import com.originisle.android.cards.DownloadCard
 import com.originisle.android.cards.GenericCard
 import com.originisle.android.cards.MediaCard
 import com.originisle.android.cards.MeetingCard
@@ -511,7 +513,15 @@ class NotificationCastListener : NotificationListenerService() {
         val token = extras.getParcelable(NotificationCompat.EXTRA_MEDIA_SESSION, MediaSession.Token::class.java)
         val template = extras.getString(NotificationCompat.EXTRA_TEMPLATE)
         val isCall = n.category == NotificationCompat.CATEGORY_CALL ||
-            template == "android.app.Notification\$CallStyle"
+            template == "android.app.Notification\$CallStyle" ||
+            CallCard.isCall(sbn)
+
+        // Incoming or active calls get dedicated CallCard with high-contrast Answer/Decline actions
+        if (isCall && castNotifs) {
+            log(sbn, "cast — incoming call", true)
+            CallCard.post(applicationContext, sbn, appLabel(sbn.packageName))
+            return
+        }
 
         // Media sessions get the dedicated media path. If the notification has no session token
         // (some players, e.g. Firefox playing a video, omit it), fall back to matching an active
@@ -757,6 +767,13 @@ class NotificationCastListener : NotificationListenerService() {
         if (isNavigation(sbn, isOngoing)) {
             log(sbn, "cast — navigation", true)
             NavigationCard.post(applicationContext, sbn)
+            return
+        }
+
+        // Active downloads & file transfers -> dedicated normalized card
+        if (DownloadCard.isDownload(sbn)) {
+            log(sbn, "cast — download", true)
+            DownloadCard.post(applicationContext, sbn, appLabel(sbn.packageName))
             return
         }
 

@@ -36,21 +36,22 @@ object IslandSamples {
             )
         },
         OriginSample(
-            "App download", "Progress card + island ring · 75%",
-            IslandPreview(R.drawable.ic_alert, "Downloading", IslandPreview.Right.Progress(0.75f)),
+            "App download", "Download progress · 2.4 MB/s · 75%",
+            IslandPreview(R.drawable.ic_download, "2.4M/s", IslandPreview.Right.Progress(0.75f)),
         ) { ctx ->
             start(ctx, 40001) {
                 putExtra("oi_scene", "NAVIGATION")
+                putExtra("oi_priority", 75)
                 putExtra("oi_template", OriginIslandConstants.TEMPLATE_PROGRESS_VISUAL)
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS)
-                putExtra("title", "Downloading")
-                putExtra("text", "app-release.apk")
-                putExtra("oi_left_content", "Downloading")
+                putExtra("title", "origin-island-v2.6.apk")
+                putExtra("text", "75% • 18 MB / 24 MB • 2.4 MB/s")
+                putExtra("oi_left_content", "2.4M/s")
                 putExtra("show_progress", true)
                 putExtra("progress", 75)
                 putExtra("progress_max", 100)
                 putExtra("status_chip_text", "75%")
-                putExtra("icon_res", R.drawable.ic_alert)
+                putExtra("icon_res", R.drawable.ic_download)
             }
         },
         OriginSample(
@@ -65,7 +66,7 @@ object IslandSamples {
         },
         OriginSample(
             "Food delivery", "Foodpanda / Pathao · Rider arriving · 15 min",
-            IslandPreview(R.drawable.ic_alert, "Foodpanda", IslandPreview.Right.Capsule("15 min")),
+            IslandPreview(R.drawable.ic_delivery, "Foodpanda", IslandPreview.Right.Capsule("15 min")),
         ) { ctx ->
             DeliveryCard.post(
                 context = ctx, id = 40003,
@@ -78,7 +79,7 @@ object IslandSamples {
         },
         OriginSample(
             "Ride hailing", "Uber / Pathao · Driver Tanvir (Dhaka Metro Ga-12-3456) · 3 min",
-            IslandPreview(R.drawable.ic_alert, "Ride", IslandPreview.Right.Capsule("3 min")),
+            IslandPreview(R.drawable.ic_car, "Pathao", IslandPreview.Right.Capsule("3 min")),
         ) { ctx ->
             RideCard.post(
                 context = ctx, id = 40004,
@@ -91,7 +92,7 @@ object IslandSamples {
         },
         OriginSample(
             "Meeting & Event", "Google Meet · Sprint Review · In 10m",
-            IslandPreview(R.drawable.ic_alert, "Review", IslandPreview.Right.Capsule("In 10m")),
+            IslandPreview(R.drawable.ic_calendar, "Meet", IslandPreview.Right.Capsule("In 10m")),
         ) { ctx ->
             MeetingCard.post(
                 context = ctx, id = 40015,
@@ -105,20 +106,29 @@ object IslandSamples {
         },
         OriginSample(
             "2FA Sign-in", "Google · Approve sign-in from Windows PC? · Approve / Deny",
-            IslandPreview(R.drawable.ic_alert, "Sign-in", IslandPreview.Right.Capsule("Approve?")),
+            IslandPreview(R.drawable.ic_shield, "Sign-in", IslandPreview.Right.Capsule("Approve?")),
         ) { ctx ->
-            AuthPromptCard.post(
-                context = ctx, id = 40016,
-                title = "Is that you signing in?",
-                details = "Chrome on Windows · Dhaka, Bangladesh",
-                appLabel = "Google Play Services",
-                appIcon = null,
-                clickResp = openApp(ctx),
-            )
+            start(ctx, 40016) {
+                putExtra("oi_scene", "NAVIGATION")
+                putExtra("oi_priority", 72)
+                putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
+                putExtra("title", "Is that you signing in?")
+                putExtra("text", "Chrome on Windows • Dhaka, Bangladesh")
+                putExtra("subtext", "Google Play Services")
+                putExtra("oi_left_content", "Sign-in")
+                putExtra("oi_right_content", "Approve?")
+                putExtra("status_chip_text", "Approve?")
+                putExtra("icon_res", R.drawable.ic_shield)
+                putStringArrayListExtra("oi_button_titles", arrayListOf("Deny", "Approve"))
+                putIntegerArrayListExtra("oi_button_bg_colors", arrayListOf(0xFFFF3B30.toInt(), 0xFF34C759.toInt()))
+                putIntegerArrayListExtra("oi_button_text_colors", arrayListOf(0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt()))
+                putExtra("click_resp", openApp(ctx))
+            }
         },
         OriginSample(
             "Flight boarding", "FLIGHT · symmetric route card",
-            IslandPreview(R.drawable.ic_alert, "CDG → FCO", IslandPreview.Right.Capsule("Gate K21")),
+            IslandPreview(R.drawable.ic_flight, "CDG → FCO", IslandPreview.Right.Capsule("Gate K21")),
         ) { ctx ->
             start(ctx, 40005) {
                 putExtra("oi_scene", "NAVIGATION")
@@ -130,7 +140,7 @@ object IslandSamples {
                 putExtra("oi_extra3", "FCO"); putExtra("oi_extra4", "14:55")
                 putExtra("oi_left_content", "CDG → FCO")
                 putExtra("status_chip_text", "Gate K21")
-                putExtra("icon_res", R.drawable.ic_alert)
+                putExtra("icon_res", R.drawable.ic_flight)
             }
         },
         OriginSample(
@@ -205,20 +215,23 @@ object IslandSamples {
             }
         },
         OriginSample(
-            "Incoming call", "VOIPCALL · Decline / Answer buttons",
-            IslandPreview(R.drawable.ic_call, "", IslandPreview.Right.Text("John")),
+            "Incoming call", "VOIPCALL · Red Decline & Green Answer",
+            IslandPreview(R.drawable.ic_call, "John", IslandPreview.Right.Wave),
         ) { ctx ->
             start(ctx, 40009) {
                 putExtra("oi_scene", "NAVIGATION")
+                putExtra("oi_priority", 100)
                 putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
-                // Same pill as a real call cast: icon on the left, the caller's name right of the camera.
-                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON)
-                putExtra("oi_show_right_icon", false)
-                putExtra("title", "John")
-                putExtra("text", "WhatsApp voice call")
-                putExtra("oi_left_content", "")
-                putExtra("oi_right_content", "John")
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_WAVE)
+                putExtra("oi_wave_state", 1)
+                putExtra("title", "John Doe")
+                putExtra("text", "WhatsApp Audio Call")
+                putExtra("subtext", "WhatsApp")
+                putExtra("oi_left_content", "John")
+                putExtra("oi_right_content", "Incoming")
                 putStringArrayListExtra("oi_button_titles", arrayListOf("Decline", "Answer"))
+                putIntegerArrayListExtra("oi_button_bg_colors", arrayListOf(0xFFFF3B30.toInt(), 0xFF34C759.toInt()))
+                putIntegerArrayListExtra("oi_button_text_colors", arrayListOf(0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt()))
                 putExtra("click_resp", openApp(ctx))
                 putExtra("icon_res", R.drawable.ic_call)
             }
