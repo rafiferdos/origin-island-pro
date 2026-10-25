@@ -9,7 +9,6 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
         android:name=".OriginIsleApp"
@@ -42,16 +41,6 @@
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="OriginIsland live update service" />
-        </service>
-
-        <!-- Optional True Floating Liquid Glass Overlay Island -->
-        <service
-            android:name=".overlay.FloatingIslandService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Floating island overlay service" />
         </service>
 
         <!-- Listens to every notification on the device and re-casts eligible into the OriginIsland. -->

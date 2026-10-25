@@ -16,7 +16,6 @@ import android.util.Log
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import com.originisle.android.R
-import com.originisle.android.overlay.FloatingIslandService
 import com.originisle.android.service.IconCache
 import com.originisle.android.ui.PREFS_NAME
 import java.util.concurrent.ConcurrentHashMap
@@ -213,26 +212,9 @@ class PlaygroundService : Service() {
 
         val bgColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_bg_color"), 0)
         val fgColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_fg_color"), 0)
-        val rawCardBgColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_card_bg_color"), 0)
-        val rawLightColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_light_color"), 0)
-
-        val glassStyle = getSharedPreferences(PREFS_NAME, 0).getString("expanded_glass_style", "liquid") ?: "liquid"
-        val cardBgColor = when {
-            rawCardBgColor != 0 -> rawCardBgColor
-            glassStyle == "frosted" -> 0xB0161622.toInt() // Frosted translucent glass
-            glassStyle == "liquid" -> 0x8812121A.toInt()  // Deep Apple liquid glass
-            else -> 0xFF16161A.toInt()                    // Solid obsidian
-        }
-        val lightMode = when {
-            intent.hasExtra("oi_light_mode") -> intent.getIntExtra("oi_light_mode", 0)
-            glassStyle == "liquid" -> 1
-            else -> 0
-        }
-        val lightColor = when {
-            rawLightColor != 0 -> rawLightColor
-            glassStyle == "liquid" -> 0xFF2D6BF5.toInt() // Electric Sapphire ambient glow
-            else -> 0
-        }
+        val cardBgColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_card_bg_color"), 0)
+        val lightColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_light_color"), 0)
+        val lightMode = intent.getIntExtra("oi_light_mode", 0)
 
         val showProgress = intent.getBooleanExtra("show_progress", false)
         val progressMax = intent.getIntExtra("progress_max", 0)
@@ -399,7 +381,6 @@ class PlaygroundService : Service() {
         originScenes[id] = scene
         activeCardIds = activeIds.toSet()
         postSuperX(id, iconRes, title, text, sourceApp, isOngoing, scene, bundle, intent.getLongExtra("when", 0L))
-        runCatching { FloatingIslandService.postCard(this, intent) }
 
         // Auto-dismiss: only for non-live cards (isOngoing is the same live/persistent flag the
         // card posters set — media, sports and any ongoing/call/progress GenericCard all mark
@@ -486,7 +467,6 @@ class PlaygroundService : Service() {
     private fun cancelNotification(intent: Intent) {
         val id = intent.getIntExtra("id", -1)
         if (id == -1) return
-        runCatching { FloatingIslandService.dismissCard(this, id) }
         autoDismissTasks.remove(id)?.let { mainHandler.removeCallbacks(it) }
         val scene = originScenes.remove(id) ?: intent.getStringExtra("oi_scene")
         if (scene != null) {
@@ -527,7 +507,6 @@ class PlaygroundService : Service() {
                 notificationManager.cancel(OriginIslandConstants.SUPERX_TAG, it)
                 notificationManager.cancel(it)
             }
-            runCatching { stopService(Intent(this, FloatingIslandService::class.java)) }
             // Clear the flag with the teardown, or a start arriving before we're destroyed sees a
             // stale "already foreground" and skips ensureForeground(), leaving the process unanchored.
             isForegroundActive = false
