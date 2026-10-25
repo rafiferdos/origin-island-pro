@@ -12,6 +12,7 @@ class MediaCardTest {
         assertEquals("Yellow", MediaCard.cleanTrackTitle("Yellow (Lyrics)"))
         assertEquals("Hotel California", MediaCard.cleanTrackTitle("Hotel California [Remastered 2013]"))
         assertEquals("Bohemian Rhapsody", MediaCard.cleanTrackTitle("Bohemian Rhapsody - Official Video"))
+        assertEquals("Save Your Tears", MediaCard.cleanTrackTitle("Save Your Tears (feat. Ariana Grande)"))
         assertEquals("Blinding Lights", MediaCard.cleanTrackTitle("Blinding Lights"))
     }
 }

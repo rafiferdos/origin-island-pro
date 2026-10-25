@@ -13,6 +13,7 @@ import android.graphics.drawable.Icon
 import android.media.session.MediaController
 import android.media.session.MediaSession
 import android.media.session.MediaSessionManager
+import android.media.session.PlaybackState
 import android.os.Handler
 import android.os.Looper
 import android.service.notification.NotificationListenerService
@@ -25,8 +26,10 @@ import com.originisle.android.cards.AuthPromptCard
 import com.originisle.android.cards.CallCard
 import com.originisle.android.cards.ChargingCard
 import com.originisle.android.cards.DeliveryCard
+import com.originisle.android.cards.DiscordCard
 import com.originisle.android.cards.DownloadCard
 import com.originisle.android.cards.GenericCard
+import com.originisle.android.cards.MailCard
 import com.originisle.android.cards.MediaCard
 import com.originisle.android.cards.MeetingCard
 import com.originisle.android.cards.MessageCard
@@ -388,12 +391,32 @@ class NotificationCastListener : NotificationListenerService() {
     }
     private var pollTicks = 0L
 
+    private val sessionsChangedListener =
+        MediaSessionManager.OnActiveSessionsChangedListener { controllers ->
+            val prefs = getSharedPreferences(PREFS, 0)
+            if (!prefs.getBoolean("cast_media_sessions", false)) return@OnActiveSessionsChangedListener
+            val playing = controllers?.firstOrNull {
+                it.playbackState?.state == PlaybackState.STATE_PLAYING && it.packageName != packageName
+            } ?: return@OnActiveSessionsChangedListener
+            if (isAppEnabled(prefs, playing.packageName)) {
+                val matchingSbn = activeNotifications?.firstOrNull { it.packageName == playing.packageName }
+                if (matchingSbn != null) {
+                    MediaCard.post(applicationContext, matchingSbn, playing)
+                }
+            }
+        }
+
     override fun onListenerConnected() {
         super.onListenerConnected()
         instance = this
         connectedAt = System.currentTimeMillis()
         if (getSharedPreferences(PREFS, 0).getBoolean("cast_notifications", false)) {
             runCatching { PlaygroundService.keepAlive(this) }
+        }
+        val component = ComponentName(this, NotificationCastListener::class.java)
+        runCatching {
+            getSystemService(MediaSessionManager::class.java)
+                ?.addOnActiveSessionsChangedListener(sessionsChangedListener, component)
         }
         reload()
         pollHandler.post(pollRunnable)
@@ -425,6 +448,10 @@ class NotificationCastListener : NotificationListenerService() {
 
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
+        runCatching {
+            getSystemService(MediaSessionManager::class.java)
+                ?.removeOnActiveSessionsChangedListener(sessionsChangedListener)
+        }
         unregisterBatteryReceiver()
         if (instance === this) instance = null
         connectedAt = 0L
@@ -783,7 +810,9 @@ class NotificationCastListener : NotificationListenerService() {
         // message", or the card is stuck showing its last progress forever with nothing to ever tell
         // it otherwise. Only apply the message/silent filters to notifications we haven't already cast.
         val wasLive = IconCache.castIdFor(sbn) in PlaygroundService.activeCardIds
-        val isMsg = isMessageNotification(sbn)
+        val isMail = MailCard.isMail(sbn)
+        val isDiscord = DiscordCard.isDiscord(sbn)
+        val isMsg = isMail || isDiscord || isMessageNotification(sbn)
         val messagesOn = prefs.getBoolean("cast_messages", true)
         if (!isLive && !wasLive) {
             val allowMessage = isMsg && messagesOn
@@ -801,22 +830,41 @@ class NotificationCastListener : NotificationListenerService() {
             isCall -> "call"
             hasProgress -> "progress"
             isOngoing -> "ongoing"
+            isMail -> "mail"
+            isDiscord -> "discord"
             else -> "message"
         }
-        if (kind == "message" && lastCastPostTime.put(sbn.key, sbn.postTime) == sbn.postTime) {
+        if ((kind == "message" || kind == "mail" || kind == "discord") && lastCastPostTime.put(sbn.key, sbn.postTime) == sbn.postTime) {
             log(sbn, "skipped — duplicate delivery, unchanged", false); return
         }
         log(sbn, "cast — $kind", true)
-        if (kind == "message") {
-            // A message card that can't be built must never take the listener down with it (a
-            // crash here repeats on every reconnect): fall back to the plain generic card.
-            runCatching { MessageCard.post(applicationContext, sbn, appLabel(sbn.packageName)) }
-                .onFailure {
-                    Log.e(TAG, "message card failed, falling back", it)
-                    GenericCard.post(applicationContext, sbn, isLive)
-                }
-        } else {
-            GenericCard.post(applicationContext, sbn, isLive)
+        when (kind) {
+            "mail" -> {
+                runCatching { MailCard.post(applicationContext, sbn, appLabel(sbn.packageName)) }
+                    .onFailure {
+                        Log.e(TAG, "mail card failed, falling back", it)
+                        GenericCard.post(applicationContext, sbn, isLive)
+                    }
+            }
+            "discord" -> {
+                runCatching { DiscordCard.post(applicationContext, sbn, appLabel(sbn.packageName)) }
+                    .onFailure {
+                        Log.e(TAG, "discord card failed, falling back", it)
+                        GenericCard.post(applicationContext, sbn, isLive)
+                    }
+            }
+            "message" -> {
+                // A message card that can't be built must never take the listener down with it (a
+                // crash here repeats on every reconnect): fall back to the plain generic card.
+                runCatching { MessageCard.post(applicationContext, sbn, appLabel(sbn.packageName)) }
+                    .onFailure {
+                        Log.e(TAG, "message card failed, falling back", it)
+                        GenericCard.post(applicationContext, sbn, isLive)
+                    }
+            }
+            else -> {
+                GenericCard.post(applicationContext, sbn, isLive)
+            }
         }
     }
 

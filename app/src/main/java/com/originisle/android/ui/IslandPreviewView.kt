@@ -153,6 +153,8 @@ private fun LeftIcon(res: Int) {
         contentAlignment = Alignment.Center,
     ) {
         val tint = when (res) {
+            R.drawable.ic_mail -> Color(0xFFEA4335)
+            R.drawable.ic_discord -> Color(0xFF5865F2)
             R.drawable.ic_payment -> Color.Unspecified
             R.drawable.ic_call -> IsleColors.TileCall
             R.drawable.ic_call_end -> IsleColors.Bad

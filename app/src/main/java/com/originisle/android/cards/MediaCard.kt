@@ -5,11 +5,15 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.graphics.drawable.Icon
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.PlaybackState
 import android.service.notification.StatusBarNotification
+import android.text.TextPaint
+import android.text.TextUtils
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.originisle.android.R
@@ -23,20 +27,13 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 
 /**
- * Casts an active media session (music, podcasts, video) as a card with play-pause — plus prev/next
- * when the session actually supports skipping — wired back to the source app through
- * [MediaControlReceiver].
+ * Dedicated Next-Level Music Player Card for Origin Island Pro, inspired by origin-ghost-player.
+ * Features real-time MediaController callbacks, clean song titles, album subtitles,
+ * live dynamic soundwave with harmonic palette extraction, ambient edge lighting,
+ * and high-contrast luxury transport buttons (Prev, Play/Pause, Next).
  */
 object MediaCard {
 
-    /**
-     * What a posted card actually showed, per cast id. The listener's 1s poll calls [post] for
-     * every active media notification, so without this a paused player (or a track with no
-     * chronometer) was re-posted EVERY second — a full notification parcel + notify() per session
-     * per second, most of which vivo drops anyway (it refuses SuperX updates closer than ~10s
-     * apart). With this, an unchanged card isn't re-posted; the chronometer chip is compared at
-     * 10s granularity, which is the cadence vivo actually renders.
-     */
     private data class PostedState(
         val track: String,
         val artist: String,
@@ -46,16 +43,39 @@ object MediaCard {
     )
 
     private val lastPosted = ConcurrentHashMap<Int, PostedState>()
+    private val activeCallbacks = ConcurrentHashMap<Int, Pair<MediaController, MediaController.Callback>>()
 
-    /** Drop the dedupe state for [id] — its source notification is gone. */
+    /** Drop dedupe state and unregister callback for [id]. */
     fun forget(id: Int) {
         lastPosted.remove(id)
+        activeCallbacks.remove(id)?.let { (ctrl, cb) ->
+            runCatching { ctrl.unregisterCallback(cb) }
+        }
     }
 
     fun post(context: Context, sbn: StatusBarNotification, controller: MediaController) {
         val id = IconCache.castIdFor(sbn)
         val n = sbn.notification
         IconCache.activeControllers[id] = controller
+
+        // Register real-time callback so state/metadata updates trigger instant island refresh (origin-ghost-player standard)
+        val existing = activeCallbacks[id]
+        if (existing == null || existing.first.sessionToken != controller.sessionToken) {
+            existing?.let { runCatching { it.first.unregisterCallback(it.second) } }
+            val callback = object : MediaController.Callback() {
+                override fun onPlaybackStateChanged(state: PlaybackState?) {
+                    post(context, sbn, controller)
+                }
+                override fun onMetadataChanged(metadata: MediaMetadata?) {
+                    post(context, sbn, controller)
+                }
+                override fun onSessionDestroyed() {
+                    forget(id)
+                }
+            }
+            runCatching { controller.registerCallback(callback) }
+            activeCallbacks[id] = Pair(controller, callback)
+        }
 
         val md = controller.metadata
         val rawTrack = md?.getString(MediaMetadata.METADATA_KEY_TITLE)?.trim().orEmpty()
@@ -65,10 +85,10 @@ object MediaCard {
 
         val artist = md?.getString(MediaMetadata.METADATA_KEY_ARTIST)?.trim().orEmpty()
             .ifBlank { "Now playing" }
-        // Some apps/browsers never report a PlaybackState at all (playbackState == null), which made
-        // the wave never show for them even while actually playing. Treat missing state as "trust the
-        // notification's own ongoing flag" instead of defaulting to false. Buffering/connecting also
-        // count as playing — otherwise the wave flickers to the paused icon on every buffer stall.
+        val album = md?.getString(MediaMetadata.METADATA_KEY_ALBUM)?.trim().orEmpty()
+        val sourceApp = appLabel(context, sbn.packageName)
+        val subtext = if (album.isNotBlank() && album != track) "$album • $sourceApp" else sourceApp
+
         val playbackStateValue = controller.playbackState?.state
         val playing = when (playbackStateValue) {
             PlaybackState.STATE_PLAYING, PlaybackState.STATE_BUFFERING,
@@ -96,17 +116,10 @@ object MediaCard {
         } else if (playing) {
             "Playing"
         } else {
-            // Paused pill is icon-only — no "Paused" text, no source-app icon standing in for it.
-            // A single space, not "": OriginIslandBuilder's capsule content is always populated
-            // unconditionally, and a genuinely empty value risks the same silent-rejection behaviour
-            // documented for empty notification title/text (already worked around elsewhere in
-            // OriginIslandBuilder's template-4 path the same way).
             " "
         }
 
-        // Dedupe gate (see PostedState): skip the post when nothing observable changed and the card
-        // is still up. A card that's NOT in activeCardIds was dismissed/rejected — always re-post
-        // so the poll doubles as its resurrection path, exactly as it did before the dedupe.
+        // Dedupe gate: skip if unchanged and already active
         val chipBucket =
             if (showChrono && n.`when` > 0) abs(System.currentTimeMillis() - n.`when`) / 10_000L else 0L
         val state = PostedState(track, artist, playing, albumArt != null, chipBucket)
@@ -134,22 +147,35 @@ object MediaCard {
         val hasNext = nextSourceAction != null || (sessionActions and PlaybackState.ACTION_SKIP_TO_NEXT) != 0L
 
         val actions = arrayListOf<Notification.Action>()
+        val btnTitles = arrayListOf<String>()
+        val btnBgColors = arrayListOf<Int>()
+        val btnTxtColors = arrayListOf<Int>()
+
         if (hasPrev) {
-            actions.add(
-                makeAction(context, R.drawable.ic_media_prev, prevSourceAction ?: mediaAction(MediaControlReceiver.ACTION_PREV)),
-            )
+            actions.add(makeAction(context, R.drawable.ic_media_prev, "Prev", prevSourceAction ?: mediaAction(MediaControlReceiver.ACTION_PREV)))
+            btnTitles.add("Prev")
+            btnBgColors.add(0xFF24242C.toInt())
+            btnTxtColors.add(0xFFFFFFFF.toInt())
         }
+
+        val playPauseTitle = if (playing) "Pause" else "Play"
         actions.add(
             makeAction(
                 context,
                 if (playing) R.drawable.ic_media_pause else R.drawable.ic_media_play,
+                playPauseTitle,
                 mediaAction(MediaControlReceiver.ACTION_PLAY_PAUSE),
             ),
         )
+        btnTitles.add(playPauseTitle)
+        btnBgColors.add(0xFF2D6BF5.toInt()) // Electric Sapphire highlight for active control
+        btnTxtColors.add(0xFFFFFFFF.toInt())
+
         if (hasNext) {
-            actions.add(
-                makeAction(context, R.drawable.ic_media_next, nextSourceAction ?: mediaAction(MediaControlReceiver.ACTION_NEXT)),
-            )
+            actions.add(makeAction(context, R.drawable.ic_media_next, "Next", nextSourceAction ?: mediaAction(MediaControlReceiver.ACTION_NEXT)))
+            btnTitles.add("Next")
+            btnBgColors.add(0xFF24242C.toInt())
+            btnTxtColors.add(0xFFFFFFFF.toInt())
         }
 
         val intent = Intent(context, PlaygroundService::class.java).apply {
@@ -160,52 +186,47 @@ object MediaCard {
             putExtra("oi_scene", "NAVIGATION")
             putExtra("title", track)
             putExtra("text", artist)
+            putExtra("subtext", subtext)
             putExtra("source_pkg", sbn.packageName)
-            putExtra("oi_left_content", if (albumArt != null) "" else track)
+
+            // Short/compact pill: album art + clean track title
+            val shortTrack = shortTrackTitle(context, track)
+            putExtra("oi_left_content", shortTrack)
+            albumArt?.let {
+                putExtra("oi_left_icon", Icon.createWithBitmap(it))
+                putExtra("oi_large_icon", Icon.createWithBitmap(it))
+            }
 
             putExtra("status_chip_text", chip)
-
-            albumArt?.let { putExtra("oi_left_icon", Icon.createWithBitmap(it)) }
             putExtra("icon_res", R.drawable.ic_media_play)
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
-            putExtra("oi_bg_color", "#FF262626")
+            putExtra("oi_bg_color", "#FF16161A")
             putExtra("oi_fg_color", "#FFFFFFFF")
 
-            // Ambient glow around expanded card matching album art (origin-ghost-player standard)
+            // Ambient glow around expanded card matching album art
             val dominantColor = waveColors.firstOrNull()?.let {
                 OriginIslandBuilder.parseColor(it, 0)
-            } ?: 0
-            if (dominantColor != 0) {
-                putExtra("oi_light_color", String.format("#%08X", dominantColor))
-                putExtra("oi_light_mode", 1)
+            } ?: 0xFF2D6BF5.toInt()
+            putExtra("oi_light_color", String.format("#%08X", dominantColor))
+            putExtra("oi_light_mode", 1)
+
+            if (btnBgColors.isNotEmpty()) {
+                putStringArrayListExtra("oi_button_titles", btnTitles)
+                putIntegerArrayListExtra("oi_button_bg_colors", btnBgColors)
+                putIntegerArrayListExtra("oi_button_text_colors", btnTxtColors)
             }
 
-            val btnColors = ArrayList<Int>()
-            val txtColors = ArrayList<Int>()
-            repeat(actions.size) {
-                btnColors.add(0xFF2C2C2E.toInt())
-                txtColors.add(0xFFFFFFFF.toInt())
-            }
-            if (btnColors.isNotEmpty()) {
-                putIntegerArrayListExtra("oi_button_bg_colors", btnColors)
-                putIntegerArrayListExtra("oi_button_text_colors", txtColors)
-            }
-            // Lockscreen visibility is decided globally by the "Live card on lockscreen" setting in
-            // PlaygroundService, not per-card — no oi_displays override needed here anymore.
             if (playing) {
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_WAVE)
-                // Test: waveState=2 rendered a static (non-animated) wave shape. Trying 1 now that real
-                // colours are actually wired in — never tested that combination before.
                 putExtra("oi_wave_state", 1)
                 if (waveColors.isNotEmpty()) {
                     putStringArrayListExtra("oi_wave_color_list", ArrayList(waveColors))
                 }
             } else {
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON)
-                // Explicit pause-bars icon instead of falling back to the source app's small icon
-                // (which for some apps IS a speaker glyph — confusing next to "no text").
                 putExtra("oi_right_icon", Icon.createWithResource(context, R.drawable.ic_media_pause))
                 putExtra("oi_show_right_icon", true)
+                putExtra("oi_right_content", "Paused")
             }
 
             putParcelableArrayListExtra("actions", actions)
@@ -221,7 +242,20 @@ object MediaCard {
         return title
             .replace(Regex("""(?i)\s*[\(\[](?:official\s*(?:video|audio|music\s*video|lyric\s*video)?|lyrics?|audio|visualizer|remastered(?:\s*\d+)?|live|explicit|hd|4k)[\)\]]"""), "")
             .replace(Regex("""(?i)\s*-\s*official\s*(?:music\s*)?video"""), "")
+            .replace(Regex("""(?i)\s*\(feat\..*?\)"""), "")
+            .replace(Regex("""(?i)\s*\[feat\..*?\]"""), "")
             .trim()
+    }
+
+    private fun shortTrackTitle(context: Context, track: String): String {
+        val clean = track.replace('\n', ' ').trim()
+        val density = context.resources.displayMetrics.density
+        val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = 12f * density
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+        val room = 84f * density
+        return TextUtils.ellipsize(clean, paint, room, TextUtils.TruncateAt.END).toString()
     }
 
     private fun extrasTitle(sbn: StatusBarNotification): String =
@@ -231,19 +265,10 @@ object MediaCard {
         context.packageManager.getApplicationLabel(context.packageManager.getApplicationInfo(pkg, 0)).toString()
     }.getOrDefault(pkg)
 
-    private fun makeAction(context: Context, iconRes: Int, pi: PendingIntent): Notification.Action =
-        Notification.Action.Builder(Icon.createWithResource(context, iconRes), "", pi).build()
+    private fun makeAction(context: Context, iconRes: Int, title: String, pi: PendingIntent): Notification.Action =
+        Notification.Action.Builder(Icon.createWithResource(context, iconRes), title, pi).build()
 
-    /**
-     * Sample a few points across the album art to get a small palette for the wave visualiser
-     * (island.superx.rightInfo.waveColor), instead of the single flat colour OriginIslandBuilder
-     * falls back to when no list is supplied. No Palette dependency — just direct pixel sampling.
-     */
     private fun waveColorsFrom(bitmap: Bitmap?): List<String> {
-        // Bitmap.getPixel() throws IllegalStateException on a hardware-backed bitmap
-        // (Bitmap.Config.HARDWARE), which shrinkForIcon() can hand back unchanged for anything
-        // already under its size cap. That exception must never escape and take the whole post()
-        // down with it — this is a cosmetic add-on, not something worth losing the card update over.
         if (bitmap == null || bitmap.width == 0 || bitmap.height == 0) return emptyList()
         if (bitmap.config == Bitmap.Config.HARDWARE) return emptyList()
         return runCatching {

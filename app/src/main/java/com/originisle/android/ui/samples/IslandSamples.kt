@@ -186,23 +186,87 @@ object IslandSamples {
             }
         },
         OriginSample(
-            "Music player", "Wave island · ambient glow & soundwave",
+            "Music player", "Wave island · luxury controls, ambient glow & soundwave",
             IslandPreview(R.drawable.ic_media_play, "Midnight City", IslandPreview.Right.Wave),
         ) { ctx ->
             start(ctx, 40008) {
                 putExtra("oi_scene", "NAVIGATION")
-                putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE)
+                putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_WAVE)
                 putExtra("title", "Midnight City")
-                putExtra("text", "M83 • Hurry Up, We're Dreaming")
-                putExtra("subtext", "Spotify")
+                putExtra("text", "M83")
+                putExtra("subtext", "Hurry Up, We're Dreaming • Spotify")
                 putExtra("oi_left_content", "Midnight City")
                 putExtra("oi_wave_state", 1)
                 putStringArrayListExtra("oi_wave_color_list", arrayListOf("#FF3A82F6", "#FF8B5CF6", "#FFEC4899"))
                 putExtra("oi_light_color", "#FF8B5CF6")
                 putExtra("oi_light_mode", 1)
-                putExtra("status_chip_text", "♪")
+                putExtra("status_chip_text", "Playing")
                 putExtra("icon_res", R.drawable.ic_media_play)
+                putStringArrayListExtra("oi_button_titles", arrayListOf("Prev", "Pause", "Next"))
+                putIntegerArrayListExtra("oi_button_bg_colors", arrayListOf(0xFF24242C.toInt(), 0xFF2D6BF5.toInt(), 0xFF24242C.toInt()))
+                putIntegerArrayListExtra("oi_button_text_colors", arrayListOf(0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt()))
+                putExtra("click_resp", openApp(ctx))
+            }
+        },
+        OriginSample(
+            "Gmail email", "Gmail · sender + subject on pill · Archive/Reply/Delete",
+            IslandPreview(R.drawable.ic_mail, "GitHub", IslandPreview.Right.Text("Security alert")),
+        ) { ctx ->
+            start(ctx, 40020) {
+                putExtra("oi_scene", "NAVIGATION")
+                putExtra("oi_priority", 70)
+                putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON)
+                putExtra("oi_show_right_icon", false)
+                putExtra("title", "GitHub Security")
+                putExtra("text", "New sign-in from Chrome on Windows\nWe noticed a new login to your account from Dhaka, Bangladesh.")
+                putExtra("subtext", "Gmail • user@gmail.com")
+                putExtra("source_app", "Gmail")
+                putExtra("oi_left_content", "GitHub")
+                putExtra("oi_right_content", "Security alert: New login")
+                putExtra("status_chip_text", "Security alert: New login")
+                putExtra("icon_res", R.drawable.ic_mail)
+                putStringArrayListExtra("oi_button_titles", arrayListOf("Archive", "Reply", "Delete"))
+                putIntegerArrayListExtra(
+                    "oi_button_bg_colors",
+                    arrayListOf(0xFF2C344E.toInt(), 0xFF1E3A2F.toInt(), 0xFF3A1E22.toInt()),
+                )
+                putIntegerArrayListExtra(
+                    "oi_button_text_colors",
+                    arrayListOf(0xFFE0E6FF.toInt(), 0xFF34C759.toInt(), 0xFFFF453A.toInt()),
+                )
+                putExtra("click_resp", openApp(ctx))
+            }
+        },
+        OriginSample(
+            "Discord chat", "Discord · #general / @mention · Reply/Mark Read",
+            IslandPreview(R.drawable.ic_discord, "#general", IslandPreview.Right.Text("Check out the new release! 🚀")),
+        ) { ctx ->
+            start(ctx, 40021) {
+                putExtra("oi_scene", "NAVIGATION")
+                putExtra("oi_priority", 71)
+                putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON)
+                putExtra("oi_show_right_icon", false)
+                putExtra("title", "Alex • #general")
+                putExtra("text", "@everyone Check out the new Origin Island Pro v2.9.0 release! 🚀")
+                putExtra("subtext", "Discord • OriginOS Community")
+                putExtra("source_app", "Discord")
+                putExtra("oi_left_content", "#general")
+                putExtra("oi_right_content", "🔔 Check out the new release!")
+                putExtra("status_chip_text", "🔔 Check out the new release!")
+                putExtra("icon_res", R.drawable.ic_discord)
+                putStringArrayListExtra("oi_button_titles", arrayListOf("Reply", "Mark Read", "Mute"))
+                putIntegerArrayListExtra(
+                    "oi_button_bg_colors",
+                    arrayListOf(0xFF5865F2.toInt(), 0xFF1E2D52.toInt(), 0xFF24242C.toInt()),
+                )
+                putIntegerArrayListExtra(
+                    "oi_button_text_colors",
+                    arrayListOf(0xFFFFFFFF.toInt(), 0xFF4D88FF.toInt(), 0xFFE0E0E0.toInt()),
+                )
+                putExtra("click_resp", openApp(ctx))
             }
         },
         OriginSample(

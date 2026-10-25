@@ -250,8 +250,7 @@ object OriginIslandBuilder {
         base.putCharSequence(C.BUNDLE_KEY_BASE_TITLE, title)
         base.putCharSequence(C.BUNDLE_KEY_BASE_CONTENT, content)
         when {
-            template == 8 -> base.putInt(C.BUNDLE_KEY_BASE_SUB_INFO, 0)
-            actionPi != null && actionTitle != null -> {
+            actionPi != null && actionTitle != null && template != 8 -> {
                 base.putInt(C.BUNDLE_KEY_BASE_SUB_INFO, 2)
                 base.putString(C.BUNDLE_KEY_BASE_SUB_TEXT, actionTitle)
                 base.putParcelable(C.BUNDLE_KEY_BASE_SUB_INFO_CLICK_RESP, actionPi)
@@ -261,15 +260,15 @@ object OriginIslandBuilder {
                 base.putInt(C.BUNDLE_KEY_BASE_SUB_CAPSULE_BG_COLOR, semanticBg)
             }
             template == 2 -> base.putInt(C.BUNDLE_KEY_BASE_SUB_INFO, 0)
+            !subText.isNullOrBlank() -> {
+                base.putInt(C.BUNDLE_KEY_BASE_SUB_INFO, 1)
+                base.putString(C.BUNDLE_KEY_BASE_SUB_TEXT, subText)
+            }
             template == 4 -> {
                 base.putInt(C.BUNDLE_KEY_BASE_SUB_INFO, 1)
                 var str = subText?.takeIf { it.isNotBlank() } ?: extra1
                 if (str.isBlank()) str = " "
                 base.putString(C.BUNDLE_KEY_BASE_SUB_TEXT, str)
-            }
-            !subText.isNullOrBlank() -> {
-                base.putInt(C.BUNDLE_KEY_BASE_SUB_INFO, 1)
-                base.putString(C.BUNDLE_KEY_BASE_SUB_TEXT, subText)
             }
             else -> base.putInt(C.BUNDLE_KEY_BASE_SUB_INFO, 0)
         }
@@ -344,6 +343,11 @@ object OriginIslandBuilder {
                 bundle.putParcelable(C.BUNDLE_KEY_CUSTOM_TEMPLATE, customTemplate)
             }
             8 -> {
+                infos.putString(C.BUNDLE_KEY_INFO_DESCRIBE, title)
+                infos.putString(C.BUNDLE_KEY_INFO_CORE_INFO, content)
+                infos.putParcelable(C.BUNDLE_KEY_INFO_IMAGE, largeIcon ?: defaultIcon)
+                if (clickResp != null) infos.putParcelable(C.BUNDLE_KEY_INFO_IMAGE_CLICK_RESP, clickResp)
+
                 // Build up to 3 filled buttons from actions (preferred) or buttonTitles+clickResp.
                 val triples: List<Triple<String, Icon?, PendingIntent>> = when {
                     actions.any { it.pendingIntent != null } ->
