@@ -296,13 +296,8 @@ object OriginIslandBuilder {
                         infos.putParcelable(C.BUNDLE_KEY_INFO_INDICATOR_ICON, it)
                         infos.putInt(C.BUNDLE_KEY_INFO_INDICATOR_LOC, 2)
                     }
-                } else if (progressMarkers) {
-                    nodeIcons.add(accentIcon)
-                    nodeIcons.add(defaultIcon)
-                    nodeIcons.add(accentIcon)
-                    infos.putParcelable(C.BUNDLE_KEY_INFO_INDICATOR_ICON, accentIcon)
-                    infos.putInt(C.BUNDLE_KEY_INFO_INDICATOR_LOC, 2)
                 } else {
+                    // Clean, modern, uninterrupted progress line (eliminates the 4 repeating cluttered icons)
                     val t = transparentIcon()
                     nodeIcons.add(t)
                     nodeIcons.add(t)

@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -87,6 +88,7 @@ fun HomeScreen(
     var actionsOn by remember { mutableStateOf(prefs.getBoolean("cast_show_actions", true)) }
     var chargingOn by remember { mutableStateOf(prefs.getBoolean("cast_charging", true)) }
     var chargingKeep by remember { mutableStateOf(prefs.getBoolean("cast_charging_keep", false)) }
+    var glassStyle by remember { mutableStateOf(prefs.getString("expanded_glass_style", "liquid") ?: "liquid") }
     var quietDnd by remember { mutableStateOf(prefs.getBoolean("cast_quiet_dnd", false)) }
     var quietSchedule by remember { mutableStateOf(prefs.getBoolean("cast_quiet_schedule", false)) }
     var quietStart by remember { mutableIntStateOf(prefs.getInt("cast_quiet_start", QuietHours.DEFAULT_START)) }
@@ -223,7 +225,7 @@ fun HomeScreen(
 
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SampleTester(context)
+                SampleTester(context, glassStyle)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     PillButton(
                         "Recast all", onClick = { recastAll(context) },
@@ -235,6 +237,61 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f), icon = IsleIcons.Stop, iconSize = 16.dp,
                         content = IsleColors.Danger,
                     )
+                }
+            }
+        }
+
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionLabel("Expanded Island Appearance")
+                GroupCard {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "Glass Effect",
+                                modifier = Modifier.weight(1f),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = IsleColors.Text,
+                            )
+                            Text(
+                                when (glassStyle) {
+                                    "solid" -> "Solid Obsidian"
+                                    "frosted" -> "Frosted Glass"
+                                    else -> "Apple Liquid Glass ✨"
+                                },
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = IsleColors.AccentText,
+                            )
+                        }
+                        SegmentedControl(
+                            listOf("Solid", "Frosted", "Liquid Glass ✨"),
+                            selected = when (glassStyle) {
+                                "solid" -> 0
+                                "frosted" -> 1
+                                else -> 2
+                            },
+                            onSelect = { idx ->
+                                glassStyle = when (idx) {
+                                    0 -> "solid"
+                                    1 -> "frosted"
+                                    else -> "liquid"
+                                }
+                                prefs.edit().putString("expanded_glass_style", glassStyle).apply()
+                            },
+                        )
+                        Text(
+                            when (glassStyle) {
+                                "solid" -> "Classic opaque matte dark background with maximum contrast."
+                                "frosted" -> "Translucent frosted dark glass with subtle background blur."
+                                else -> "Apple Liquid Glass: Translucent fluid glass with specular highlight sheen and ambient edge glow."
+                            },
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            color = IsleColors.TextSecondary,
+                        )
+                    }
                 }
             }
         }
@@ -541,12 +598,39 @@ private fun MenuItem(text: String, onClick: () -> Unit) {
 
 /** Island preview + sample picker + send button: fires any [IslandSamples] card on demand. */
 @Composable
-private fun SampleTester(context: Context) {
+private fun SampleTester(context: Context, glassStyle: String = "liquid") {
     var selected by remember { mutableIntStateOf(0) }
     val sample = IslandSamples.all[selected]
     var sentAt by remember { mutableLongStateOf(0L) }
     LaunchedEffect(sentAt) {
         if (sentAt != 0L) { delay(1600); sentAt = 0L }
+    }
+
+    val previewModifier = when (glassStyle) {
+        "frosted" -> Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .heightIn(min = 104.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color(0xB0181824))
+            .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.06f))), RoundedCornerShape(20.dp))
+            .padding(start = 10.dp, end = 10.dp, top = 14.dp, bottom = 12.dp)
+        "liquid" -> Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .heightIn(min = 104.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Brush.verticalGradient(listOf(Color(0x99242436), Color(0x66141420))))
+            .border(1.2.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.45f), Color(0x502D6BF5), Color.White.copy(alpha = 0.10f))), RoundedCornerShape(20.dp))
+            .padding(start = 10.dp, end = 10.dp, top = 14.dp, bottom = 12.dp)
+        else -> Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .heightIn(min = 104.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(IsleColors.PreviewBg)
+            .border(1.dp, IsleColors.PreviewBorder, RoundedCornerShape(20.dp))
+            .padding(start = 10.dp, end = 10.dp, top = 14.dp, bottom = 12.dp)
     }
 
     Column(
@@ -558,14 +642,7 @@ private fun SampleTester(context: Context) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Column(
-            Modifier
-                .padding(horizontal = 16.dp)
-                .fillMaxWidth()
-                .heightIn(min = 104.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(IsleColors.PreviewBg)
-                .border(1.dp, IsleColors.PreviewBorder, RoundedCornerShape(20.dp))
-                .padding(start = 10.dp, end = 10.dp, top = 14.dp, bottom = 12.dp),
+            modifier = previewModifier,
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween,
         ) {

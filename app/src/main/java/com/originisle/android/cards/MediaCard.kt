@@ -13,6 +13,7 @@ import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.originisle.android.R
+import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.IconCache
@@ -57,9 +58,10 @@ object MediaCard {
         IconCache.activeControllers[id] = controller
 
         val md = controller.metadata
-        val track = md?.getString(MediaMetadata.METADATA_KEY_TITLE)?.trim().orEmpty()
+        val rawTrack = md?.getString(MediaMetadata.METADATA_KEY_TITLE)?.trim().orEmpty()
             .ifBlank { extrasTitle(sbn) }
             .ifBlank { appLabel(context, sbn.packageName) }
+        val track = cleanTrackTitle(rawTrack)
 
         val artist = md?.getString(MediaMetadata.METADATA_KEY_ARTIST)?.trim().orEmpty()
             .ifBlank { "Now playing" }
@@ -168,6 +170,26 @@ object MediaCard {
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
             putExtra("oi_bg_color", "#FF262626")
             putExtra("oi_fg_color", "#FFFFFFFF")
+
+            // Ambient glow around expanded card matching album art (origin-ghost-player standard)
+            val dominantColor = waveColors.firstOrNull()?.let {
+                OriginIslandBuilder.parseColor(it, 0)
+            } ?: 0
+            if (dominantColor != 0) {
+                putExtra("oi_light_color", String.format("#%08X", dominantColor))
+                putExtra("oi_light_mode", 1)
+            }
+
+            val btnColors = ArrayList<Int>()
+            val txtColors = ArrayList<Int>()
+            repeat(actions.size) {
+                btnColors.add(0xFF2C2C2E.toInt())
+                txtColors.add(0xFFFFFFFF.toInt())
+            }
+            if (btnColors.isNotEmpty()) {
+                putIntegerArrayListExtra("oi_button_bg_colors", btnColors)
+                putIntegerArrayListExtra("oi_button_text_colors", txtColors)
+            }
             // Lockscreen visibility is decided globally by the "Live card on lockscreen" setting in
             // PlaygroundService, not per-card — no oi_displays override needed here anymore.
             if (playing) {
@@ -193,6 +215,13 @@ object MediaCard {
             )
         }
         context.startService(intent)
+    }
+
+    fun cleanTrackTitle(title: String): String {
+        return title
+            .replace(Regex("""(?i)\s*[\(\[](?:official\s*(?:video|audio|music\s*video|lyric\s*video)?|lyrics?|audio|visualizer|remastered(?:\s*\d+)?|live|explicit|hd|4k)[\)\]]"""), "")
+            .replace(Regex("""(?i)\s*-\s*official\s*(?:music\s*)?video"""), "")
+            .trim()
     }
 
     private fun extrasTitle(sbn: StatusBarNotification): String =

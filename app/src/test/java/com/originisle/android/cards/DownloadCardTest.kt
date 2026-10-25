@@ -10,16 +10,20 @@ class DownloadCardTest {
     @Test
     fun testSpeedExtraction() {
         val text1 = "Downloading update.zip • 45 MB / 120 MB • 2.4 MB/s • 30s left"
-        assertEquals("2.4MB/s", DownloadCard.extractSpeed(text1))
-        assertEquals("2.4M/s", DownloadCard.extractCompactSpeed(text1))
+        assertEquals("19.2 Mbps", DownloadCard.convertToMbps(text1))
+        assertEquals("19.2M", DownloadCard.extractCompactMbps(text1))
 
         val text2 = "origin-island.apk: 850 KB/s - 15 seconds remaining"
-        assertEquals("850KB/s", DownloadCard.extractSpeed(text2))
-        assertEquals("850K/s", DownloadCard.extractCompactSpeed(text2))
+        assertEquals("6.8 Mbps", DownloadCard.convertToMbps(text2))
+        assertEquals("6.8M", DownloadCard.extractCompactMbps(text2))
+
+        val text3 = "Streaming asset at 15 Mbps"
+        assertEquals("15.0 Mbps", DownloadCard.convertToMbps(text3))
+        assertEquals("15.0M", DownloadCard.extractCompactMbps(text3))
 
         val textNoSpeed = "Downloading file without speed info"
-        assertNull(DownloadCard.extractSpeed(textNoSpeed))
-        assertNull(DownloadCard.extractCompactSpeed(textNoSpeed))
+        assertNull(DownloadCard.convertToMbps(textNoSpeed))
+        assertNull(DownloadCard.extractCompactMbps(textNoSpeed))
     }
 
     @Test

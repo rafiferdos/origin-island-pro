@@ -36,17 +36,27 @@ object IslandSamples {
             )
         },
         OriginSample(
-            "App download", "Download progress · 2.4 MB/s · 75%",
-            IslandPreview(R.drawable.ic_download, "2.4M/s", IslandPreview.Right.Progress(0.75f)),
+            "App download", "Play Store download · 19.2 Mbps · 75%",
+            IslandPreview(R.drawable.ic_download, "19.2 Mbps", IslandPreview.Right.Progress(0.75f)),
         ) { ctx ->
+            val playStoreIcon = try {
+                val appInfo = ctx.packageManager.getApplicationInfo("com.android.vending", 0)
+                Icon.createWithResource("com.android.vending", appInfo.icon)
+            } catch (e: Exception) {
+                Icon.createWithResource(ctx, R.drawable.ic_download)
+            }
             start(ctx, 40001) {
                 putExtra("oi_scene", "NAVIGATION")
                 putExtra("oi_priority", 75)
                 putExtra("oi_template", OriginIslandConstants.TEMPLATE_PROGRESS_VISUAL)
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS)
-                putExtra("title", "origin-island-v2.6.apk")
-                putExtra("text", "75% • 18 MB / 24 MB • 2.4 MB/s")
-                putExtra("oi_left_content", "2.4M/s")
+                putExtra("title", "Google Chrome")
+                putExtra("text", "75% • 18 MB / 24 MB • 19.2 Mbps")
+                putExtra("subtext", "Google Play Store")
+                putExtra("source_app", "Google Play Store")
+                putExtra("oi_left_content", "19.2 Mbps")
+                putExtra("oi_left_icon", playStoreIcon)
+                putExtra("oi_large_icon", playStoreIcon)
                 putExtra("show_progress", true)
                 putExtra("progress", 75)
                 putExtra("progress_max", 100)
@@ -176,7 +186,7 @@ object IslandSamples {
             }
         },
         OriginSample(
-            "Music player", "Wave island · media card",
+            "Music player", "Wave island · ambient glow & soundwave",
             IslandPreview(R.drawable.ic_media_play, "Midnight City", IslandPreview.Right.Wave),
         ) { ctx ->
             start(ctx, 40008) {
@@ -184,9 +194,13 @@ object IslandSamples {
                 putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE)
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_WAVE)
                 putExtra("title", "Midnight City")
-                putExtra("text", "M83")
+                putExtra("text", "M83 • Hurry Up, We're Dreaming")
+                putExtra("subtext", "Spotify")
                 putExtra("oi_left_content", "Midnight City")
                 putExtra("oi_wave_state", 1)
+                putStringArrayListExtra("oi_wave_color_list", arrayListOf("#FF3A82F6", "#FF8B5CF6", "#FFEC4899"))
+                putExtra("oi_light_color", "#FF8B5CF6")
+                putExtra("oi_light_mode", 1)
                 putExtra("status_chip_text", "♪")
                 putExtra("icon_res", R.drawable.ic_media_play)
             }

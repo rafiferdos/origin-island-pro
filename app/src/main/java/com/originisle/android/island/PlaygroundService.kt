@@ -212,8 +212,26 @@ class PlaygroundService : Service() {
 
         val bgColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_bg_color"), 0)
         val fgColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_fg_color"), 0)
-        val cardBgColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_card_bg_color"), 0)
-        val lightColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_light_color"), 0)
+        val rawCardBgColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_card_bg_color"), 0)
+        val rawLightColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_light_color"), 0)
+
+        val glassStyle = getSharedPreferences(PREFS_NAME, 0).getString("expanded_glass_style", "liquid") ?: "liquid"
+        val cardBgColor = when {
+            rawCardBgColor != 0 -> rawCardBgColor
+            glassStyle == "frosted" -> 0xB0161622.toInt() // Frosted translucent glass
+            glassStyle == "liquid" -> 0x8812121A.toInt()  // Deep Apple liquid glass
+            else -> 0xFF16161A.toInt()                    // Solid obsidian
+        }
+        val lightMode = when {
+            intent.hasExtra("oi_light_mode") -> intent.getIntExtra("oi_light_mode", 0)
+            glassStyle == "liquid" -> 1
+            else -> 0
+        }
+        val lightColor = when {
+            rawLightColor != 0 -> rawLightColor
+            glassStyle == "liquid" -> 0xFF2D6BF5.toInt() // Electric Sapphire ambient glow
+            else -> 0
+        }
 
         val showProgress = intent.getBooleanExtra("show_progress", false)
         val progressMax = intent.getIntExtra("progress_max", 0)
@@ -252,7 +270,6 @@ class PlaygroundService : Service() {
         val disableInvert = intent.getBooleanExtra("oi_disable_invert", true)
         val showRightIcon = intent.getBooleanExtra("oi_show_right_icon", true)
         val showLeftIcon = intent.getBooleanExtra("oi_show_left_icon", true)
-        val lightMode = intent.getIntExtra("oi_light_mode", 0)
         val generatingStatus = intent.getIntExtra("oi_generating_status", 0)
         val iconStatusType = intent.getIntExtra("oi_icon_status_type", -1)
         val waveState = intent.getIntExtra("oi_wave_state", 1)
