@@ -51,29 +51,27 @@ object IslandSamples {
             }
         },
         OriginSample(
-            "Payment", "Apple-style: Processing… → Paid ✓ (green tick + glow)",
-            IslandPreview(R.drawable.ic_payment, "€42.00", IslandPreview.Right.Success),
+            "bKash payment", "bKash MFS · Received ৳1,500 from Tanvir ✓",
+            IslandPreview(R.drawable.ic_payment, "৳1,500", IslandPreview.Right.Success),
         ) { ctx ->
             PaymentCard.post(
                 context = ctx, id = 40002, appIcon = null,
-                amount = "€42.00", merchant = "Café de Flore", appLabel = "Google Wallet",
+                amount = "৳1,500", merchant = "Tanvir Ahmed", appLabel = "bKash",
                 clickResp = openApp(ctx),
             )
         },
         OriginSample(
-            "Food delivery", "TAKEOUT · base card + capsule ETA",
-            IslandPreview(R.drawable.ic_alert, "Delivery", IslandPreview.Right.Capsule("12 min")),
+            "Food delivery", "Foodpanda / Pathao · Rider arriving · 15 min",
+            IslandPreview(R.drawable.ic_alert, "Foodpanda", IslandPreview.Right.Capsule("15 min")),
         ) { ctx ->
-            start(ctx, 40003) {
-                putExtra("oi_scene", "NAVIGATION")
-                putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE)
-                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
-                putExtra("title", "Courier on the way")
-                putExtra("text", "Your order arrives soon")
-                putExtra("oi_left_content", "Delivery")
-                putExtra("status_chip_text", "12 min")
-                putExtra("icon_res", R.drawable.ic_alert)
-            }
+            DeliveryCard.post(
+                context = ctx, id = 40003,
+                title = "Rider is on the way",
+                eta = "15 min",
+                carrier = "Foodpanda",
+                appIcon = null,
+                clickResp = openApp(ctx),
+            )
         },
         OriginSample(
             "Ride hailing", "TAXI · driver arriving",
@@ -156,25 +154,25 @@ object IslandSamples {
             }
         },
         OriginSample(
-            "Message", "Chat · avatar + sender left, message right",
-            IslandPreview(R.drawable.ic_avatar, "Sarah", IslandPreview.Right.Text("Are we still on for tonight? 🍕")),
+            "Message", "Chat · app icon + sender left, message right",
+            IslandPreview(R.drawable.ic_chat, "Tanvir", IslandPreview.Right.Text("Kire koi tui? Free achos? 💬")),
         ) { ctx ->
-            // The same extras MessageCard sends for a real chat notification.
+            // The same extras MessageCard sends for a real chat notification:
+            // Short pill has app icon on left + sender name, expanded card has contact avatar + text.
             start(ctx, 40013) {
                 putExtra("oi_scene", "NAVIGATION")
                 putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE)
-                putExtra("title", "Sarah")
-                putExtra("text", "Are we still on for tonight? 🍕")
-                putExtra("subtext", "WhatsApp · 2 new messages")
-                putExtra("oi_left_content", "Sarah")
-                Icon.createWithResource(ctx, R.drawable.ic_avatar).let {
-                    putExtra("oi_left_icon", it)
-                    putExtra("oi_large_icon", it)
-                }
+                putExtra("title", "Tanvir Ahmed")
+                putExtra("text", "Kire koi tui? Free achos? 💬")
+                putExtra("subtext", "WhatsApp")
+                putExtra("source_app", "WhatsApp")
+                putExtra("oi_left_content", "Tanvir")
+                putExtra("oi_left_icon", Icon.createWithResource(ctx, R.drawable.ic_chat))
+                putExtra("oi_large_icon", Icon.createWithResource(ctx, R.drawable.ic_avatar))
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON)
                 putExtra("oi_show_right_icon", false)
-                putExtra("oi_right_content", "Are we still on for tonight? 🍕")
-                putExtra("status_chip_text", "Are we still on for tonight? 🍕")
+                putExtra("oi_right_content", "Kire koi tui? Free achos? 💬")
+                putExtra("status_chip_text", "Kire koi tui? Free achos? 💬")
                 putExtra("icon_res", R.drawable.ic_chat)
             }
         },

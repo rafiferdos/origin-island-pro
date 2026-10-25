@@ -43,13 +43,15 @@ live football scores, including from European and international apps.
 ## Features
 
 - 🏝️ **Any notification** → island, with an allow/deny list per app
+- 💬 **Smart Messaging Cards** — WhatsApp, Messenger, Telegram, IMO, Viber, Discord, Instagram DM, Signal, SMS:
+  - **Compact Island Pill**: Shows app icon on the left + clean sender name (smart handling for prefixes like `Md.`, `Dr.`), with message preview on the right.
+  - **Expanded Island Card**: Shows sender name, full message body, sender avatar photo, source app label, and quick action buttons.
 - 👆 **Tap a card** to open the original notification
 - ⚽ **Live football scores** with team crests (SofaScore, FotMob, FlashScore, 365Scores…)
-- 💳 **Apple Pay–style payment animation** (Google Wallet, Revolut, PayPal, N26, Monzo, Venmo,
-  Cash App…)
-- 📦 **Delivery tracking** — parcel status & ETA (Amazon, DHL, FedEx, UPS, Zalando, Shein, DoorDash…)
+- ৳ **Mobile Financial Services (MFS) & Payments** — Apple Pay–style success animation for bKash, Nagad, Rocket, Upay, Cellfin, Citytouch, Astha, EBL, NexusPay (`৳`, `Tk`, `BDT`), Google Wallet, Revolut, PayPal, Wise, Binance…
+- 🛵 **Food & Ride Delivery tracking** — Pathao, Foodpanda, Daraz, Chaldal, Shohoz, Uber Eats, Amazon, DHL, FedEx, UPS…
 - 🌦️ **Weather alerts** — storm warnings, rainfall updates and temperatures
-- 🎛️ **Every card type has its own switch** — payments, delivery, weather, football, login codes, charging…
+- 🎛️ **Every card type has its own switch** — messages, payments, delivery, weather, football, login codes, charging…
 - 📊 **Real-time activity stats** — live cast/skip dashboard on Home and multi-category log filtering
 - 🎵 **Media controls** wired to the real app with waveform visualization
 - 📋 **Log tab** showing what was cast or skipped, and why

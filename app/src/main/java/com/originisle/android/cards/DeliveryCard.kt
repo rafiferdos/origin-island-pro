@@ -53,6 +53,18 @@ object DeliveryCard {
 
     /** Known logistics, courier, shopping and food delivery apps. */
     val DELIVERY_APPS = setOf(
+        // Bangladesh & Regional Top Delivery / Rides / E-Commerce
+        "com.pathao.user",
+        "com.pathao.drive",
+        "com.global.foodpanda.android",
+        "com.daraz.android",
+        "com.chaldal.poached",
+        "com.shohoz.rides",
+        "com.hungrynaki.user",
+        "com.ubercab",
+        "com.ubercab.eats",
+
+        // Global Logistics & Courier
         "com.amazon.mShop.android.shopping",
         "com.amazon.dee.app",
         "com.dhl.parcel",
@@ -71,7 +83,6 @@ object DeliveryCard {
         "com.shopee.ph",
         "vn.tiki.app.tikiandroid",
         "com.deliveroo.orderapp",
-        "com.ubercab.eats",
         "com.doordash.driverapp",
         "com.doordash.consumer",
         "com.glovo.app",
@@ -93,10 +104,22 @@ object DeliveryCard {
         "tracking update", "in transit", "order is out", "will be delivered",
         "picked up by courier", "with courier", "left the warehouse",
         "order dispatched", "dispatched", "on the way",
+        "rider is on the way", "rider arriving", "food is being prepared",
+        "picked up your order", "order delivered", "parcel is on the way",
+        "delivery hero", "delivering your order", "rider assigned", "order confirmed",
     )
 
     /** Extract ETA or short status from notification text. */
     fun extractEta(text: String): String {
+        // 1. Minute countdown: "15 min", "in 20 mins", "15m", "arriving in 12 mins"
+        val minPattern = Regex("""(?:\bin\s+)?(\d{1,2})\s*(?:mins?|minutes?|m\b)""", RegexOption.IGNORE_CASE)
+        val minMatch = minPattern.find(text)
+        if (minMatch != null) {
+            val num = minMatch.groupValues[1]
+            return "$num min"
+        }
+
+        // 2. Specific clock time: "by 4:30 PM", "before 5 PM", "12:45 pm"
         val timePattern = Regex("""(?:by |before |between )?(\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM)(?:\s*[-–]\s*\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM))?)""")
         val timeMatch = timePattern.find(text)
         if (timeMatch != null) return timeMatch.value.trim().take(12)
@@ -104,8 +127,9 @@ object DeliveryCard {
         if (text.contains("delivered", ignoreCase = true)) return "Delivered ✓"
         if (text.contains("today", ignoreCase = true)) return "Today"
         if (text.contains("tomorrow", ignoreCase = true)) return "Tomorrow"
-        if (text.contains("out for delivery", ignoreCase = true)) return "On the way"
+        if (text.contains("out for delivery", ignoreCase = true) || text.contains("on the way", ignoreCase = true)) return "On the way"
         if (text.contains("in transit", ignoreCase = true)) return "In transit"
+        if (text.contains("prepared", ignoreCase = true) || text.contains("cooking", ignoreCase = true)) return "Preparing"
         return "Tracking"
     }
 }

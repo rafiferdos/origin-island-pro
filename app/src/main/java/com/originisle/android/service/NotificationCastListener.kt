@@ -178,8 +178,36 @@ class NotificationCastListener : NotificationListenerService() {
             "com.resultadosfutbol.mobile", // BeSoccer
         )
 
-        /**
-         * Turn-by-turn navigation apps. Most set [Notification.CATEGORY_NAVIGATION] and are matched
+        /** Top messaging, chat and social communication apps. */
+        val MESSAGING_APPS = setOf(
+            // Bangladesh & Worldwide Top Messaging / Social Apps
+            "com.whatsapp",
+            "com.whatsapp.w4b",                   // WhatsApp Business
+            "com.facebook.orca",                  // Facebook Messenger
+            "com.facebook.mlite",                 // Messenger Lite
+            "org.telegram.messenger",             // Telegram
+            "org.telegram.plus",                  // Plus Messenger
+            "org.thunderdog.challegram",          // Telegram X
+            "com.imo.android.imoim",              // IMO
+            "com.imo.android.imoimbeta",          // IMO Beta
+            "com.imo.android.imoimhd",            // IMO HD
+            "com.imo.android.imolite",            // IMO Lite
+            "com.viber.voip",                     // Viber
+            "com.discord",                        // Discord
+            "com.instagram.android",              // Instagram Direct
+            "com.snapchat.android",               // Snapchat
+            "org.thoughtcrime.securesms",         // Signal
+            "com.google.android.apps.messaging",  // Google Messages (SMS / RCS)
+            "com.android.mms",                    // Default SMS / MMS
+            "com.samsung.android.messaging",      // Samsung Messages
+            "com.truecaller",                     // Truecaller Messages / SMS
+            "com.skype.raider",                   // Skype
+            "com.linkedin.android",               // LinkedIn Messages
+            "com.Slack",                          // Slack
+            "com.microsoft.teams",                // Microsoft Teams
+        )
+
+        /** Turn-by-turn navigation apps. Most set [Notification.CATEGORY_NAVIGATION] and are matched
          * on that alone; Maps is listed by package because it's worth casting even on a build that
          * doesn't set the category.
          *
@@ -201,7 +229,22 @@ class NotificationCastListener : NotificationListenerService() {
         )
 
         /** Wallet / bank / money apps whose notifications are treated as payments (Apple-Pay card). */
-        private val PAYMENT_APPS = setOf(
+        internal val PAYMENT_APPS = setOf(
+            // Bangladesh Top Mobile Financial Services (MFS) & Banking Apps
+            "com.bKash.customerapp",        // bKash
+            "bd.gov.nagad",                 // Nagad
+            "com.konasl.dbbl.mb",           // Rocket (Dutch-Bangla Bank)
+            "bd.com.upay.customer",         // Upay (UCB)
+            "com.ibbl.cellfin",             // Cellfin (Islami Bank Bangladesh)
+            "co.bracbank.astha",            // Astha (BRAC Bank)
+            "com.thecitybank.citytouch",    // Citytouch (City Bank)
+            "ebl.skybanking",               // EBL Skybanking (Eastern Bank)
+            "com.dhakabank.go",             // Dhaka Bank Go
+            "com.konasl.nexuspay",          // NexusPay (DBBL)
+            "com.tap.customer",             // Tap (Trust Axiata Pay)
+            "com.binance.dev",              // Binance
+
+            // Global Wallets & Banks
             "com.google.android.apps.walletnfcrel",     // Google Wallet
             "com.google.android.apps.nbu.paisa.user",   // Google Pay
             "com.revolut.revolut",                      // Revolut
@@ -228,20 +271,27 @@ class NotificationCastListener : NotificationListenerService() {
 
         /** Payment verbs — any app whose notification pairs one of these with an amount is a payment. */
         private val PAYMENT_WORDS = listOf(
+            // English / Global
             "paid", "payment", "you sent", "you received", "charged", "purchase",
             "transaction", "debited", "credited", "receipt", "spent", "approved",
+            "sent you", "transferred",
+            // Bangladesh MFS / Banking
+            "cash in", "cash out", "send money", "received tk", "payment to",
+            "bill pay", "mobile recharge", "remittance", "trxid", "statement",
+            "successfully sent", "deposit", "withdrawn", "taka", "bdt",
+            // International
             "bezahlt", "payé", "reçu", "pago", "pagamento", "betaling",
-            "sent you", "transferred", "überwiesen", "overgemaakt",
+            "überwiesen", "overgemaakt",
         )
 
         /**
-         * "€12.90", "12,90 €", "$5", "£3.20", "₺250", "40 CHF" … first match is used as the amount.
+         * "৳500", "Tk 1,000", "€12.90", "12,90 €", "$5", "£3.20", "40 CHF" … first match is used as the amount.
          * Symbols and ISO codes beyond the original €$£¥ set cover the currencies the extended
          * PAYMENT_APPS list transacts in.
          */
         private val AMOUNT = Regex(
-            """(?:[€$£¥₹₽₺₩₪₫₴]|\b(?:EUR|USD|GBP|CHF|SEK|NOK|DKK|PLN|CZK|INR|TRY|RUB|KRW|THB|PHP)\b)\s?\d[\d.,]*""" +
-                """|\d[\d.,]*\s?(?:[€$£¥₹₽₺₩₪₫₴]|\b(?:EUR|USD|GBP|CHF|SEK|NOK|DKK|PLN|CZK|INR|TRY|RUB|KRW|THB|PHP)\b)""",
+            """(?:[৳€$£¥₹₽₺₩₪₫₴]|\b(?:Tk\.?|BDT|EUR|USD|GBP|CHF|SEK|NOK|DKK|PLN|CZK|INR|TRY|RUB|KRW|THB|PHP)\b)\s?\d[\d.,]*""" +
+                """|\d[\d.,]*\s?(?:[৳€$£¥₹₽₺₩₪₫₴]|\b(?:Tk\.?|BDT|EUR|USD|GBP|CHF|SEK|NOK|DKK|PLN|CZK|INR|TRY|RUB|KRW|THB|PHP)\b)""",
             RegexOption.IGNORE_CASE,
         )
     }
@@ -588,9 +638,15 @@ class NotificationCastListener : NotificationListenerService() {
         // message", or the card is stuck showing its last progress forever with nothing to ever tell
         // it otherwise. Only apply the message/silent filters to notifications we haven't already cast.
         val wasLive = IconCache.castIdFor(sbn) in PlaygroundService.activeCardIds
+        val isMsg = isMessageNotification(sbn)
+        val messagesOn = prefs.getBoolean("cast_messages", true)
         if (!isLive && !wasLive) {
-            val includeMessages = prefs.getBoolean("cast_include_messages", false)
-            if (!includeMessages) { log(sbn, "skipped — plain message (not a live card)", false); return }
+            val allowMessage = isMsg && messagesOn
+            val includeAll = prefs.getBoolean("cast_include_messages", false)
+            if (!allowMessage && !includeAll) {
+                log(sbn, "skipped — plain notification (not live or message)", false)
+                return
+            }
 
             val ignoreSilent = prefs.getBoolean("cast_ignore_silent", true)
             if (ignoreSilent && isSilent(sbn)) { log(sbn, "skipped — silent notification", false); return }
@@ -623,6 +679,16 @@ class NotificationCastListener : NotificationListenerService() {
     private fun appLabel(pkg: String): String = runCatching {
         packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
     }.getOrDefault(pkg)
+
+    /** Whether [sbn] is a messaging or social chat notification. */
+    private fun isMessageNotification(sbn: StatusBarNotification): Boolean {
+        if (sbn.packageName in MESSAGING_APPS) return true
+        val n = sbn.notification
+        if (n.category == NotificationCompat.CATEGORY_MESSAGE || n.category == NotificationCompat.CATEGORY_SOCIAL) return true
+        val template = n.extras.getString(NotificationCompat.EXTRA_TEMPLATE)
+        if (template?.contains("MessagingStyle", ignoreCase = true) == true) return true
+        return false
+    }
 
     /**
      * Whether [sbn] is an active turn-by-turn navigation notification, i.e. one [NavigationCard]

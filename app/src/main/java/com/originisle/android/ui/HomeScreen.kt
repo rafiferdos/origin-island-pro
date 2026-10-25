@@ -70,6 +70,7 @@ fun HomeScreen(
     var castOn by remember { mutableStateOf(prefs.getBoolean("cast_notifications", false)) }
     var mediaOn by remember { mutableStateOf(prefs.getBoolean("cast_media_sessions", false)) }
     var includeMessages by remember { mutableStateOf(prefs.getBoolean("cast_include_messages", false)) }
+    var messagesOn by remember { mutableStateOf(prefs.getBoolean("cast_messages", true)) }
     var ignoreSilent by remember { mutableStateOf(prefs.getBoolean("cast_ignore_silent", true)) }
     var lockscreenLiveCard by remember { mutableStateOf(prefs.getBoolean("cast_lockscreen_live_card", false)) }
     var autoDismissSec by remember { mutableStateOf(prefs.getInt("cast_auto_dismiss_seconds", 0)) }
@@ -276,9 +277,9 @@ fun HomeScreen(
                             color = IsleColors.TextSecondary,
                         )
                     }
-                    if (includeMessages) {
+                    if (messagesOn || includeMessages) {
                         GroupDivider()
-                        SettingRow(IsleIcons.Clock, IsleColors.TileTeal, "Hide after", subtitle = "Non live cards")
+                        SettingRow(IsleIcons.Clock, IsleColors.TileTeal, "Hide after", subtitle = "Dismiss messages & one-off alerts")
                         Row(
                             Modifier.padding(start = 62.dp, end = 16.dp, bottom = 14.dp),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -322,6 +323,13 @@ fun HomeScreen(
             ) {
                 SectionLabel("Cards")
                 GroupCard {
+                    ToggleRow(
+                        IsleIcons.Chat, IsleColors.TileGreen, "Messages", messagesOn,
+                        subtitle = "WhatsApp, Messenger, Telegram, IMO, SMS…",
+                    ) {
+                        messagesOn = it; prefs.edit().putBoolean("cast_messages", it).apply()
+                    }
+                    GroupDivider()
                     ToggleRow(
                         IsleIcons.Key, IsleColors.TileBlue, "Login codes", otpOn,
                         subtitle = "Show the code, tap to copy",

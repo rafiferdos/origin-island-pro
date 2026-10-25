@@ -33,13 +33,7 @@ object MessageCard {
 
     /** Long enough for the island to ellipsize itself; short enough to keep the parcel small. */
     private const val LINE_MAX_CHARS = 60
-    /**
-     * Room for the name left of the camera. vivo gives each half 101dp; minus the camera gap,
-     * padding, the 20dp avatar and its spacing that leaves ~53dp of 12dp text (SystemUIPlugin
-     * dimens). vivo marquees any left text that overflows, which next to a scrolling message is too
-     * much motion — so the name is ellipsized to fit here and never scrolls.
-     */
-    private const val NAME_WIDTH_DP = 48f
+    private const val NAME_WIDTH_DP = 72f
     private const val NAME_TEXT_DP = 12f
 
     internal data class Message(
@@ -58,10 +52,9 @@ object MessageCard {
         val appIcon = runCatching {
             Icon.createWithResource(sbn.packageName, context.packageManager.getApplicationInfo(sbn.packageName, 0).icon)
         }.getOrNull()
-        val face = parcelSafeIcon(context, msg.avatar) ?: appIcon
+        val contactAvatar = parcelSafeIcon(context, msg.avatar)
         n.smallIcon?.let { IconCache.activeSmallIcons[id] = it }
 
-        // Group chats keep just the sender on the pill (the group is the card's title).
         val top = msg.sender
         val subtext = if (msg.count > 1) "$appLabel · ${msg.count} new messages" else appLabel
 
@@ -77,23 +70,27 @@ object MessageCard {
             putExtra("is_ongoing", false)
             putExtra("oi_scene", "NAVIGATION")
             putExtra("oi_template",
-                if (buttons.size >= 2) OriginIslandConstants.TEMPLATE_BUTTONS // 8
-                else OriginIslandConstants.TEMPLATE_BASE, // 4
+                if (buttons.size >= 2) OriginIslandConstants.TEMPLATE_BUTTONS
+                else OriginIslandConstants.TEMPLATE_BASE,
             )
-            putExtra("title", msg.group ?: msg.sender)
-            putExtra("text", if (msg.group != null) "${msg.sender}: ${msg.text}" else msg.text)
+            putExtra("title", if (msg.group != null) "${msg.sender} · ${msg.group}" else msg.sender)
+            putExtra("text", msg.text)
             putExtra("subtext", subtext)
             putExtra("source_app", appLabel)
             putExtra("source_pkg", sbn.packageName)
 
+            // Short/compact pill: App icon on left + clean sender name
             putExtra("oi_left_content", shortName(context, top))
-            face?.let {
+            (appIcon ?: contactAvatar)?.let {
                 putExtra("oi_left_icon", it)
+            }
+            // Expanded card: contact photo avatar
+            (contactAvatar ?: appIcon)?.let {
                 putExtra("oi_large_icon", it)
             }
-            // Right: the message as plain text, no icon (vivo's text-only variant) — every pixel of
-            // the right half goes to the message.
-            putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON) // 4
+
+            // Right side of compact pill: message preview
+            putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON)
             putExtra("oi_show_right_icon", false)
             putExtra("oi_right_content", msg.text.clip(LINE_MAX_CHARS))
             putExtra("status_chip_text", msg.text.clip(LINE_MAX_CHARS))
@@ -105,7 +102,7 @@ object MessageCard {
         context.startService(intent)
     }
 
-    /** Sender, text, group and avatar — from MessagingStyle when there is one, else title/text. */
+    /** Sender, text, group and avatar — handles MessagingStyle as well as title/text apps. */
     internal fun read(context: Context, sbn: StatusBarNotification, appLabel: String): Message {
         val n = sbn.notification
         val extras = n.extras
@@ -122,44 +119,79 @@ object MessageCard {
         val style = runCatching { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(n) }.getOrNull()
         val last = style?.messages?.lastOrNull()
         if (style != null && last != null) {
-            val sender = last.person?.name?.toString()?.trim()?.takeIf { it.isNotEmpty() }
+            val rawSender = last.person?.name?.toString()?.trim()?.takeIf { it.isNotEmpty() }
                 ?: style.user.name?.toString()?.trim()?.takeIf { last.person == null && it.isNotEmpty() }
                 ?: title.ifBlank { appLabel }
+            val sender = cleanSender(rawSender, appLabel)
             val group = style.conversationTitle?.toString()?.trim()
                 ?.takeIf { it.isNotEmpty() && style.isGroupConversation && it != appLabel }
             val avatar = last.person?.icon?.let { runCatching { it.toIcon(context) }.getOrNull() } ?: largeIcon
             val text = last.text?.toString()?.trim().orEmpty().ifBlank { body }
-            // A message count of 1 per notification is normal; apps that stack several unread
-            // messages into one notification put them all in `messages`.
             return Message(sender, text.ifBlank { "New message" }, group, avatar, style.messages.size)
         }
 
-        // Not MessagingStyle (X, Snapchat, Instagram activity, most non-chat apps): title is who /
-        // what, text is the message.
+        // Non-MessagingStyle chat / social apps (IMO, Viber, Instagram DM, SMS, Discord, etc.)
+        var cleanTitle = title
+            .replace(Regex("""\s*\(\d+.*?\)$"""), "")
+            .replace(Regex("""\s*\[\d+.*?\]$"""), "")
+            .trim()
+        var cleanBody = body.trim()
+
+        // Handle "Sender: Message" format inside title or body
+        if (cleanTitle.contains(": ")) {
+            val split = cleanTitle.split(": ", limit = 2)
+            if (split[0].isNotBlank() && split[1].isNotBlank()) {
+                cleanTitle = split[0].trim()
+                if (cleanBody.isBlank() || cleanBody == title) {
+                    cleanBody = split[1].trim()
+                }
+            }
+        } else if (cleanBody.startsWith("$cleanTitle: ")) {
+            cleanBody = cleanBody.removePrefix("$cleanTitle: ").trim()
+        }
+
         return Message(
-            sender = title.ifBlank { appLabel },
-            text = body.ifBlank { title }.ifBlank { "New notification" },
+            sender = cleanSender(cleanTitle, appLabel),
+            text = cleanBody.ifBlank { cleanTitle }.ifBlank { "New message" },
             group = null,
             avatar = largeIcon,
             count = 1,
         )
     }
 
+    /** Clean unneeded counts or prefixes from sender names. */
+    private fun cleanSender(raw: String, fallback: String): String =
+        raw.replace(Regex("""\s*\(\d+.*?\)$"""), "")
+            .replace(Regex("""\s*\[\d+.*?\]$"""), "")
+            .trim()
+            .ifBlank { fallback }
+
     /**
-     * First name only when the full name doesn't fit (Apple does the same), then ellipsized to the
-     * measured width. Phone numbers ("+33 6 12…") aren't split into words.
+     * Clean and format sender's short name for the island pill.
+     * Handles common prefixes ("Md.", "Dr.", "Prof.") and prevents aggressive letter truncation.
      */
     private fun shortName(context: Context, name: String): String {
+        val clean = name.replace('\n', ' ')
+            .replace(Regex("""\s*\(\d+.*?\)$"""), "")
+            .replace(Regex("""\s*\[\d+.*?\]$"""), "")
+            .trim()
+        if (clean.isBlank()) return "Message"
+
+        val parts = clean.split(Regex("""\s+""")).filter { it.isNotBlank() }
+        val titlePrefixes = setOf("md.", "md", "dr.", "dr", "prof.", "prof", "engr.", "engr", "adv.", "adv")
+        val candidate = when {
+            parts.size >= 2 && parts[0].lowercase() in titlePrefixes -> "${parts[0]} ${parts[1]}"
+            parts.isNotEmpty() -> parts[0]
+            else -> clean
+        }
+
         val density = context.resources.displayMetrics.density
         val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             textSize = NAME_TEXT_DP * density
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
         val room = NAME_WIDTH_DP * density
-        val full = name.replace('\n', ' ').trim()
-        val first = full.substringBefore(' ')
-        val pick = if (paint.measureText(full) > room && first.length >= 2 && first.first().isLetter()) first else full
-        return TextUtils.ellipsize(pick, paint, room, TextUtils.TruncateAt.END).toString()
+        return TextUtils.ellipsize(candidate, paint, room, TextUtils.TruncateAt.END).toString()
     }
 
     private fun String.clip(max: Int): String =
