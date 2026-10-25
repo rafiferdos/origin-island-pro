@@ -47,7 +47,12 @@
         <!-- Optional True Floating Liquid Glass Overlay Island -->
         <service
             android:name=".overlay.FloatingIslandService"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Floating island overlay service" />
+        </service>
 
         <!-- Listens to every notification on the device and re-casts eligible into the OriginIsland. -->
         <service

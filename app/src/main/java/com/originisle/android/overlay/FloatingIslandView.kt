@@ -127,13 +127,13 @@ fun FloatingCompactPill(
     val pillModifier = when (glassStyle) {
         "frosted" -> Modifier
             .clip(RoundedCornerShape(percent = 50))
-            .background(Color(0xD9181824))
-            .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.08f))), RoundedCornerShape(percent = 50))
+            .background(Color(0x88181824)) // 50% translucent frosted dark glass
+            .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.45f), Color.White.copy(alpha = 0.12f))), RoundedCornerShape(percent = 50))
         "liquid" -> Modifier
-            .shadow(elevation = 10.dp, shape = RoundedCornerShape(percent = 50), ambientColor = Color(0xFF2D6BF5), spotColor = Color(0xFF2D6BF5))
+            .shadow(elevation = 12.dp, shape = RoundedCornerShape(percent = 50), ambientColor = Color(0xFF2D6BF5), spotColor = Color(0xFF2D6BF5))
             .clip(RoundedCornerShape(percent = 50))
-            .background(Brush.verticalGradient(listOf(Color(0xE6222234), Color(0xCC12121A))))
-            .border(1.2.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.55f), Color(0x662D6BF5), Color.White.copy(alpha = 0.12f))), RoundedCornerShape(percent = 50))
+            .background(Brush.verticalGradient(listOf(Color(0x882A2A42), Color(0x66141422)))) // Highly translucent liquid glass
+            .border(1.4.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.85f), Color(0x882D6BF5), Color.White.copy(alpha = 0.18f))), RoundedCornerShape(percent = 50))
         else -> Modifier
             .clip(RoundedCornerShape(percent = 50))
             .background(Color(0xFF141418))
@@ -233,14 +233,14 @@ fun FloatingExpandedCard(
             .fillMaxWidth(0.92f)
             .wrapContentHeight()
             .clip(RoundedCornerShape(26.dp))
-            .background(Color(0xD9181826))
-            .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.08f))), RoundedCornerShape(26.dp))
+            .background(Color(0x66181826)) // Genuine 40% translucent frosted dark glass
+            .border(1.2.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.50f), Color.White.copy(alpha = 0.12f))), RoundedCornerShape(26.dp))
             .padding(16.dp)
         "liquid" -> Modifier
             .fillMaxWidth(0.92f)
             .wrapContentHeight()
             .shadow(
-                elevation = 20.dp,
+                elevation = 24.dp,
                 shape = RoundedCornerShape(26.dp),
                 ambientColor = Color(if (card.lightColor != 0) card.lightColor else 0xFF2D6BF5.toInt()),
                 spotColor = Color(if (card.lightColor != 0) card.lightColor else 0xFF2D6BF5.toInt())
@@ -249,18 +249,18 @@ fun FloatingExpandedCard(
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        Color(0xD9222238),
-                        Color(0xB3141422)
+                        Color(0x552A2A44), // Translucent liquid glass layer (allows wallpaper/app beneath to shine through)
+                        Color(0x35141424)
                     )
                 )
             )
             .border(
-                1.5.dp,
+                1.6.dp,
                 Brush.verticalGradient(
                     listOf(
-                        Color.White.copy(alpha = 0.65f), // Specular highlight sheen
-                        Color(0x662D6BF5),
-                        Color.White.copy(alpha = 0.12f)
+                        Color.White.copy(alpha = 0.90f), // High-intensity specular highlight glass sheen
+                        Color(0x882D6BF5),               // Electric sapphire refraction
+                        Color.White.copy(alpha = 0.20f)
                     )
                 ),
                 RoundedCornerShape(26.dp)

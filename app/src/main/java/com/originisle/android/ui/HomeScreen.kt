@@ -426,6 +426,26 @@ fun HomeScreen(
                                 color = IsleColors.TextSecondary,
                             )
                         }
+
+                        if (engineMode == "overlay") {
+                            PillButton(
+                                "Test Floating Glass Island 🚀",
+                                onClick = {
+                                    if (Settings.canDrawOverlays(context)) {
+                                        IslandSamples.all[1].post(context)
+                                    } else {
+                                        val intent = Intent(
+                                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                            Uri.parse("package:${context.packageName}")
+                                        )
+                                        context.startActivity(intent)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                icon = IsleIcons.Bolt,
+                                content = IsleColors.GoodText,
+                            )
+                        }
                     }
                 }
             }

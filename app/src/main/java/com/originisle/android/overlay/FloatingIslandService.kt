@@ -17,7 +17,6 @@ import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
-import android.view.View
 import android.view.WindowManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +26,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.originisle.android.R
 import com.originisle.android.service.IconCache
+import com.originisle.android.ui.PREFS_NAME
 
 /**
  * Foreground WindowManager Overlay Service that renders a real, floating, interactive
@@ -48,16 +48,31 @@ class FloatingIslandService : Service() {
             private set
 
         fun postCard(context: Context, intent: Intent) {
-            val prefs = context.getSharedPreferences("OriginIsle_Prefs", 0)
+            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
             val engineMode = prefs.getString("island_engine_mode", "native") ?: "native"
-            if (engineMode != "overlay") return
-            if (!Settings.canDrawOverlays(context)) return
+            if (engineMode != "overlay") {
+                Log.d(TAG, "postCard skipped: engineMode is '$engineMode' (not overlay)")
+                return
+            }
+            if (!Settings.canDrawOverlays(context)) {
+                Log.w(TAG, "postCard skipped: overlay permission not granted")
+                return
+            }
 
             val overlayIntent = Intent(context, FloatingIslandService::class.java).apply {
                 action = ACTION_SHOW_CARD
                 putExtras(intent)
             }
-            context.startService(overlayIntent)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(overlayIntent)
+                } else {
+                    context.startService(overlayIntent)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start FloatingIslandService", e)
+                context.startService(overlayIntent)
+            }
         }
 
         fun dismissCard(context: Context, id: Int) {
@@ -89,7 +104,7 @@ class FloatingIslandService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            val topOffsetDp = getSharedPreferences("OriginIsle_Prefs", 0).getInt("overlay_top_offset", 14)
+            val topOffsetDp = getSharedPreferences(PREFS_NAME, 0).getInt("overlay_top_offset", 14)
             y = (topOffsetDp * resources.displayMetrics.density).toInt()
         }
     }
@@ -100,7 +115,11 @@ class FloatingIslandService : Service() {
         super.onCreate()
         isOverlayRunning = true
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildForegroundNotification())
+        runCatching {
+            startForeground(NOTIFICATION_ID, buildForegroundNotification())
+        }.onFailure {
+            Log.w(TAG, "startForeground fallback", it)
+        }
 
         lifecycleOwner.onCreate()
         lifecycleOwner.onStart()
@@ -114,7 +133,7 @@ class FloatingIslandService : Service() {
         if (composeView != null) return
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
-        val prefs = getSharedPreferences("OriginIsle_Prefs", 0)
+        val prefs = getSharedPreferences(PREFS_NAME, 0)
         glassStyle = prefs.getString("expanded_glass_style", "liquid") ?: "liquid"
 
         composeView = ComposeView(this).apply {
@@ -141,6 +160,7 @@ class FloatingIslandService : Service() {
 
         try {
             windowManager?.addView(composeView, layoutParams)
+            Log.d(TAG, "Overlay view added to WindowManager")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to add overlay view", e)
         }
@@ -154,6 +174,9 @@ class FloatingIslandService : Service() {
     private fun updateWindowParams() {
         val wm = windowManager ?: return
         val cv = composeView ?: return
+
+        val topOffsetDp = getSharedPreferences(PREFS_NAME, 0).getInt("overlay_top_offset", 14)
+        layoutParams.y = (topOffsetDp * resources.displayMetrics.density).toInt()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (visualMode == OverlayVisualMode.EXPANDED) {
@@ -195,6 +218,10 @@ class FloatingIslandService : Service() {
     }
 
     private fun handleShowCard(intent: Intent) {
+        if (composeView == null && Settings.canDrawOverlays(this)) {
+            initOverlayView()
+        }
+
         val id = intent.getIntExtra("id", 0)
         val title = intent.getStringExtra("title").orEmpty()
         val text = intent.getStringExtra("text").orEmpty()
@@ -206,9 +233,12 @@ class FloatingIslandService : Service() {
         val iconRes = intent.getIntExtra("icon_res", R.mipmap.ic_launcher_round)
         val lightColor = intent.getIntExtra("oi_light_color_int", 0)
 
-        // Resolve icon bitmap from cache or resource
+        // Resolve icon bitmap from cache or parcelables or resource
+        val parcelableIcon: Icon? = intent.getParcelableExtra("oi_left_icon", Icon::class.java)
+            ?: intent.getParcelableExtra("oi_large_icon", Icon::class.java)
         val iconBitmap: Bitmap? = IconCache.activeLargeBitmaps[id]
             ?: IconCache.activeSmallIcons[id]?.let { runCatching { it.loadDrawable(this)?.toBitmap() }.getOrNull() }
+            ?: parcelableIcon?.let { runCatching { it.loadDrawable(this)?.toBitmap() }.getOrNull() }
 
         // Progress
         val showProgress = intent.getBooleanExtra("show_progress", false)
@@ -234,7 +264,7 @@ class FloatingIslandService : Service() {
         val clickIntent = intent.getParcelableExtra("click_resp", PendingIntent::class.java)
             ?: intent.getParcelableExtra("source_content_intent", PendingIntent::class.java)
 
-        val prefs = getSharedPreferences("OriginIsle_Prefs", 0)
+        val prefs = getSharedPreferences(PREFS_NAME, 0)
         glassStyle = prefs.getString("expanded_glass_style", "liquid") ?: "liquid"
 
         currentCard = OverlayCardData(
@@ -264,6 +294,7 @@ class FloatingIslandService : Service() {
 
         visualMode = OverlayVisualMode.COMPACT
         updateWindowParams()
+        Log.d(TAG, "FloatingIslandService showing card id=$id, title=$title, mode=COMPACT")
     }
 
     private fun handleDismissCard(intent: Intent) {
