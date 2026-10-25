@@ -6,8 +6,11 @@ import android.content.Intent
 import android.graphics.drawable.Icon
 import com.originisle.android.MainActivity
 import com.originisle.android.R
+import com.originisle.android.cards.AuthPromptCard
 import com.originisle.android.cards.DeliveryCard
+import com.originisle.android.cards.MeetingCard
 import com.originisle.android.cards.PaymentCard
+import com.originisle.android.cards.RideCard
 import com.originisle.android.cards.SportsCard
 import com.originisle.android.cards.WeatherCard
 import com.originisle.android.island.OriginIslandConstants
@@ -74,19 +77,44 @@ object IslandSamples {
             )
         },
         OriginSample(
-            "Ride hailing", "TAXI · driver arriving",
+            "Ride hailing", "Uber / Pathao · Driver Tanvir (Dhaka Metro Ga-12-3456) · 3 min",
             IslandPreview(R.drawable.ic_alert, "Ride", IslandPreview.Right.Capsule("3 min")),
         ) { ctx ->
-            start(ctx, 40004) {
-                putExtra("oi_scene", "NAVIGATION")
-                putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE)
-                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
-                putExtra("title", "Driver arriving")
-                putExtra("text", "Toyota Prius · 白 · AB-123-CD")
-                putExtra("oi_left_content", "Ride")
-                putExtra("status_chip_text", "3 min")
-                putExtra("icon_res", R.drawable.ic_alert)
-            }
+            RideCard.post(
+                context = ctx, id = 40004,
+                title = "Driver Tanvir",
+                details = "Arriving in Toyota Aqua · Dhaka Metro Ga-12-3456 in 3 min",
+                appLabel = "Pathao",
+                appIcon = null,
+                clickResp = openApp(ctx),
+            )
+        },
+        OriginSample(
+            "Meeting & Event", "Google Meet · Sprint Review · In 10m",
+            IslandPreview(R.drawable.ic_alert, "Review", IslandPreview.Right.Capsule("In 10m")),
+        ) { ctx ->
+            MeetingCard.post(
+                context = ctx, id = 40015,
+                title = "Sprint Review with Team",
+                timeSnippet = "In 10m",
+                details = "3:00 PM – 4:00 PM · meet.google.com/abc-defg-hij",
+                appLabel = "Google Calendar",
+                appIcon = null,
+                clickResp = openApp(ctx),
+            )
+        },
+        OriginSample(
+            "2FA Sign-in", "Google · Approve sign-in from Windows PC? · Approve / Deny",
+            IslandPreview(R.drawable.ic_alert, "Sign-in", IslandPreview.Right.Capsule("Approve?")),
+        ) { ctx ->
+            AuthPromptCard.post(
+                context = ctx, id = 40016,
+                title = "Is that you signing in?",
+                details = "Chrome on Windows · Dhaka, Bangladesh",
+                appLabel = "Google Play Services",
+                appIcon = null,
+                clickResp = openApp(ctx),
+            )
         },
         OriginSample(
             "Flight boarding", "FLIGHT · symmetric route card",

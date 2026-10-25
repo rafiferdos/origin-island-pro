@@ -13,6 +13,7 @@ import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.CopyCodeReceiver
 import com.originisle.android.service.IconCache
+import com.originisle.android.util.PriorityArbitrator
 
 /**
  * Login / verification code card: the code big on the card and in the pill, and tapping either
@@ -49,6 +50,7 @@ object OtpCard {
         val intent = Intent(app, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
+            putExtra("oi_priority", PriorityArbitrator.PRIORITY_OTP)
             putExtra("oi_scene", "NAVIGATION")
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE) // 4
             putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT) // 6

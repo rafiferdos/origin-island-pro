@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 object IsleIcons {
     val Bell = stroke("bell", "M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9", "M10.3 21a1.94 1.94 0 0 0 3.4 0")
     val Chat = stroke("chat", "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z")
+    val Calendar = stroke("calendar", roundRect(3f, 4f, 18f, 17f, 2f), "M16 2v4", "M8 2v4", "M3 9h18")
+    val Car = stroke("car", "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L16 10l-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9L2 11c-.7.4-1 1-1 2v3c0 .6.4 1 1 1h2", circle(6.5f, 17f, 2.5f), circle(16.5f, 17f, 2.5f))
     val Music = stroke("music", "M9 18V5l12-2v13", circle(6f, 18f, 3f), circle(18f, 16f, 3f))
     val Clock = stroke("clock", circle(12f, 12f, 9f), "M12 7v5l3 2")
     val Moon = stroke("moon", "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z")

@@ -14,6 +14,7 @@ import com.originisle.android.R
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.IconCache
+import com.originisle.android.util.PriorityArbitrator
 import com.originisle.android.ui.PREFS_NAME
 
 /**
@@ -68,6 +69,7 @@ object MessageCard {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
             putExtra("is_ongoing", false)
+            putExtra("oi_priority", PriorityArbitrator.PRIORITY_MESSAGE)
             putExtra("oi_scene", "NAVIGATION")
             putExtra("oi_template",
                 if (buttons.size >= 2) OriginIslandConstants.TEMPLATE_BUTTONS

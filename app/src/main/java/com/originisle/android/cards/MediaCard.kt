@@ -17,6 +17,7 @@ import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.IconCache
 import com.originisle.android.service.MediaControlReceiver
+import com.originisle.android.util.PriorityArbitrator
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 
@@ -153,7 +154,7 @@ object MediaCard {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
             putExtra("is_ongoing", true)
-
+            putExtra("oi_priority", PriorityArbitrator.PRIORITY_MEDIA)
             putExtra("oi_scene", "NAVIGATION")
             putExtra("title", track)
             putExtra("text", artist)

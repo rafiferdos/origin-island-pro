@@ -258,6 +258,7 @@ class PlaygroundService : Service() {
         val waveState = intent.getIntExtra("oi_wave_state", 1)
         val waveColorList = intent.getStringArrayListExtra("oi_wave_color_list")
         val progressState = if (intent.getBooleanExtra("progress_indeterminate", false)) 1 else 0
+        val priority = intent.getIntExtra("oi_priority", 0)
 
         val customTemplate: RemoteViews? =
             intent.getParcelableExtra("oi_custom_template", RemoteViews::class.java)
@@ -350,6 +351,7 @@ class PlaygroundService : Service() {
             changeRecord = changeRecord,
             showNotify = showNotify,
             islandNotify = islandNotify,
+            priority = priority,
         )
 
         val sourceApp = intent.getStringExtra("source_app").orEmpty()

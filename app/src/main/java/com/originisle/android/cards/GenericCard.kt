@@ -12,6 +12,8 @@ import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.IconCache
 import com.originisle.android.ui.PREFS_NAME
+import com.originisle.android.util.IntelligentTextSanitizer
+import com.originisle.android.util.PriorityArbitrator
 import kotlin.math.abs
 
 /**
@@ -20,7 +22,7 @@ import kotlin.math.abs
  * payment or a media session goes through here.
  */
 object GenericCard {
-    private const val RIGHT_TEXT_MAX_CHARS = 8
+    private const val RIGHT_TEXT_MAX_CHARS = 16
 
     /**
      * @param isLive whether [NotificationCastListener] classified this as a live/persistent
@@ -47,8 +49,9 @@ object GenericCard {
         // empty and render their own custom view instead — falling back to the literal word
         // "Notification" there read as if that were the actual message. The source app's own name
         // ("Maps") is a far more useful fallback.
-        val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString()?.trim().orEmpty()
+        val rawTitle = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString()?.trim().orEmpty()
             .ifBlank { appLabel }
+        val title = IntelligentTextSanitizer.cleanTitle(rawTitle, appLabel)
 
         val progress = extras.getInt(NotificationCompat.EXTRA_PROGRESS, 0)
         val progressMax = extras.getInt(NotificationCompat.EXTRA_PROGRESS_MAX, 0)
@@ -121,6 +124,13 @@ object GenericCard {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
             putExtra("is_ongoing", isLive)
+            val priority = when {
+                isCall -> PriorityArbitrator.PRIORITY_CALL
+                hasProgress -> PriorityArbitrator.PRIORITY_DELIVERY
+                isLive -> 65
+                else -> PriorityArbitrator.PRIORITY_GENERIC
+            }
+            putExtra("oi_priority", priority)
             putExtra("oi_scene", "NAVIGATION")
             putExtra("title", title)
             // vivo silently REJECTS a SuperX post with empty content text — falling back to a plain
@@ -163,8 +173,11 @@ object GenericCard {
                     putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT) // 6
                 }
                 else -> {
-                    putExtra("oi_left_content", "")
-                    if (!isCall) callIcon(context, sbn)?.let { putExtra("oi_left_icon", it) }
+                    putExtra("oi_left_content", title.take(12))
+                    if (!isCall) {
+                        val appIcon = callIcon(context, sbn)
+                        appIcon?.let { putExtra("oi_left_icon", it) }
+                    }
                     putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE) // 4
                     if (finalChip.isNotBlank()) {
                         putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT) // 6
@@ -172,16 +185,13 @@ object GenericCard {
                         putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON) // 4
                         putExtra("oi_show_right_icon", false)
                         val body = text.ifBlank { bigText }.ifBlank { subText }
-                        // Calls: the caller's avatar sits on the left, so the right of the camera
-                        // holds just their name — not "Name: Incoming call" cut to a few letters.
+                        val cleanBody = IntelligentTextSanitizer.cleanBody(body, title, appLabel)
                         val combined = when {
                             isCall -> title
-                            title.isNotBlank() && title != appLabel && body.isNotBlank() -> "$title: $body"
-                            else -> body
+                            title.isNotBlank() && title != appLabel && cleanBody.isNotBlank() -> cleanBody
+                            else -> cleanBody.ifBlank { body }
                         }
-                        putExtra("oi_right_content", combined.take(RIGHT_TEXT_MAX_CHARS).let {
-                            if (combined.length > RIGHT_TEXT_MAX_CHARS) "$it…" else it
-                        })
+                        putExtra("oi_right_content", IntelligentTextSanitizer.formatRightCapsule(combined, RIGHT_TEXT_MAX_CHARS))
                     }
                 }
             }

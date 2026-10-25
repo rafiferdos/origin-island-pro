@@ -21,15 +21,19 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.originisle.android.cards.AuthPromptCard
 import com.originisle.android.cards.ChargingCard
 import com.originisle.android.cards.DeliveryCard
 import com.originisle.android.cards.GenericCard
 import com.originisle.android.cards.MediaCard
+import com.originisle.android.cards.MeetingCard
 import com.originisle.android.cards.MessageCard
 import com.originisle.android.cards.NavigationCard
 import com.originisle.android.cards.OtpCard
 import com.originisle.android.cards.PaymentCard
+import com.originisle.android.cards.RideCard
 import com.originisle.android.cards.SportsCard
+import com.originisle.android.cards.TimerCard
 import com.originisle.android.cards.WeatherCard
 import com.originisle.android.cards.fallbackClickIntent
 import com.originisle.android.island.PlaygroundService
@@ -37,6 +41,8 @@ import com.originisle.android.log.CastLog
 import com.originisle.android.otp.OtpDetector
 import com.originisle.android.sports.SportsFeed
 import com.originisle.android.sports.SportsParser
+import com.originisle.android.util.IntelligentTextSanitizer
+import com.originisle.android.util.PriorityArbitrator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -539,6 +545,60 @@ class NotificationCastListener : NotificationListenerService() {
             }
         }
 
+        // 2FA / Device sign-in prompts (Google, Microsoft Authenticator, Steam, Okta, Duo)
+        if (!isCall && prefs.getBoolean("cast_auth", true)) {
+            val hay = notificationText(sbn)
+            if (AuthPromptCard.isAuthPrompt(sbn.packageName, hay)) {
+                if (lastCastPostTime.put(sbn.key, sbn.postTime) == sbn.postTime) {
+                    log(sbn, "skipped — duplicate delivery, unchanged", false); return
+                }
+                val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString()?.trim().orEmpty()
+                val text = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString()?.trim().orEmpty()
+                val appLbl = appLabel(sbn.packageName)
+                val click = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
+                val appIcon = runCatching {
+                    Icon.createWithResource(sbn.packageName, packageManager.getApplicationInfo(sbn.packageName, 0).icon)
+                }.getOrNull()
+                AuthPromptCard.post(
+                    context = applicationContext,
+                    id = IconCache.castIdFor(sbn),
+                    title = title,
+                    details = text,
+                    appLabel = appLbl,
+                    appIcon = appIcon,
+                    clickResp = click,
+                    actions = sbn.notification.actions.orEmpty().toList(),
+                )
+                log(sbn, "cast — auth prompt", true)
+                return
+            }
+        }
+
+        // Timers & countdowns (Clock apps)
+        if (prefs.getBoolean("cast_timer", true) && isTimer(sbn)) {
+            val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString()?.trim().orEmpty()
+            val text = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString()?.trim().orEmpty()
+            val timeText = if (n.`when` > 0) {
+                val diff = (n.`when` - System.currentTimeMillis()).coerceAtLeast(0) / 1000
+                String.format("%02d:%02d", diff / 60, diff % 60)
+            } else {
+                text.ifBlank { "00:00" }
+            }
+            val appLbl = appLabel(sbn.packageName)
+            val click = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
+            TimerCard.post(
+                context = applicationContext,
+                id = IconCache.castIdFor(sbn),
+                title = title,
+                timeFormatted = timeText,
+                appLabel = appLbl,
+                clickResp = click,
+                actions = sbn.notification.actions.orEmpty().toList(),
+            )
+            log(sbn, "cast — timer", true)
+            return
+        }
+
         // Quiet hours / Do Not Disturb: only what someone is actively waiting on gets through —
         // calls, navigation and timers/alarms here; media and login codes were handled above.
         val isOngoingNow = (n.flags and Notification.FLAG_ONGOING_EVENT) != 0
@@ -573,6 +633,39 @@ class NotificationCastListener : NotificationListenerService() {
                     log(sbn, "skipped — duplicate delivery, unchanged", false); return
                 }
                 castPayment(sbn, it); log(sbn, "cast — payment", true); return
+            }
+        }
+
+        // Ride Hailing & Taxis (Uber, Pathao Rides, Shohoz, Grab, Bolt)
+        if (prefs.getBoolean("cast_rides", true)) {
+            val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString()?.trim().orEmpty()
+            val text = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString()?.trim().orEmpty()
+            val big = extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)?.toString()?.trim().orEmpty()
+            val hay = "$title $text $big"
+            val isRideApp = sbn.packageName in RideCard.RIDE_APPS
+            val hasRideKeyword = RideCard.RIDE_KEYWORDS.any { hay.contains(it, ignoreCase = true) }
+            if (isRideApp && hasRideKeyword) {
+                if (lastCastPostTime.put(sbn.key, sbn.postTime) == sbn.postTime) {
+                    log(sbn, "skipped — duplicate delivery, unchanged", false); return
+                }
+                val appLbl = appLabel(sbn.packageName)
+                val click = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
+                val appIcon = runCatching {
+                    val ai = packageManager.getApplicationInfo(sbn.packageName, 0)
+                    Icon.createWithResource(sbn.packageName, ai.icon)
+                }.getOrNull()
+                RideCard.post(
+                    context = applicationContext,
+                    id = IconCache.castIdFor(sbn),
+                    title = title.ifBlank { appLbl },
+                    details = "$text $big",
+                    appLabel = appLbl,
+                    appIcon = appIcon,
+                    clickResp = click,
+                    actions = sbn.notification.actions.orEmpty().toList(),
+                )
+                log(sbn, "cast — ride", true)
+                return
             }
         }
 
@@ -617,6 +710,41 @@ class NotificationCastListener : NotificationListenerService() {
                 val click = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
                 WeatherCard.post(applicationContext, IconCache.castIdFor(sbn), title.ifBlank { "Weather" }, chip, click)
                 log(sbn, "cast — weather", true)
+                return
+            }
+        }
+
+        // Calendar & Meeting reminders (Google Calendar, Outlook, Meet, Zoom, Teams)
+        if (prefs.getBoolean("cast_meetings", true)) {
+            val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString()?.trim().orEmpty()
+            val text = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString()?.trim().orEmpty()
+            val big = extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)?.toString()?.trim().orEmpty()
+            val hay = "$title $text $big"
+            val isMeetingApp = sbn.packageName in MeetingCard.MEETING_APPS
+            val hasMeetingKeyword = MeetingCard.MEETING_KEYWORDS.any { hay.contains(it, ignoreCase = true) }
+            val timeSnippet = IntelligentTextSanitizer.extractTimeSnippet(hay)
+            if (isMeetingApp || (hasMeetingKeyword && timeSnippet != null)) {
+                if (lastCastPostTime.put(sbn.key, sbn.postTime) == sbn.postTime) {
+                    log(sbn, "skipped — duplicate delivery, unchanged", false); return
+                }
+                val appLbl = appLabel(sbn.packageName)
+                val click = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
+                val appIcon = runCatching {
+                    val ai = packageManager.getApplicationInfo(sbn.packageName, 0)
+                    Icon.createWithResource(sbn.packageName, ai.icon)
+                }.getOrNull()
+                MeetingCard.post(
+                    context = applicationContext,
+                    id = IconCache.castIdFor(sbn),
+                    title = title.ifBlank { appLbl },
+                    timeSnippet = timeSnippet ?: "Meeting",
+                    details = "$text $big",
+                    appLabel = appLbl,
+                    appIcon = appIcon,
+                    clickResp = click,
+                    actions = sbn.notification.actions.orEmpty().toList(),
+                )
+                log(sbn, "cast — meeting", true)
                 return
             }
         }

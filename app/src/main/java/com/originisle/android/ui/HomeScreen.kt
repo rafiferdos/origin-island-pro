@@ -75,6 +75,10 @@ fun HomeScreen(
     var lockscreenLiveCard by remember { mutableStateOf(prefs.getBoolean("cast_lockscreen_live_card", false)) }
     var autoDismissSec by remember { mutableStateOf(prefs.getInt("cast_auto_dismiss_seconds", 0)) }
     var otpOn by remember { mutableStateOf(prefs.getBoolean("cast_otp", true)) }
+    var authOn by remember { mutableStateOf(prefs.getBoolean("cast_auth", true)) }
+    var meetingsOn by remember { mutableStateOf(prefs.getBoolean("cast_meetings", true)) }
+    var ridesOn by remember { mutableStateOf(prefs.getBoolean("cast_rides", true)) }
+    var timerOn by remember { mutableStateOf(prefs.getBoolean("cast_timer", true)) }
     var sportsOn by remember { mutableStateOf(prefs.getBoolean("cast_sports", true)) }
     var paymentsOn by remember { mutableStateOf(prefs.getBoolean("cast_payments", true)) }
     var deliveryOn by remember { mutableStateOf(prefs.getBoolean("cast_delivery", true)) }
@@ -331,10 +335,38 @@ fun HomeScreen(
                     }
                     GroupDivider()
                     ToggleRow(
+                        IsleIcons.Calendar, IsleColors.TileBlue, "Meetings & Events", meetingsOn,
+                        subtitle = "Countdown to events (Google Calendar, Meet, Zoom…)",
+                    ) {
+                        meetingsOn = it; prefs.edit().putBoolean("cast_meetings", it).apply()
+                    }
+                    GroupDivider()
+                    ToggleRow(
+                        IsleIcons.Car, IsleColors.TileCyan, "Rides & Taxis", ridesOn,
+                        subtitle = "Driver arrival & plate (Uber, Pathao Rides…)",
+                    ) {
+                        ridesOn = it; prefs.edit().putBoolean("cast_rides", it).apply()
+                    }
+                    GroupDivider()
+                    ToggleRow(
+                        IsleIcons.Clock, IsleColors.TileTeal, "Clock Timers", timerOn,
+                        subtitle = "Live ticking timer countdown on island",
+                    ) {
+                        timerOn = it; prefs.edit().putBoolean("cast_timer", it).apply()
+                    }
+                    GroupDivider()
+                    ToggleRow(
                         IsleIcons.Key, IsleColors.TileBlue, "Login codes", otpOn,
                         subtitle = "Show the code, tap to copy",
                     ) {
                         otpOn = it; prefs.edit().putBoolean("cast_otp", it).apply()
+                    }
+                    GroupDivider()
+                    ToggleRow(
+                        IsleIcons.Shield, IsleColors.TileIndigo, "2FA & Sign-in", authOn,
+                        subtitle = "Approve login requests with one tap",
+                    ) {
+                        authOn = it; prefs.edit().putBoolean("cast_auth", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(

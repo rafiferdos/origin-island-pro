@@ -43,15 +43,21 @@ live football scores, including from European and international apps.
 ## Features
 
 - 🏝️ **Any notification** → island, with an allow/deny list per app
+- 🧠 **Universal Intelligent Text Sanitizer** — Strips app prefixes, boilerplate phrases, and unread counts for maximum glanceable clarity
+- 📅 **Meetings & Calendar Cards** — Google Calendar, Outlook, Meet, Zoom, Teams: glanceable countdowns (`In 10m`, `Now`, `3:00 PM`) and direct Join buttons
+- 🚖 **Dedicated Ride-Hailing Cards** — Uber, Pathao Rides, Shohoz, Grab, Bolt: live driver arrival time, car model, and license plate number
+- ⏱️ **Clock Timers & Alarms** — Google Clock, Samsung Clock, vivo Clock: live ticking progress and stop/pause controls
+- 🔐 **2FA & Device Sign-in Approval** — Google & Microsoft Authenticator verification pushes with one-tap "Approve ✓" / "Deny ✗" buttons
 - 💬 **Smart Messaging Cards** — WhatsApp, Messenger, Telegram, IMO, Viber, Discord, Instagram DM, Signal, SMS:
   - **Compact Island Pill**: Shows app icon on the left + clean sender name (smart handling for prefixes like `Md.`, `Dr.`), with message preview on the right.
   - **Expanded Island Card**: Shows sender name, full message body, sender avatar photo, source app label, and quick action buttons.
 - 👆 **Tap a card** to open the original notification
 - ⚽ **Live football scores** with team crests (SofaScore, FotMob, FlashScore, 365Scores…)
 - ৳ **Mobile Financial Services (MFS) & Payments** — Apple Pay–style success animation for bKash, Nagad, Rocket, Upay, Cellfin, Citytouch, Astha, EBL, NexusPay (`৳`, `Tk`, `BDT`), Google Wallet, Revolut, PayPal, Wise, Binance…
-- 🛵 **Food & Ride Delivery tracking** — Pathao, Foodpanda, Daraz, Chaldal, Shohoz, Uber Eats, Amazon, DHL, FedEx, UPS…
+- 🛵 **Food & Parcel Delivery tracking** — Foodpanda, Pathao Food, Daraz, Chaldal, Amazon, DHL, FedEx, UPS…
 - 🌦️ **Weather alerts** — storm warnings, rainfall updates and temperatures
-- 🎛️ **Every card type has its own switch** — messages, payments, delivery, weather, football, login codes, charging…
+- ⚖️ **Semantic Priority Matrix** — Hierarchical task arbitration so calls, navigation, timers and rides are never displaced by transient notifications
+- 🎛️ **Every card type has its own switch** — messages, meetings, rides, timers, auth prompts, payments, delivery, weather, football, login codes, charging…
 - 📊 **Real-time activity stats** — live cast/skip dashboard on Home and multi-category log filtering
 - 🎵 **Media controls** wired to the real app with waveform visualization
 - 📋 **Log tab** showing what was cast or skipped, and why

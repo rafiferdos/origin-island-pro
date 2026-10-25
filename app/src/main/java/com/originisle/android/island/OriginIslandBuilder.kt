@@ -181,6 +181,7 @@ object OriginIslandBuilder {
         // Testing whether flipping it is what actually gates shade visibility.
         showNotify: Boolean = true,
         islandNotify: Boolean = false,
+        priority: Int = 0,
     ): Bundle {
         val C = OriginIslandConstants
         val bundle = Bundle()
@@ -381,6 +382,7 @@ object OriginIslandBuilder {
         island.putInt(C.BUNDLE_KEY_ISLAND_RIGHT_TEMPLATE, rightTemplate)
         if (islandShowTime > 0) island.putInt(C.BUNDLE_KEY_ISLAND_SHOW_TIME, islandShowTime)
         if (forceShow) island.putBoolean(C.BUNDLE_KEY_ISLAND_FORCE_SHOW, true)
+        if (priority > 0) island.putInt(C.BUNDLE_KEY_ISLAND_PRIORITY, priority)
         // Explicitly opt out of vivo's own "companion bar" — without this, a NAVIGATION-scene card
         // gets a second, untagged, stripped-down copy of the notification auto-generated as a
         // separate promoted chip ("Notification: Starting navigation… [Exit navigation]") in the

@@ -9,6 +9,7 @@ import android.os.Looper
 import com.originisle.android.R
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
+import com.originisle.android.util.PriorityArbitrator
 
 /**
  * Apple-Pay-style payment card for the OriginIsland.
@@ -110,6 +111,7 @@ object PaymentCard {
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
+            putExtra("oi_priority", PriorityArbitrator.PRIORITY_PAYMENT)
             putExtra("oi_scene", "NAVIGATION") // granted carrier scene
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE) // 4
             putExtra("oi_right_template", rightTemplate)

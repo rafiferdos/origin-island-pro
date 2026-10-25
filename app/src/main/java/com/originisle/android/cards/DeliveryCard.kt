@@ -7,6 +7,7 @@ import android.graphics.drawable.Icon
 import com.originisle.android.R
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
+import com.originisle.android.util.PriorityArbitrator
 
 /**
  * Casts a parcel or delivery-tracking notification as a dedicated island card.
@@ -31,6 +32,7 @@ object DeliveryCard {
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
+            putExtra("oi_priority", PriorityArbitrator.PRIORITY_DELIVERY)
             putExtra("oi_scene", "NAVIGATION")
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE)
             putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
