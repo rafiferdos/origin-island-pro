@@ -16,6 +16,7 @@ import android.util.Log
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import com.originisle.android.R
+import com.originisle.android.overlay.FloatingIslandService
 import com.originisle.android.service.IconCache
 import com.originisle.android.ui.PREFS_NAME
 import java.util.concurrent.ConcurrentHashMap
@@ -398,6 +399,7 @@ class PlaygroundService : Service() {
         originScenes[id] = scene
         activeCardIds = activeIds.toSet()
         postSuperX(id, iconRes, title, text, sourceApp, isOngoing, scene, bundle, intent.getLongExtra("when", 0L))
+        runCatching { FloatingIslandService.postCard(this, intent) }
 
         // Auto-dismiss: only for non-live cards (isOngoing is the same live/persistent flag the
         // card posters set — media, sports and any ongoing/call/progress GenericCard all mark
@@ -484,6 +486,7 @@ class PlaygroundService : Service() {
     private fun cancelNotification(intent: Intent) {
         val id = intent.getIntExtra("id", -1)
         if (id == -1) return
+        runCatching { FloatingIslandService.dismissCard(this, id) }
         autoDismissTasks.remove(id)?.let { mainHandler.removeCallbacks(it) }
         val scene = originScenes.remove(id) ?: intent.getStringExtra("oi_scene")
         if (scene != null) {
@@ -524,6 +527,7 @@ class PlaygroundService : Service() {
                 notificationManager.cancel(OriginIslandConstants.SUPERX_TAG, it)
                 notificationManager.cancel(it)
             }
+            runCatching { stopService(Intent(this, FloatingIslandService::class.java)) }
             // Clear the flag with the teardown, or a start arriving before we're destroyed sees a
             // stale "already foreground" and skips ensureForeground(), leaving the process unanchored.
             isForegroundActive = false

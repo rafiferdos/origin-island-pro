@@ -3,6 +3,8 @@ package com.originisle.android.ui
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -88,6 +90,8 @@ fun HomeScreen(
     var actionsOn by remember { mutableStateOf(prefs.getBoolean("cast_show_actions", true)) }
     var chargingOn by remember { mutableStateOf(prefs.getBoolean("cast_charging", true)) }
     var chargingKeep by remember { mutableStateOf(prefs.getBoolean("cast_charging_keep", false)) }
+    var engineMode by remember { mutableStateOf(prefs.getString("island_engine_mode", "native") ?: "native") }
+    var overlayOffset by remember { mutableIntStateOf(prefs.getInt("overlay_top_offset", 14)) }
     var glassStyle by remember { mutableStateOf(prefs.getString("expanded_glass_style", "liquid") ?: "liquid") }
     var quietDnd by remember { mutableStateOf(prefs.getBoolean("cast_quiet_dnd", false)) }
     var quietSchedule by remember { mutableStateOf(prefs.getBoolean("cast_quiet_schedule", false)) }
@@ -243,54 +247,185 @@ fun HomeScreen(
 
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionLabel("Expanded Island Appearance")
+                SectionLabel("Island Engine & Glass Appearance")
                 GroupCard {
-                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        // Engine Selection
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "Island Engine",
+                                    modifier = Modifier.weight(1f),
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = IsleColors.Text,
+                                )
+                                Text(
+                                    if (engineMode == "overlay") "Floating Overlay ✨" else "Native vivo SuperX",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = IsleColors.AccentText,
+                                )
+                            }
+                            SegmentedControl(
+                                listOf("Native SuperX", "Floating Overlay ✨"),
+                                selected = if (engineMode == "overlay") 1 else 0,
+                                onSelect = { idx ->
+                                    engineMode = if (idx == 1) "overlay" else "native"
+                                    prefs.edit().putString("island_engine_mode", engineMode).apply()
+                                    if (engineMode == "overlay") {
+                                        if (Settings.canDrawOverlays(context)) {
+                                            context.startService(Intent(context, com.originisle.android.overlay.FloatingIslandService::class.java))
+                                        }
+                                    } else {
+                                        context.stopService(Intent(context, com.originisle.android.overlay.FloatingIslandService::class.java))
+                                    }
+                                }
+                            )
                             Text(
-                                "Glass Effect",
-                                modifier = Modifier.weight(1f),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = IsleColors.Text,
+                                if (engineMode == "overlay") {
+                                    "Floating Overlay Engine: Draws directly over your punch hole cutout with real hardware backdrop blur, specular glass sheen, and fluid animations."
+                                } else {
+                                    "Native vivo SuperX: Communicates with vivo's system framework around the camera cutout, lockscreen, and AOD."
+                                },
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp,
+                                color = IsleColors.TextSecondary,
+                            )
+                        }
+
+                        // Overlay Permission Warning & Setup
+                        if (engineMode == "overlay") {
+                            val hasOverlayPermission = Settings.canDrawOverlays(context)
+                            if (!hasOverlayPermission) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(IsleColors.Danger.copy(alpha = 0.12f))
+                                        .border(1.dp, IsleColors.Danger.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                                        .padding(12.dp)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(
+                                            "⚠️ Overlay Permission Required",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            color = IsleColors.Danger
+                                        )
+                                        Text(
+                                            "Floating Liquid Glass requires 'Display over other apps' to float above your camera cutout and provide real backdrop blur.",
+                                            fontSize = 12.sp,
+                                            lineHeight = 16.sp,
+                                            color = IsleColors.TextSecondary
+                                        )
+                                        PillButton(
+                                            "Grant Overlay Permission",
+                                            onClick = {
+                                                val intent = Intent(
+                                                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                                    Uri.parse("package:${context.packageName}")
+                                                )
+                                                context.startActivity(intent)
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            icon = IsleIcons.Shield,
+                                            content = IsleColors.GoodText,
+                                        )
+                                    }
+                                }
+                            } else {
+                                // Camera Hole Cutout Offset adjustment
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Text(
+                                            "Camera Cutout Offset",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = IsleColors.Text
+                                        )
+                                        Text(
+                                            "Vertical alignment: ${overlayOffset}dp from top",
+                                            fontSize = 11.sp,
+                                            color = IsleColors.TextSecondary
+                                        )
+                                    }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        PillButton(
+                                            "− 2dp",
+                                            onClick = {
+                                                if (overlayOffset > 4) {
+                                                    overlayOffset -= 2
+                                                    prefs.edit().putInt("overlay_top_offset", overlayOffset).apply()
+                                                }
+                                            },
+                                        )
+                                        PillButton(
+                                            "+ 2dp",
+                                            onClick = {
+                                                if (overlayOffset < 48) {
+                                                    overlayOffset += 2
+                                                    prefs.edit().putInt("overlay_top_offset", overlayOffset).apply()
+                                                }
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Glass Style Selection
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "Glass Effect Style",
+                                    modifier = Modifier.weight(1f),
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = IsleColors.Text,
+                                )
+                                Text(
+                                    when (glassStyle) {
+                                        "solid" -> "Solid Obsidian"
+                                        "frosted" -> "Frosted Glass"
+                                        else -> "Apple Liquid Glass ✨"
+                                    },
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = IsleColors.AccentText,
+                                )
+                            }
+                            SegmentedControl(
+                                listOf("Solid", "Frosted", "Liquid Glass ✨"),
+                                selected = when (glassStyle) {
+                                    "solid" -> 0
+                                    "frosted" -> 1
+                                    else -> 2
+                                },
+                                onSelect = { idx ->
+                                    glassStyle = when (idx) {
+                                        0 -> "solid"
+                                        1 -> "frosted"
+                                        else -> "liquid"
+                                    }
+                                    prefs.edit().putString("expanded_glass_style", glassStyle).apply()
+                                },
                             )
                             Text(
                                 when (glassStyle) {
-                                    "solid" -> "Solid Obsidian"
-                                    "frosted" -> "Frosted Glass"
-                                    else -> "Apple Liquid Glass ✨"
+                                    "solid" -> "Classic opaque matte dark background with maximum contrast."
+                                    "frosted" -> "Translucent frosted dark glass with subtle background blur."
+                                    else -> "Apple Liquid Glass: Translucent fluid glass with specular highlight sheen and ambient edge glow."
                                 },
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = IsleColors.AccentText,
+                                lineHeight = 16.sp,
+                                color = IsleColors.TextSecondary,
                             )
                         }
-                        SegmentedControl(
-                            listOf("Solid", "Frosted", "Liquid Glass ✨"),
-                            selected = when (glassStyle) {
-                                "solid" -> 0
-                                "frosted" -> 1
-                                else -> 2
-                            },
-                            onSelect = { idx ->
-                                glassStyle = when (idx) {
-                                    0 -> "solid"
-                                    1 -> "frosted"
-                                    else -> "liquid"
-                                }
-                                prefs.edit().putString("expanded_glass_style", glassStyle).apply()
-                            },
-                        )
-                        Text(
-                            when (glassStyle) {
-                                "solid" -> "Classic opaque matte dark background with maximum contrast."
-                                "frosted" -> "Translucent frosted dark glass with subtle background blur."
-                                else -> "Apple Liquid Glass: Translucent fluid glass with specular highlight sheen and ambient edge glow."
-                            },
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp,
-                            color = IsleColors.TextSecondary,
-                        )
                     }
                 }
             }
