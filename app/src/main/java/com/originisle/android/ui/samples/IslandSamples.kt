@@ -6,8 +6,10 @@ import android.content.Intent
 import android.graphics.drawable.Icon
 import com.originisle.android.MainActivity
 import com.originisle.android.R
+import com.originisle.android.cards.DeliveryCard
 import com.originisle.android.cards.PaymentCard
 import com.originisle.android.cards.SportsCard
+import com.originisle.android.cards.WeatherCard
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 
@@ -244,6 +246,30 @@ object IslandSamples {
                 putExtra("click_resp", openApp(ctx))
                 putExtra("icon_res", R.drawable.ic_alert)
             }
+        },
+        OriginSample(
+            "Delivery", "Amazon · Out for delivery · by 4 PM",
+            IslandPreview(R.drawable.ic_alert, "Amazon", IslandPreview.Right.Capsule("by 4 PM")),
+        ) { ctx ->
+            DeliveryCard.post(
+                context = ctx, id = 40011,
+                title = "Out for delivery",
+                eta = "by 4 PM",
+                carrier = "Amazon Logistics",
+                appIcon = null,
+                clickResp = openApp(ctx),
+            )
+        },
+        OriginSample(
+            "Weather alert", "Severe storm warning · ⛈ Storm",
+            IslandPreview(R.drawable.ic_alert, "Weather", IslandPreview.Right.Capsule("⛈ Storm")),
+        ) { ctx ->
+            WeatherCard.post(
+                context = ctx, id = 40012,
+                headline = "Severe Storm Warning",
+                chip = "⛈ Storm",
+                clickResp = openApp(ctx),
+            )
         },
     )
 

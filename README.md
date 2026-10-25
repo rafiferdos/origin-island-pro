@@ -47,8 +47,11 @@ live football scores, including from European and international apps.
 - ⚽ **Live football scores** with team crests (SofaScore, FotMob, FlashScore, 365Scores…)
 - 💳 **Apple Pay–style payment animation** (Google Wallet, Revolut, PayPal, N26, Monzo, Venmo,
   Cash App…)
-- 🎛️ **Every card type has its own switch** — payments, football, login codes, charging…
-- 🎵 **Media controls** wired to the real app
+- 📦 **Delivery tracking** — parcel status & ETA (Amazon, DHL, FedEx, UPS, Zalando, Shein, DoorDash…)
+- 🌦️ **Weather alerts** — storm warnings, rainfall updates and temperatures
+- 🎛️ **Every card type has its own switch** — payments, delivery, weather, football, login codes, charging…
+- 📊 **Real-time activity stats** — live cast/skip dashboard on Home and multi-category log filtering
+- 🎵 **Media controls** wired to the real app with waveform visualization
 - 📋 **Log tab** showing what was cast or skipped, and why
 
 > [!WARNING]
@@ -80,7 +83,7 @@ apksigner verify --print-certs origin-island-pro-<version>.apk
 ```
 Expected certificate:
 ```
-5D:2D:FA:7E:F6:A9:6B:95:4A:C2:43:61:A3:30:BA:9B:2C:EA:45:18:C5:B8:63:58:C9:F4:FF:B1:1D:79:E6:00
+45:8C:47:85:FE:6D:CD:F1:29:30:AA:AF:9D:AD:5B:AD:91:25:19:B1:AA:E9:7C:68:CC:F9:ED:84:90:91:9A:E8
 ```
 Doesn't match? **Don't install.**
 </details>

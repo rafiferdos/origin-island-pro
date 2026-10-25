@@ -73,7 +73,7 @@ fun OnboardingScreen(context: Context, prefs: SharedPreferences, onDone: () -> U
         item {
             Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Welcome to Origin Isle",
+                    "Welcome to Origin Island Pro",
                     fontSize = 34.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = (-0.7).sp,
@@ -81,7 +81,7 @@ fun OnboardingScreen(context: Context, prefs: SharedPreferences, onDone: () -> U
                     color = IsleColors.Text,
                 )
                 Text(
-                    "A few permissions are needed before notifications can be cast to the island.",
+                    "Grant these permissions to start casting rich dynamic notifications to your island.",
                     fontSize = 15.sp,
                     lineHeight = 21.sp,
                     color = IsleColors.TextTertiary,
@@ -94,16 +94,16 @@ fun OnboardingScreen(context: Context, prefs: SharedPreferences, onDone: () -> U
                     icon = IsleIcons.Bell,
                     tile = IsleColors.TileBlue,
                     title = "Notification access",
-                    description = "Required — lets Origin Isle read notifications so it can re-cast them.",
+                    description = "Required — lets Origin Island Pro read notifications so it can re-cast them.",
                     granted = notifGranted,
                     mandatory = true,
                 ) { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
                 GroupDivider()
                 OnboardingRow(
-                    icon = IsleIcons.Bell,
+                    icon = IsleIcons.Shield,
                     tile = IsleColors.TilePurple,
                     title = "Allow notifications",
-                    description = "Lets Origin Isle show its own status notification.",
+                    description = "Lets Origin Island Pro show its own status notification.",
                     granted = postGranted,
                     mandatory = false,
                 ) {

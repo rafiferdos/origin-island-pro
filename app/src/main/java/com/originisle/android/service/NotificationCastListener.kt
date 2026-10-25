@@ -22,6 +22,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.originisle.android.cards.ChargingCard
+import com.originisle.android.cards.DeliveryCard
 import com.originisle.android.cards.GenericCard
 import com.originisle.android.cards.MediaCard
 import com.originisle.android.cards.MessageCard
@@ -29,6 +30,7 @@ import com.originisle.android.cards.NavigationCard
 import com.originisle.android.cards.OtpCard
 import com.originisle.android.cards.PaymentCard
 import com.originisle.android.cards.SportsCard
+import com.originisle.android.cards.WeatherCard
 import com.originisle.android.cards.fallbackClickIntent
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.log.CastLog
@@ -415,10 +417,10 @@ class NotificationCastListener : NotificationListenerService() {
     private fun reload() {
         val prefs = getSharedPreferences(PREFS, 0)
         val enabled = prefs.getBoolean("cast_notifications", false)
-        val apps = prefs.getStringSet("cast_enabled_apps", null)
         activeNotifications?.forEach { sbn ->
-            val eligible = apps == null || sbn.packageName in apps
-            if (enabled && sbn.packageName != packageName && eligible) onNotificationPosted(sbn)
+            if (enabled && sbn.packageName != packageName && isAppEnabled(prefs, sbn.packageName)) {
+                onNotificationPosted(sbn)
+            }
         }
     }
 
@@ -521,6 +523,51 @@ class NotificationCastListener : NotificationListenerService() {
                     log(sbn, "skipped — duplicate delivery, unchanged", false); return
                 }
                 castPayment(sbn, it); log(sbn, "cast — payment", true); return
+            }
+        }
+
+        // Delivery tracking (Amazon, DHL, FedEx, UPS, courier, food delivery, …)
+        if (prefs.getBoolean("cast_delivery", true)) {
+            val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString()?.trim().orEmpty()
+            val text = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString()?.trim().orEmpty()
+            val big = extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)?.toString()?.trim().orEmpty()
+            val hay = "$title $text $big"
+            val isDeliveryApp = sbn.packageName in DeliveryCard.DELIVERY_APPS
+            val hasDeliveryKeyword = DeliveryCard.DELIVERY_KEYWORDS.any { hay.contains(it, ignoreCase = true) }
+            if (isDeliveryApp || hasDeliveryKeyword) {
+                if (lastCastPostTime.put(sbn.key, sbn.postTime) == sbn.postTime) {
+                    log(sbn, "skipped — duplicate delivery, unchanged", false); return
+                }
+                val eta = DeliveryCard.extractEta("$text $big")
+                val appLbl = appLabel(sbn.packageName)
+                val click = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
+                val appIcon = runCatching {
+                    val ai = packageManager.getApplicationInfo(sbn.packageName, 0)
+                    Icon.createWithResource(sbn.packageName, ai.icon)
+                }.getOrNull()
+                DeliveryCard.post(applicationContext, IconCache.castIdFor(sbn), title.ifBlank { appLbl }, eta, appLbl, appIcon, click)
+                log(sbn, "cast — delivery", true)
+                return
+            }
+        }
+
+        // Weather alerts (storm, rain, freeze warnings, forecasts)
+        if (prefs.getBoolean("cast_weather", true)) {
+            val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString()?.trim().orEmpty()
+            val text = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString()?.trim().orEmpty()
+            val big = extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)?.toString()?.trim().orEmpty()
+            val hay = "$title $text $big"
+            val isWeatherApp = sbn.packageName in WeatherCard.WEATHER_APPS
+            val hasWeatherKeyword = WeatherCard.WEATHER_KEYWORDS.any { hay.contains(it, ignoreCase = true) }
+            if (isWeatherApp && hasWeatherKeyword) {
+                if (lastCastPostTime.put(sbn.key, sbn.postTime) == sbn.postTime) {
+                    log(sbn, "skipped — duplicate delivery, unchanged", false); return
+                }
+                val chip = WeatherCard.extractChip(title, "$text $big")
+                val click = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
+                WeatherCard.post(applicationContext, IconCache.castIdFor(sbn), title.ifBlank { "Weather" }, chip, click)
+                log(sbn, "cast — weather", true)
+                return
             }
         }
 

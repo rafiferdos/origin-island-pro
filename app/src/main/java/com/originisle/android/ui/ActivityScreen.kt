@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,12 +53,26 @@ fun ActivityScreen(context: Context, onBack: () -> Unit) {
     val connected = NotificationCastListener.instance != null
     // 0 = all, 1 = cast only, 2 = skipped only.
     var filter by remember { mutableIntStateOf(0) }
-    val entries = CastLog.entries.filter {
-        when (filter) {
-            1 -> it.cast
-            2 -> !it.cast
+    var categoryFilter by remember { mutableIntStateOf(0) }
+    val categories = listOf("All", "Sports", "Payment", "OTP", "Media", "Delivery", "Weather", "Nav", "Message")
+    val entries = CastLog.entries.filter { e ->
+        val passStatus = when (filter) {
+            1 -> e.cast
+            2 -> !e.cast
             else -> true
         }
+        val passCat = when (categoryFilter) {
+            1 -> e.outcome.contains("score", ignoreCase = true) || e.outcome.contains("sports", ignoreCase = true)
+            2 -> e.outcome.contains("payment", ignoreCase = true)
+            3 -> e.outcome.contains("code", ignoreCase = true) || e.outcome.contains("otp", ignoreCase = true)
+            4 -> e.outcome.contains("media", ignoreCase = true)
+            5 -> e.outcome.contains("delivery", ignoreCase = true)
+            6 -> e.outcome.contains("weather", ignoreCase = true)
+            7 -> e.outcome.contains("navigation", ignoreCase = true) || e.outcome.contains("navi", ignoreCase = true)
+            8 -> e.outcome.contains("message", ignoreCase = true)
+            else -> true
+        }
+        passStatus && passCat
     }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = ScreenPadding) {
@@ -71,6 +86,22 @@ fun ActivityScreen(context: Context, onBack: () -> Unit) {
                     listOf("All", "Shown", "Skipped"), filter, { filter = it },
                     track = IsleColors.Surface, height = 40.dp,
                 )
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    itemsIndexed(categories) { idx, cat ->
+                        ChoiceChip(
+                            label = cat,
+                            selected = categoryFilter == idx,
+                            onClick = { categoryFilter = idx },
+                            selectedContainer = IsleColors.Text,
+                            selectedContent = IsleColors.Background,
+                            shape = RoundedCornerShape(14.dp),
+                            height = 32.dp,
+                            horizontalPadding = 12.dp,
+                        )
+                    }
+                }
             }
         }
         if (entries.isEmpty()) {

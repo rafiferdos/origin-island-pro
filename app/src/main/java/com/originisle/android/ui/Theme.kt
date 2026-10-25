@@ -69,6 +69,8 @@ object IsleColors {
     val TileGray = Color(0xFF4A4A55)
     val TileRose = Color(0xFFE05C8A)
     val TileIndigo = Color(0xFF5C6CFF)
+    val TileCyan = Color(0xFF0EA5C8)
+    val TileOrange2 = Color(0xFFE87040)
 }
 
 @OptIn(ExperimentalTextApi::class)

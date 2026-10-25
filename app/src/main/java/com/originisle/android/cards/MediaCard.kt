@@ -11,6 +11,7 @@ import android.media.session.MediaController
 import android.media.session.PlaybackState
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
+import androidx.core.graphics.drawable.toBitmap
 import com.originisle.android.R
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
@@ -77,8 +78,12 @@ object MediaCard {
         }
 
         n.smallIcon?.let { IconCache.activeSmallIcons[id] = it }
+        val rawLargeIcon = n.extras.get(NotificationCompat.EXTRA_LARGE_ICON)
         val albumArt: Bitmap? = (md?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
-            ?: md?.getBitmap(MediaMetadata.METADATA_KEY_ART))?.let(::shrinkForIcon)
+            ?: md?.getBitmap(MediaMetadata.METADATA_KEY_ART)
+            ?: (rawLargeIcon as? Bitmap)
+            ?: (rawLargeIcon as? Icon)?.let { runCatching { it.loadDrawable(context)?.toBitmap() }.getOrNull() }
+        )?.let(::shrinkForIcon)
         albumArt?.let { IconCache.activeLargeBitmaps[id] = it }
         val waveColors = waveColorsFrom(albumArt)
 

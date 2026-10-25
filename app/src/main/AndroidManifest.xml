@@ -47,7 +47,7 @@
         <service
             android:name=".service.NotificationCastListener"
             android:exported="true"
-            android:label="Origin Isle Notification Caster"
+            android:label="Origin Island Pro Notification Caster"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
@@ -58,7 +58,7 @@
         <service
             android:name=".service.KeepAliveAccessibilityService"
             android:exported="true"
-            android:label="Origin Isle keep-alive"
+            android:label="Origin Island Pro Keep-Alive"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />

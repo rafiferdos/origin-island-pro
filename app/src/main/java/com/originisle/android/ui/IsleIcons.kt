@@ -52,6 +52,28 @@ object IsleIcons {
         "M12 8.6V3", "M15.9 11.4l4.4-1.8", "M14.4 16l2.6 3.3",
         "M9.6 16l-2.6 3.3", "M8.1 11.4L3.7 9.6",
     )
+    val Truck = stroke(
+        "truck",
+        roundRect(1f, 3f, 15f, 13f, 2f),
+        "M16 8h4l3 3v5h-7V8z",
+        "M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
+        "M18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
+    )
+    val CloudSun = stroke(
+        "cloudsun",
+        "M12 2v2", "M12 20v2", "M4.93 4.93l1.41 1.41", "M17.66 17.66l1.41 1.41",
+        "M2 12h2", "M20 12h2", "M6.34 17.66l-1.41 1.41", "M19.07 4.93l-1.41 1.41",
+        "M10.5 8.5a4 4 0 1 0 4 4",
+        "M16 5c0 2.5-2 4-4 7H8c0-3-2-4.5-2-7a5 5 0 1 1 10 0z",
+    )
+    val Package = stroke(
+        "package",
+        "m7.5 4.27 9 5.15", roundRect(2f, 3f, 20f, 14f, 2f),
+        "M12 3v10", "m2 8.27 10 5.73 10-5.73",
+    )
+    val TrendUp = stroke("trendup", "M22 7 13.5 15.5l-5-5L2 17", "M16 7h6v6")
+    val Star = stroke("star", "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z")
+    val History = stroke("history", circle(12f, 12f, 9f), "M12 7v5l3 3")
 
     val More = filled("more", circle(5f, 12f, 2f), circle(12f, 12f, 2f), circle(19f, 12f, 2f))
     val Stop = filled("stop", roundRect(5f, 5f, 14f, 14f, 3f))

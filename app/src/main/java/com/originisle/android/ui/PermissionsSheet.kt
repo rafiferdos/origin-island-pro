@@ -109,7 +109,7 @@ fun PermissionsSheet(
                 ) { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
                 GroupDivider()
                 PermissionRow(
-                    IsleIcons.Bell, IsleColors.TilePurple, "Origin Isle notifications",
+                    IsleIcons.Shield, IsleColors.TilePurple, "Origin Island Pro notifications",
                     ok = postGranted, status = if (postGranted) "Allowed" else "Not allowed",
                 ) {
                     if (Build.VERSION.SDK_INT >= 33) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -124,7 +124,7 @@ fun PermissionsSheet(
                     IsleIcons.Heart, IsleColors.TileTeal, "Keep-alive",
                     ok = keepAliveOk,
                     status = if (keepAliveOk) "On — reconnects casting after a kill" else "Off — slower to recover after a kill",
-                    note = "Enable \"Origin Isle keep-alive\" under Accessibility. No status-bar icon; it reads nothing.",
+                    note = "Enable \"Origin Island Pro Keep-Alive\" under Accessibility. No status-bar icon; it reads nothing.",
                 ) { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
                 GroupDivider()
                 PermissionRow(

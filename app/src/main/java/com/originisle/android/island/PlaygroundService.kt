@@ -161,7 +161,7 @@ class PlaygroundService : Service() {
         // icon that skip was avoiding is handled instead by CHANNEL_ID being IMPORTANCE_NONE.
         createNotificationChannel(CHANNEL_ID)
         val n = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Origin Isle")
+            .setContentTitle("Origin Island Pro")
             .setContentText("Casting to OriginIsland")
             // A fully transparent small icon: OriginOS force-shows foreground-service icons in the
             // status bar even at IMPORTANCE_MIN, so we make the icon invisible. The entry still shows
@@ -430,7 +430,7 @@ class PlaygroundService : Service() {
             .setContentText(text)
             .setOnlyAlertOnce(true)
             .setOngoing(isOngoing)
-            .setAutoCancel(isOngoing)
+            .setAutoCancel(!isOngoing)
             .setDeleteIntent(deletePi)
             .setSmallIcon(iconRes)
             .setExtras(bundle)

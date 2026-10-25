@@ -44,8 +44,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import com.originisle.android.cards.ChargingCard
 import com.originisle.android.island.PlaygroundService
+import com.originisle.android.log.CastLog
 import com.originisle.android.service.NotificationCastListener
 import com.originisle.android.service.QuietHours
 import com.originisle.android.ui.samples.IslandSamples
@@ -73,6 +76,8 @@ fun HomeScreen(
     var otpOn by remember { mutableStateOf(prefs.getBoolean("cast_otp", true)) }
     var sportsOn by remember { mutableStateOf(prefs.getBoolean("cast_sports", true)) }
     var paymentsOn by remember { mutableStateOf(prefs.getBoolean("cast_payments", true)) }
+    var deliveryOn by remember { mutableStateOf(prefs.getBoolean("cast_delivery", true)) }
+    var weatherOn by remember { mutableStateOf(prefs.getBoolean("cast_weather", true)) }
     var actionsOn by remember { mutableStateOf(prefs.getBoolean("cast_show_actions", true)) }
     var chargingOn by remember { mutableStateOf(prefs.getBoolean("cast_charging", true)) }
     var chargingKeep by remember { mutableStateOf(prefs.getBoolean("cast_charging_keep", false)) }
@@ -94,8 +99,24 @@ fun HomeScreen(
 
     // Poll the listener once a second so the status pill stays live.
     var connected by remember { mutableStateOf(NotificationCastListener.instance != null) }
+    var todayCasts by remember { mutableIntStateOf(0) }
+    var todaySkips by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
-        while (true) { connected = NotificationCastListener.instance != null; delay(1000) }
+        val dayStart = run {
+            val cal = java.util.Calendar.getInstance()
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+            cal.set(java.util.Calendar.MINUTE, 0)
+            cal.set(java.util.Calendar.SECOND, 0)
+            cal.set(java.util.Calendar.MILLISECOND, 0)
+            cal.timeInMillis
+        }
+        while (true) {
+            connected = NotificationCastListener.instance != null
+            val todayEntries = CastLog.entries.filter { it.time >= dayStart }
+            todayCasts = todayEntries.count { it.cast }
+            todaySkips = todayEntries.count { !it.cast }
+            delay(1000)
+        }
     }
 
     if (permissionsOpen) {
@@ -111,7 +132,7 @@ fun HomeScreen(
             Row(Modifier.padding(horizontal = 4.dp), verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        "Origin Isle",
+                        "Origin Island Pro",
                         fontSize = 34.sp,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-0.7).sp,
@@ -163,6 +184,35 @@ fun HomeScreen(
 
         if (!listenerOk || !batteryOk) {
             item { SetupAttentionBanner(onClick = { permissionsOpen = true }) }
+        }
+
+        item {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                StatChip(
+                    modifier = Modifier.weight(1f),
+                    label = "Cast today",
+                    value = todayCasts.toString(),
+                    color = IsleColors.GoodText,
+                    bg = IsleColors.GoodBg,
+                )
+                StatChip(
+                    modifier = Modifier.weight(1f),
+                    label = "Skipped",
+                    value = todaySkips.toString(),
+                    color = IsleColors.TextSecondary,
+                    bg = IsleColors.SurfaceHigh,
+                )
+                StatChip(
+                    modifier = Modifier.weight(1f),
+                    label = "Active cards",
+                    value = PlaygroundService.activeCardIds.size.toString(),
+                    color = IsleColors.AccentText,
+                    bg = IsleColors.CastTagBg,
+                )
+            }
         }
 
         item {
@@ -291,6 +341,20 @@ fun HomeScreen(
                         subtitle = "Apple-style payment animation",
                     ) {
                         paymentsOn = it; prefs.edit().putBoolean("cast_payments", it).apply()
+                    }
+                    GroupDivider()
+                    ToggleRow(
+                        IsleIcons.Truck, IsleColors.TileCyan, "Delivery tracking", deliveryOn,
+                        subtitle = "Parcel & shipping notifications (Amazon, DHL, FedEx…)",
+                    ) {
+                        deliveryOn = it; prefs.edit().putBoolean("cast_delivery", it).apply()
+                    }
+                    GroupDivider()
+                    ToggleRow(
+                        IsleIcons.CloudSun, IsleColors.TileOrange2, "Weather alerts", weatherOn,
+                        subtitle = "Storm warnings and forecast updates",
+                    ) {
+                        weatherOn = it; prefs.edit().putBoolean("cast_weather", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(
@@ -492,9 +556,14 @@ private fun SampleTester(context: Context) {
                 )
             }
         }
+        val haptic = LocalHapticFeedback.current
         PillButton(
             if (sentAt != 0L) "Sent" else "Send to island",
-            onClick = { sample.post(context); sentAt = System.currentTimeMillis() },
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                sample.post(context)
+                sentAt = System.currentTimeMillis()
+            },
             modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
             icon = IsleIcons.Send,
             container = IsleColors.Accent,
@@ -540,4 +609,24 @@ private fun recastAll(context: Context) {
     android.widget.Toast.makeText(
         context, "Recast swept $count notifications.", android.widget.Toast.LENGTH_SHORT,
     ).show()
+}
+
+@Composable
+private fun StatChip(
+    label: String,
+    value: String,
+    color: Color,
+    bg: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(bg)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(value, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = color)
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = color.copy(alpha = 0.75f))
+    }
 }
