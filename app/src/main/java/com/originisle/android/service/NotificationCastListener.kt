@@ -347,6 +347,12 @@ class NotificationCastListener : NotificationListenerService() {
 
     private val pollRunnable = object : Runnable {
         override fun run() {
+            // Vivo-safe optimisation: only our own polling cadence changes — no SuperX
+            // template, scene, priority or bundle field changes. A live card (media,
+            // chronometer, download, score) still refreshes every 1s, so download Mbps
+            // and ticking timers stay smooth; with nothing live, 3s cuts the per-second
+            // activeNotifications sweep + binder calls to roughly a third.
+            var foundLive = false
             try {
                 val prefs = getSharedPreferences(PREFS, 0)
                 val castNotifs = prefs.getBoolean("cast_notifications", false)
@@ -361,6 +367,7 @@ class NotificationCastListener : NotificationListenerService() {
                         )
                         if (token != null) {
                             if (castMedia && isAppEnabled(prefs, sbn.packageName)) {
+                                foundLive = true
                                 MediaCard.post(
                                     applicationContext, sbn,
                                     MediaController(this@NotificationCastListener, token),
@@ -369,14 +376,17 @@ class NotificationCastListener : NotificationListenerService() {
                         } else if (castNotifs && sbn.isOngoing &&
                             extras.getBoolean(NotificationCompat.EXTRA_SHOW_CHRONOMETER, false)
                         ) {
+                            foundLive = true
                             onNotificationPosted(sbn) // refresh ticking chronometer
                         } else if (castNotifs && sbn.isOngoing && DownloadCard.isDownload(sbn)) {
+                            foundLive = true
                             onNotificationPosted(sbn) // refresh live download progress and Mbps speed
                         } else if (castNotifs && sbn.packageName in SCORE_APPS &&
                             prefs.getBoolean("cast_sports", true) &&
                             isAppEnabled(prefs, sbn.packageName) &&
                             lastScorePostTime.put(sbn.key, sbn.postTime) != sbn.postTime
                         ) {
+                            foundLive = true
                             onNotificationPosted(sbn) // catch a score update onNotificationPosted was slow to deliver
                         }
                     }
@@ -388,7 +398,7 @@ class NotificationCastListener : NotificationListenerService() {
                 Log.e(TAG, "poll error", e)
             }
             pollTicks++
-            pollHandler.postDelayed(this, 1000L)
+            pollHandler.postDelayed(this, if (foundLive) 1000L else 3000L)
         }
     }
     private var pollTicks = 0L

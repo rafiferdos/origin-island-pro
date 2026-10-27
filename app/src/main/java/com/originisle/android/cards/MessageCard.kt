@@ -49,6 +49,12 @@ object MessageCard {
         val n = sbn.notification
         val id = IconCache.castIdFor(sbn)
         val msg = read(context, sbn, appLabel)
+        // Privacy mode (opt-in, default off): vivo-safe — only the text we send in
+        // the existing template changes. Sender + app stay visible so the user still
+        // knows who it is from; the message body itself is never put on the island.
+        val privacyOn = context.getSharedPreferences(PREFS_NAME, 0)
+            .getBoolean("cast_privacy_mode", false)
+        val displayText = if (privacyOn) "New message" else msg.text
 
         val appIcon = runCatching {
             Icon.createWithResource(sbn.packageName, context.packageManager.getApplicationInfo(sbn.packageName, 0).icon)
@@ -57,7 +63,7 @@ object MessageCard {
         n.smallIcon?.let { IconCache.activeSmallIcons[id] = it }
 
         val top = msg.sender
-        val subtext = if (msg.count > 1) "$appLabel · ${msg.count} new messages" else appLabel
+        val subtext = if (privacyOn) appLabel else if (msg.count > 1) "$appLabel · ${msg.count} new messages" else appLabel
 
         val buttons = if (context.getSharedPreferences(PREFS_NAME, 0).getBoolean("cast_show_actions", true)) {
             GenericCard.usableActions(n)
@@ -76,7 +82,7 @@ object MessageCard {
                 else OriginIslandConstants.TEMPLATE_BASE,
             )
             putExtra("title", if (msg.group != null) "${msg.sender} · ${msg.group}" else msg.sender)
-            putExtra("text", msg.text)
+            putExtra("text", displayText)
             putExtra("subtext", subtext)
             putExtra("source_app", appLabel)
             putExtra("source_pkg", sbn.packageName)
@@ -94,8 +100,8 @@ object MessageCard {
             // Right side of compact pill: message preview
             putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON)
             putExtra("oi_show_right_icon", false)
-            putExtra("oi_right_content", msg.text.clip(LINE_MAX_CHARS))
-            putExtra("status_chip_text", msg.text.clip(LINE_MAX_CHARS))
+            putExtra("oi_right_content", displayText.clip(LINE_MAX_CHARS))
+            putExtra("status_chip_text", displayText.clip(LINE_MAX_CHARS))
             putExtra("icon_res", R.mipmap.ic_launcher_round)
             putExtra("when", n.`when`)
             putExtra("source_content_intent", n.contentIntent ?: fallbackClickIntent(context, sbn.packageName))
