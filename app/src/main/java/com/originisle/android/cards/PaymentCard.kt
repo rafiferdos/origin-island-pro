@@ -9,6 +9,7 @@ import android.os.Looper
 import com.originisle.android.R
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
+import com.originisle.android.ui.PREFS_NAME
 import com.originisle.android.util.PriorityArbitrator
 
 /**
@@ -53,12 +54,19 @@ object PaymentCard {
         clickResp: PendingIntent?,
     ) {
         val app = context.applicationContext
+        // Privacy mode (opt-in, default off): vivo-safe — same template, same
+        // spinner -> tick animation, only the amount/merchant text changes.
+        // Phase 1 then reads "Payment complete", phase 2 reads "Paid".
+        val privacyOn = context.getSharedPreferences(PREFS_NAME, 0)
+            .getBoolean("cast_privacy_mode", false)
+        val safeAmount = if (privacyOn) "" else amount
+        val safeMerchant = if (privacyOn) "Payment complete" else merchant
 
         // Phase 1 — processing (spinner).
         startService(
             app, id,
             title = "Processing…",
-            content = amount.ifBlank { merchant },
+            content = safeAmount.ifBlank { safeMerchant },
             subtext = "Paid with $appLabel",
             appIcon = appIcon,
             clickResp = clickResp,
@@ -72,8 +80,8 @@ object PaymentCard {
         handler.postDelayed({
             startService(
                 app, id,
-                title = amount.ifBlank { "Paid" },
-                content = merchant,
+                title = safeAmount.ifBlank { "Paid" },
+                content = safeMerchant,
                 subtext = "Paid with $appLabel",
                 appIcon = appIcon,
                 clickResp = clickResp,

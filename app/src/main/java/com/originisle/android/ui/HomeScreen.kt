@@ -86,6 +86,7 @@ fun HomeScreen(
     var deliveryOn by remember { mutableStateOf(prefs.getBoolean("cast_delivery", true)) }
     var weatherOn by remember { mutableStateOf(prefs.getBoolean("cast_weather", true)) }
     var actionsOn by remember { mutableStateOf(prefs.getBoolean("cast_show_actions", true)) }
+    var privacyOn by remember { mutableStateOf(prefs.getBoolean("cast_privacy_mode", false)) }
     var chargingOn by remember { mutableStateOf(prefs.getBoolean("cast_charging", true)) }
     var chargingKeep by remember { mutableStateOf(prefs.getBoolean("cast_charging_keep", false)) }
     var downloadPillStyle by remember { mutableStateOf(prefs.getString("download_pill_style", "split") ?: "split") }
@@ -405,6 +406,13 @@ fun HomeScreen(
                         subtitle = "The app's own buttons on the card",
                     ) {
                         actionsOn = it; prefs.edit().putBoolean("cast_show_actions", it).apply()
+                    }
+                    GroupDivider()
+                    ToggleRow(
+                        IsleIcons.Shield, IsleColors.TileAmber, "Privacy mode", privacyOn,
+                        subtitle = "Hide message bodies & payment amounts on the island",
+                    ) {
+                        privacyOn = it; prefs.edit().putBoolean("cast_privacy_mode", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(
