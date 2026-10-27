@@ -32,10 +32,22 @@ class DownloadCardTest {
         val telegram = "org.telegram.messenger"
         val adm = "com.dv.adm"
         val idm = "idm.internet.download.manager"
+        val genshin = "com.miHoYo.GenshinImpact"
 
         assertEquals(true, chrome in DownloadCard.DOWNLOAD_APPS)
         assertEquals(true, telegram in DownloadCard.DOWNLOAD_APPS)
         assertEquals(true, adm in DownloadCard.DOWNLOAD_APPS)
         assertEquals(true, idm in DownloadCard.DOWNLOAD_APPS)
+        assertEquals(true, genshin in DownloadCard.DOWNLOAD_APPS)
+    }
+
+    @Test
+    fun testFormatting() {
+        assertEquals("24.5 Mbps", DownloadCard.formatMbps(24.5))
+        assertEquals("24.5M", DownloadCard.formatCompactMbps(24.5))
+        assertEquals("120 Mbps", DownloadCard.formatMbps(120.0))
+        assertEquals("120M", DownloadCard.formatCompactMbps(120.0))
+        assertEquals("500 Kbps", DownloadCard.formatMbps(0.5))
+        assertEquals("500K", DownloadCard.formatCompactMbps(0.5))
     }
 }

@@ -65,6 +65,30 @@ object IslandSamples {
             }
         },
         OriginSample(
+            "Game download", "Genshin Impact · 24.5 Mbps · 45% • 4.5 GB / 12.0 GB",
+            IslandPreview(R.drawable.ic_download, "24.5 Mbps", IslandPreview.Right.Progress(0.45f)),
+        ) { ctx ->
+            start(ctx, 40022) {
+                putExtra("oi_scene", "NAVIGATION")
+                putExtra("oi_priority", 76)
+                putExtra("oi_template", OriginIslandConstants.TEMPLATE_PROGRESS_VISUAL)
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS)
+                putExtra("title", "Genshin Impact")
+                putExtra("text", "45% • 4.5 GB / 12.0 GB • 24.5 Mbps")
+                putExtra("subtext", "Genshin Impact • Game Asset Download")
+                putExtra("source_app", "Genshin Impact")
+                putExtra("oi_left_content", "24.5 Mbps")
+                putExtra("oi_left_icon", Icon.createWithResource(ctx, R.drawable.ic_download))
+                putExtra("oi_large_icon", Icon.createWithResource(ctx, R.drawable.ic_download))
+                putExtra("show_progress", true)
+                putExtra("progress", 45)
+                putExtra("progress_max", 100)
+                putExtra("status_chip_text", "45%")
+                putExtra("icon_res", R.drawable.ic_download)
+                putExtra("click_resp", openApp(ctx))
+            }
+        },
+        OriginSample(
             "bKash payment", "bKash MFS · Received ৳1,500 from Tanvir ✓",
             IslandPreview(R.drawable.ic_payment, "৳1,500", IslandPreview.Right.Success),
         ) { ctx ->

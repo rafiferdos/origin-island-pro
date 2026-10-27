@@ -4,6 +4,7 @@ import android.app.Notification
 import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
+import android.net.TrafficStats
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
 import com.originisle.android.R
@@ -16,13 +17,14 @@ import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Dedicated Next-Level Download & File Transfer Card for Origin Island Pro.
- * Intercepts active downloads from Chrome, Telegram, ADM, 1DM, Google Play, etc.
+ * Universal Intelligent Download & File Transfer Engine for Origin Island Pro.
+ * Automatically detects downloads from ANY app in the world (Games, Browsers, Cloud, Messengers, etc.).
  * Features:
- * - Displays source app launcher icon (Play Store, Chrome, Telegram) on the compact island pill.
- * - Real-time throughput speed measured per second in Megabits (Mbps), NOT bytes.
- * - Normalized island width: prevents awkward stretching by keeping the pill compact.
- * - Clean expanded progress bar without repeating 4-icon clutter.
+ * - Displays the authentic source app launcher icon (e.g. Genshin Impact, Chrome, Play Store, Telegram) on the compact pill.
+ * - Real-time throughput speed measured per second in Megabits (Mbps), using both text parsing and live TrafficStats network accounting.
+ * - Compact right-side loading ring / progress indicator.
+ * - Meaningful expanded card with formatted size, percentage, live Mbps speed, and ETA.
+ * - Clean uninterrupted progress bar without clutter.
  */
 object DownloadCard {
 
@@ -31,36 +33,96 @@ object DownloadCard {
         "org.mozilla.firefox",
         "com.microsoft.emmx",
         "com.opera.browser",
+        "com.opera.mini.native",
         "com.sec.android.app.sbrowser",
         "org.telegram.messenger",
         "com.android.vending", // Google Play Store
         "com.dv.adm",          // Advanced Download Manager
         "idm.internet.download.manager", // 1DM
         "com.google.android.apps.docs",
+        "com.miHoYo.GenshinImpact",
+        "com.cognosphere.genshinimpact.oversea",
+        "com.tencent.ig",      // PUBG Mobile
+        "com.pubg.imobile",
+        "com.dts.freefireth",  // Free Fire
+        "com.dts.freefiremax",
     )
 
-    private val SPEED_REGEX = Regex("""(\d+(?:\.\d+)?)\s*(?:KB/s|MB/s|kb/s|mb/s|kB/s|mB/s|Mbps|mbps|Kbps|kbps)""")
-    private val SIZE_REGEX = Regex("""(\d+(?:\.\d+)?\s*(?:MB|GB|KB))\s*(?:/|of)\s*(\d+(?:\.\d+)?\s*(?:MB|GB|KB))""")
+    private val DOWNLOAD_KEYWORDS = listOf(
+        "download", "downloading", "downloaded",
+        "transfer", "transferring", "transferred",
+        "updating", "update", "patching", "patch",
+        "installing", "extracting", "unpacking", "fetching", "syncing", "exporting",
+        "resources", "game data", "assets", "package", "obb",
+        "mb/s", "kb/s", "gb/s", "mbps", "kbps", "m/s", "k/s",
+        "ডাউনলোড", "আপডেট", "ট্রান্সফার",
+    )
 
-    private data class ProgressSnapshot(val percent: Int, val timeMs: Long)
-    private val lastSnapshots = ConcurrentHashMap<Int, ProgressSnapshot>()
+    private val SPEED_REGEX = Regex("""(?i)(\d+(?:\.\d+)?)\s*(?:KB/s|MB/s|kb/s|mb/s|kB/s|mB/s|Mbps|mbps|Kbps|kbps)""")
+    private val SIZE_REGEX = Regex("""(?i)(\d+(?:\.\d+)?\s*(?:MB|GB|KB|TB))\s*(?:/|of)\s*(\d+(?:\.\d+)?\s*(?:MB|GB|KB|TB))""")
+    private val ETA_REGEX = Regex("""(?i)(\d+\s*(?:min|mins|minute|minutes|sec|secs|second|seconds|hr|hrs|hour|hours|s|m|h)\s*(?:remaining|left))|((?:about|approx\.?)\s*\d+\s*(?:min|mins|hour|hrs)\s*left)""")
 
+    private data class UidTrafficSample(
+        val rxBytes: Long,
+        val timestampMs: Long,
+        val lastComputedMbps: Double,
+    )
+    private val trafficSamples = ConcurrentHashMap<Int, UidTrafficSample>()
+
+    /** Drop dedupe state and traffic sample for [id]. */
+    fun forget(id: Int) {
+        trafficSamples.remove(id)
+    }
+
+    /**
+     * Universal auto-detection for ANY download, file transfer, or asset downloader notification
+     * from ANY app across the globe without requiring manual hardcoded package lists.
+     */
     fun isDownload(sbn: StatusBarNotification): Boolean {
         val n = sbn.notification
         val extras = n.extras
         val progressMax = extras.getInt(NotificationCompat.EXTRA_PROGRESS_MAX, 0)
         val indeterminate = extras.getBoolean(NotificationCompat.EXTRA_PROGRESS_INDETERMINATE, false)
-        if (progressMax <= 0 || indeterminate) return false
+        val hasProgress = progressMax > 0 || indeterminate
+
+        val rawTitle = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString()?.trim().orEmpty()
+        val rawText = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString()?.trim().orEmpty()
+        val bigText = extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)?.toString()?.trim().orEmpty()
+        val combined = "$rawTitle $rawText $bigText".lowercase(Locale.ROOT)
+
+        val hasDownloadKeyword = DOWNLOAD_KEYWORDS.any { combined.contains(it) }
+        val hasSpeed = SPEED_REGEX.containsMatchIn(combined)
+        val hasSize = SIZE_REGEX.containsMatchIn(combined)
+        val isProgressCategory = n.category == NotificationCompat.CATEGORY_PROGRESS ||
+            n.category == NotificationCompat.CATEGORY_STATUS
 
         val pkg = sbn.packageName
-        if (pkg in DOWNLOAD_APPS) return true
+        if (pkg in DOWNLOAD_APPS && (hasProgress || hasDownloadKeyword || hasSpeed || hasSize)) {
+            return true
+        }
 
-        val text = "${extras.getCharSequence(NotificationCompat.EXTRA_TITLE)} ${extras.getCharSequence(NotificationCompat.EXTRA_TEXT)}".lowercase()
-        return listOf("downloading", "download", "transferring", "updating", "mb/s", "kb/s", "mbps", "exporting").any { text.contains(it) }
+        // Universal auto-detection:
+        // 1. Explicit progress accompanied by keyword, speed, size or category
+        if (hasProgress && (hasDownloadKeyword || hasSpeed || hasSize || isProgressCategory)) {
+            return true
+        }
+
+        // 2. Ongoing notification with explicit speed or size regex
+        val isOngoing = sbn.isOngoing || (n.flags and Notification.FLAG_ONGOING_EVENT) != 0
+        if (isOngoing && (hasSpeed || hasSize)) {
+            return true
+        }
+
+        // 3. Ongoing notification with download keywords and percent sign
+        if (isOngoing && hasDownloadKeyword && (hasProgress || combined.contains("%"))) {
+            return true
+        }
+
+        return false
     }
 
     /**
-     * Converts any raw speed string (MB/s, KB/s, Mbps) to Megabits per second (Mbps).
+     * Converts raw speed strings (MB/s, KB/s, Mbps) to standard Megabits per second (Mbps).
      * 1 MB/s = 8.0 Mbps, 1 KB/s = 0.008 Mbps.
      */
     fun convertToMbps(text: String): String? {
@@ -91,13 +153,13 @@ object DownloadCard {
         return formatCompactMbps(mbps)
     }
 
-    private fun formatMbps(mbps: Double): String = when {
+    fun formatMbps(mbps: Double): String = when {
         mbps >= 100.0 -> String.format(Locale.US, "%.0f Mbps", mbps)
         mbps >= 1.0 -> String.format(Locale.US, "%.1f Mbps", mbps)
         else -> String.format(Locale.US, "%.0f Kbps", mbps * 1000.0)
     }
 
-    private fun formatCompactMbps(mbps: Double): String = when {
+    fun formatCompactMbps(mbps: Double): String = when {
         mbps >= 100.0 -> "${mbps.toInt()}M"
         mbps >= 1.0 -> String.format(Locale.US, "%.1fM", mbps)
         else -> "${(mbps * 1000.0).toInt()}K"
@@ -114,45 +176,81 @@ object DownloadCard {
 
         val progress = extras.getInt(NotificationCompat.EXTRA_PROGRESS, 0)
         val progressMax = extras.getInt(NotificationCompat.EXTRA_PROGRESS_MAX, 100)
-        val percent = if (progressMax > 0) (progress * 100 / progressMax).coerceIn(0, 100) else 0
+        val indeterminate = extras.getBoolean(NotificationCompat.EXTRA_PROGRESS_INDETERMINATE, false)
+        val percent = if (progressMax > 0 && !indeterminate) (progress * 100 / progressMax).coerceIn(0, 100) else 0
 
         val rawTitle = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString()?.trim().orEmpty()
         val rawText = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString()?.trim().orEmpty()
         val bigText = extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)?.toString()?.trim().orEmpty()
-        val combined = "$rawTitle $rawText $bigText"
+        val subText = extras.getCharSequence(NotificationCompat.EXTRA_SUB_TEXT)?.toString()?.trim().orEmpty()
+        val combined = "$rawTitle $rawText $bigText $subText"
 
-        val mbpsSpeed = convertToMbps(combined)
-        val compactSpeed = extractCompactMbps(combined)
+        // 1. Text-based speed extraction
+        val textMbps = convertToMbps(combined)
 
-        // Clean file name
-        val rawName = rawTitle.ifBlank { rawText }
-        val cleanName = IntelligentTextSanitizer.cleanTitle(rawName, appLabel)
-            .replace(Regex("""^(?:Downloading|Download)\s+"""), "")
+        // 2. Real-time network throughput measurement via TrafficStats (for ANY app without speed in text)
+        val uid = sbn.uid
+        val now = System.currentTimeMillis()
+        val currentRxBytes = if (uid > 0) TrafficStats.getUidRxBytes(uid) else -1L
 
-        // Source App Launcher Icon (e.g. Google Play Store icon, Chrome icon, Telegram icon)
+        val measuredMbps: Double? = if (currentRxBytes > 0) {
+            val prevSample = trafficSamples[id]
+            if (prevSample != null && prevSample.timestampMs > 0) {
+                val deltaBytes = currentRxBytes - prevSample.rxBytes
+                val deltaMs = now - prevSample.timestampMs
+                if (deltaBytes >= 0 && deltaMs in 400..15000) {
+                    val bytesPerSec = (deltaBytes * 1000.0) / deltaMs
+                    val mbps = (bytesPerSec * 8.0) / 1_000_000.0
+                    trafficSamples[id] = UidTrafficSample(currentRxBytes, now, mbps)
+                    mbps
+                } else {
+                    trafficSamples[id] = UidTrafficSample(currentRxBytes, now, prevSample.lastComputedMbps)
+                    prevSample.lastComputedMbps
+                }
+            } else {
+                trafficSamples[id] = UidTrafficSample(currentRxBytes, now, 0.0)
+                null
+            }
+        } else {
+            null
+        }
+
+        // Resolve active speed in Mbps: text speed wins, fallback to live TrafficStats
+        val liveMbpsSpeed: String? = textMbps ?: measuredMbps?.takeIf { it > 0.05 }?.let { formatMbps(it) }
+
+        // Authentic Source App Launcher Icon (e.g. Genshin Impact, Chrome, Play Store, Telegram)
         val appIcon = runCatching {
             val ai = context.packageManager.getApplicationInfo(sbn.packageName, 0)
             Icon.createWithResource(sbn.packageName, ai.icon)
-        }.getOrNull()
+        }.getOrNull() ?: n.smallIcon ?: Icon.createWithResource(context, R.drawable.ic_download)
 
-        // Compact pill left content: compact speed in Mbps (e.g. "19.2M" or "19.2 Mbps")
-        // Kept short to prevent wide bloated island width!
-        val leftContent = compactSpeed?.let { "$it/s" } ?: run {
-            val dotExt = cleanName.substringAfterLast('.', "")
-            if (dotExt.length in 2..4 && !dotExt.contains(" ")) ".$dotExt" else ""
-        }
+        // Extract clean item/game/file name
+        val rawName = rawTitle.ifBlank { rawText }
+        val cleanName = IntelligentTextSanitizer.cleanTitle(rawName, appLabel)
+            .replace(Regex("""^(?:Downloading|Download|Updating|Update)\s+"""), "")
+            .trim()
+        val displayTitle = if (cleanName.isNotBlank() && cleanName != "Downloading") cleanName else appLabel
 
-        // Expanded card details: Mbps speed prominently surfaced
+        // Meaningful expanded details: size, speed, and ETA
+        val sizeMatch = SIZE_REGEX.find(combined)
+        val etaMatch = ETA_REGEX.find(combined)
+
+        val sizePart = sizeMatch?.value ?: if (percent > 0) "$percent%" else ""
+        val speedPart = liveMbpsSpeed ?: ""
+        val etaPart = etaMatch?.value ?: ""
+
+        val detailParts = listOf(sizePart, speedPart, etaPart).filter { it.isNotBlank() }
         val details = when {
-            mbpsSpeed != null && cleanName.isNotBlank() -> "$percent% • $cleanName • $mbpsSpeed"
-            cleanName.isNotBlank() -> "$percent% • $cleanName"
+            detailParts.isNotEmpty() -> detailParts.joinToString(" • ")
+            rawText.isNotBlank() && rawText != displayTitle -> rawText
             else -> "$percent% • $appLabel"
         }
 
+        // Left pill content: prominent Mbps speed (e.g. "19.2 Mbps" or "15.0 Mbps"), or percent if 0 Mbps
+        val leftContent = liveMbpsSpeed ?: if (percent > 0) "$percent%" else "Downloading"
+
         n.smallIcon?.let { IconCache.activeSmallIcons[id] = it }
-        appIcon?.let {
-            IconCache.activeLargeIcons[id] = it
-        }
+        IconCache.activeLargeIcons[id] = appIcon
 
         val actions = n.actions.orEmpty().filter { a ->
             a.actionIntent != null && !a.title.isNullOrBlank()
@@ -167,24 +265,29 @@ object DownloadCard {
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_DELIVERY)
             putExtra("oi_scene", "NAVIGATION")
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_PROGRESS_VISUAL)
-            putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS)
-            putExtra("show_progress", true)
-            putExtra("progress", progress)
-            putExtra("progress_max", progressMax)
-            putExtra("title", cleanName.ifBlank { "Downloading" })
+
+            // Right side of compact pill: animated progress ring or loading spinner
+            if (!indeterminate && progressMax > 0) {
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS)
+                putExtra("show_progress", true)
+                putExtra("progress", progress)
+                putExtra("progress_max", progressMax)
+                putExtra("status_chip_text", "$percent%")
+            } else {
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_LOADING)
+                putExtra("status_chip_text", "...")
+            }
+
+            putExtra("title", displayTitle)
             putExtra("text", details)
-            putExtra("subtext", appLabel)
+            putExtra("subtext", if (displayTitle != appLabel) "$appLabel • Download Manager" else "$appLabel • Live Download")
             putExtra("source_app", appLabel)
             putExtra("source_pkg", sbn.packageName)
 
-            // Normalized compact pill:
-            // Display source app's colorful launcher icon (Play Store, Chrome, Telegram)
-            appIcon?.let {
-                putExtra("oi_left_icon", it)
-                putExtra("oi_large_icon", it)
-            }
+            // Compact pill left side: source app launcher icon + live speed in Mbps!
+            putExtra("oi_left_icon", appIcon)
+            putExtra("oi_large_icon", appIcon)
             putExtra("oi_left_content", leftContent)
-            putExtra("status_chip_text", "$percent%")
             putExtra("icon_res", R.drawable.ic_download)
             putExtra("source_content_intent", clickIntent)
 

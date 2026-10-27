@@ -370,6 +370,8 @@ class NotificationCastListener : NotificationListenerService() {
                             extras.getBoolean(NotificationCompat.EXTRA_SHOW_CHRONOMETER, false)
                         ) {
                             onNotificationPosted(sbn) // refresh ticking chronometer
+                        } else if (castNotifs && sbn.isOngoing && DownloadCard.isDownload(sbn)) {
+                            onNotificationPosted(sbn) // refresh live download progress and Mbps speed
                         } else if (castNotifs && sbn.packageName in SCORE_APPS &&
                             prefs.getBoolean("cast_sports", true) &&
                             isAppEnabled(prefs, sbn.packageName) &&
@@ -1079,6 +1081,7 @@ class NotificationCastListener : NotificationListenerService() {
         lastScorePostTime.remove(sbn.key)
         lastCastPostTime.remove(sbn.key)
         MediaCard.forget(IconCache.castIdFor(sbn))
+        DownloadCard.forget(IconCache.castIdFor(sbn))
 
         // Score cards are keyed by team names (matchCastId), not by this notification's own identity
         // (see handleScore) — cancelling by IconCache.castIdFor(sbn) here would target the wrong id and
