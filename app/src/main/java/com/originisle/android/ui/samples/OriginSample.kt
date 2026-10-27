@@ -23,6 +23,7 @@ data class IslandPreview(
     @DrawableRes val icon: Int,
     val left: String,
     val right: Right,
+    val leftDoubleLine: List<String>? = null,
 ) {
     sealed interface Right {
         /** TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT: text in a grey capsule. */

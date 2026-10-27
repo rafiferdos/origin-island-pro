@@ -88,6 +88,7 @@ fun HomeScreen(
     var actionsOn by remember { mutableStateOf(prefs.getBoolean("cast_show_actions", true)) }
     var chargingOn by remember { mutableStateOf(prefs.getBoolean("cast_charging", true)) }
     var chargingKeep by remember { mutableStateOf(prefs.getBoolean("cast_charging_keep", false)) }
+    var downloadPillStyle by remember { mutableStateOf(prefs.getString("download_pill_style", "split") ?: "split") }
     var quietDnd by remember { mutableStateOf(prefs.getBoolean("cast_quiet_dnd", false)) }
     var quietSchedule by remember { mutableStateOf(prefs.getBoolean("cast_quiet_schedule", false)) }
     var quietStart by remember { mutableIntStateOf(prefs.getInt("cast_quiet_start", QuietHours.DEFAULT_START)) }
@@ -432,6 +433,42 @@ fun HomeScreen(
                             }
                         }
                     }
+                    GroupDivider()
+                    SettingRow(
+                        IsleIcons.Download, IsleColors.TileDownload, "Download pill style",
+                        subtitle = "Compact layout for active downloads",
+                    )
+                    Row(
+                        Modifier.padding(start = 62.dp, end = 16.dp, bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        listOf(
+                            "split" to "Split",
+                            "doubleline" to "Dual-line",
+                            "speed_ring" to "Speed ring",
+                        ).forEach { (style, label) ->
+                            ChoiceChip(
+                                label,
+                                selected = downloadPillStyle == style,
+                                onClick = {
+                                    downloadPillStyle = style
+                                    prefs.edit().putString("download_pill_style", style).apply()
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                    Text(
+                        when (downloadPillStyle) {
+                            "doubleline" -> "Dual-line: Left shows app name & speed (2 lines), right shows progress ring."
+                            "speed_ring" -> "Speed ring: Left shows live speed, right shows progress ring."
+                            else -> "Balanced Split: Left shows % progress, right shows Mbps speed badge."
+                        },
+                        modifier = Modifier.padding(start = 62.dp, end = 16.dp, bottom = 14.dp),
+                        fontSize = 12.sp,
+                        color = IsleColors.TextSecondary,
+                        lineHeight = 16.sp,
+                    )
                 }
             }
         }

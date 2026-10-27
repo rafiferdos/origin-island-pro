@@ -8,6 +8,7 @@ import com.originisle.android.MainActivity
 import com.originisle.android.R
 import com.originisle.android.cards.AuthPromptCard
 import com.originisle.android.cards.DeliveryCard
+import com.originisle.android.cards.DownloadCard
 import com.originisle.android.cards.MeetingCard
 import com.originisle.android.cards.PaymentCard
 import com.originisle.android.cards.RideCard
@@ -15,6 +16,7 @@ import com.originisle.android.cards.SportsCard
 import com.originisle.android.cards.WeatherCard
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
+import com.originisle.android.ui.PREFS_NAME
 
 /**
  * The in-app tester catalog: one ready-made card per supported OriginIsland type, plus the new
@@ -36,8 +38,8 @@ object IslandSamples {
             )
         },
         OriginSample(
-            "App download", "Play Store download · 19.2 Mbps · 75%",
-            IslandPreview(R.drawable.ic_download, "19.2 Mbps", IslandPreview.Right.Progress(0.75f)),
+            "App download", "Play Store download · 75% · 19.2 Mbps",
+            IslandPreview(R.drawable.ic_download, "75%", IslandPreview.Right.Capsule("19.2 Mbps")),
         ) { ctx ->
             val playStoreIcon = try {
                 val appInfo = ctx.packageManager.getApplicationInfo("com.android.vending", 0)
@@ -45,45 +47,82 @@ object IslandSamples {
             } catch (e: Exception) {
                 Icon.createWithResource(ctx, R.drawable.ic_download)
             }
+            val style = ctx.getSharedPreferences(PREFS_NAME, 0)
+                .getString("download_pill_style", "split") ?: "split"
+            val config = DownloadCard.resolvePillConfig(
+                style = style,
+                displayTitle = "Google Chrome",
+                percent = 75,
+                indeterminate = false,
+                progressMax = 100,
+                liveMbpsSpeed = "19.2 Mbps",
+            )
             start(ctx, 40001) {
                 putExtra("oi_scene", "NAVIGATION")
                 putExtra("oi_priority", 75)
                 putExtra("oi_template", OriginIslandConstants.TEMPLATE_PROGRESS_VISUAL)
-                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS)
+                putExtra("oi_right_template", config.rightTemplate)
+                putExtra("oi_right_content", config.rightContent)
+                putExtra("status_chip_text", config.statusChip)
                 putExtra("title", "Google Chrome")
                 putExtra("text", "75% • 18 MB / 24 MB • 19.2 Mbps")
                 putExtra("subtext", "Google Play Store")
                 putExtra("source_app", "Google Play Store")
-                putExtra("oi_left_content", "19.2 Mbps")
+                putExtra("oi_left_content", config.leftContent)
+                if (config.leftDoubleLine != null) {
+                    putStringArrayListExtra("oi_left_doubleline", config.leftDoubleLine)
+                }
                 putExtra("oi_left_icon", playStoreIcon)
                 putExtra("oi_large_icon", playStoreIcon)
-                putExtra("show_progress", true)
-                putExtra("progress", 75)
-                putExtra("progress_max", 100)
-                putExtra("status_chip_text", "75%")
+                if (config.showProgress) {
+                    putExtra("show_progress", true)
+                    putExtra("progress", 75)
+                    putExtra("progress_max", 100)
+                }
                 putExtra("icon_res", R.drawable.ic_download)
             }
         },
         OriginSample(
             "Game download", "Genshin Impact · 24.5 Mbps · 45% • 4.5 GB / 12.0 GB",
-            IslandPreview(R.drawable.ic_download, "24.5 Mbps", IslandPreview.Right.Progress(0.45f)),
+            IslandPreview(
+                R.drawable.ic_download,
+                "Genshin",
+                IslandPreview.Right.Progress(0.45f),
+                leftDoubleLine = listOf("Genshin", "24.5 Mbps"),
+            ),
         ) { ctx ->
+            val style = ctx.getSharedPreferences(PREFS_NAME, 0)
+                .getString("download_pill_style", "doubleline") ?: "doubleline"
+            val config = DownloadCard.resolvePillConfig(
+                style = style,
+                displayTitle = "Genshin Impact",
+                percent = 45,
+                indeterminate = false,
+                progressMax = 100,
+                liveMbpsSpeed = "24.5 Mbps",
+            )
             start(ctx, 40022) {
                 putExtra("oi_scene", "NAVIGATION")
                 putExtra("oi_priority", 76)
                 putExtra("oi_template", OriginIslandConstants.TEMPLATE_PROGRESS_VISUAL)
-                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS)
+                putExtra("oi_right_template", config.rightTemplate)
+                putExtra("oi_right_content", config.rightContent)
+                putExtra("status_chip_text", config.statusChip)
                 putExtra("title", "Genshin Impact")
                 putExtra("text", "45% • 4.5 GB / 12.0 GB • 24.5 Mbps")
                 putExtra("subtext", "Genshin Impact • Game Asset Download")
                 putExtra("source_app", "Genshin Impact")
-                putExtra("oi_left_content", "24.5 Mbps")
+                putExtra("oi_left_content", config.leftContent)
+                if (config.leftDoubleLine != null) {
+                    putStringArrayListExtra("oi_left_doubleline", config.leftDoubleLine)
+                }
                 putExtra("oi_left_icon", Icon.createWithResource(ctx, R.drawable.ic_download))
                 putExtra("oi_large_icon", Icon.createWithResource(ctx, R.drawable.ic_download))
-                putExtra("show_progress", true)
-                putExtra("progress", 45)
-                putExtra("progress_max", 100)
-                putExtra("status_chip_text", "45%")
+                if (config.showProgress) {
+                    putExtra("show_progress", true)
+                    putExtra("progress", 45)
+                    putExtra("progress_max", 100)
+                }
                 putExtra("icon_res", R.drawable.ic_download)
                 putExtra("click_resp", openApp(ctx))
             }

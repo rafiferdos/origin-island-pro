@@ -246,8 +246,17 @@ object DownloadCard {
             else -> "$percent% • $appLabel"
         }
 
-        // Left pill content: prominent Mbps speed (e.g. "19.2 Mbps" or "15.0 Mbps"), or percent if 0 Mbps
-        val leftContent = liveMbpsSpeed ?: if (percent > 0) "$percent%" else "Downloading"
+        val style = context.getSharedPreferences(com.originisle.android.ui.PREFS_NAME, 0)
+            .getString("download_pill_style", "split") ?: "split"
+
+        val pillConfig = resolvePillConfig(
+            style = style,
+            displayTitle = displayTitle,
+            percent = percent,
+            indeterminate = indeterminate,
+            progressMax = progressMax,
+            liveMbpsSpeed = liveMbpsSpeed,
+        )
 
         n.smallIcon?.let { IconCache.activeSmallIcons[id] = it }
         IconCache.activeLargeIcons[id] = appIcon
@@ -266,16 +275,13 @@ object DownloadCard {
             putExtra("oi_scene", "NAVIGATION")
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_PROGRESS_VISUAL)
 
-            // Right side of compact pill: animated progress ring or loading spinner
-            if (!indeterminate && progressMax > 0) {
-                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS)
+            putExtra("oi_right_template", pillConfig.rightTemplate)
+            putExtra("oi_right_content", pillConfig.rightContent)
+            putExtra("status_chip_text", pillConfig.statusChip)
+            if (pillConfig.showProgress) {
                 putExtra("show_progress", true)
                 putExtra("progress", progress)
                 putExtra("progress_max", progressMax)
-                putExtra("status_chip_text", "$percent%")
-            } else {
-                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_LOADING)
-                putExtra("status_chip_text", "...")
             }
 
             putExtra("title", displayTitle)
@@ -284,10 +290,12 @@ object DownloadCard {
             putExtra("source_app", appLabel)
             putExtra("source_pkg", sbn.packageName)
 
-            // Compact pill left side: source app launcher icon + live speed in Mbps!
             putExtra("oi_left_icon", appIcon)
             putExtra("oi_large_icon", appIcon)
-            putExtra("oi_left_content", leftContent)
+            putExtra("oi_left_content", pillConfig.leftContent)
+            if (pillConfig.leftDoubleLine != null) {
+                putStringArrayListExtra("oi_left_doubleline", pillConfig.leftDoubleLine)
+            }
             putExtra("icon_res", R.drawable.ic_download)
             putExtra("source_content_intent", clickIntent)
 
@@ -296,5 +304,77 @@ object DownloadCard {
             }
         }
         context.startService(intent)
+    }
+
+    data class PillLayoutConfig(
+        val leftContent: String,
+        val leftDoubleLine: ArrayList<String>?,
+        val rightTemplate: Int,
+        val rightContent: String,
+        val showProgress: Boolean,
+        val progressVal: Int,
+        val statusChip: String,
+    )
+
+    fun resolvePillConfig(
+        style: String,
+        displayTitle: String,
+        percent: Int,
+        indeterminate: Boolean,
+        progressMax: Int,
+        liveMbpsSpeed: String?,
+    ): PillLayoutConfig {
+        return when (style) {
+            "doubleline" -> {
+                val line1 = displayTitle.take(12)
+                val line2 = liveMbpsSpeed ?: if (percent > 0) "$percent%" else "Downloading"
+                val rightTpl = if (!indeterminate && progressMax > 0) {
+                    OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS
+                } else {
+                    OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_LOADING
+                }
+                val chip = if (!indeterminate && progressMax > 0) "$percent%" else "..."
+                PillLayoutConfig(
+                    leftContent = line1,
+                    leftDoubleLine = arrayListOf(line1, line2),
+                    rightTemplate = rightTpl,
+                    rightContent = chip,
+                    showProgress = !indeterminate && progressMax > 0,
+                    progressVal = percent,
+                    statusChip = chip,
+                )
+            }
+            "speed_ring" -> {
+                val left = liveMbpsSpeed ?: if (percent > 0) "$percent%" else "Downloading"
+                val rightTpl = if (!indeterminate && progressMax > 0) {
+                    OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS
+                } else {
+                    OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_LOADING
+                }
+                val chip = if (!indeterminate && progressMax > 0) "$percent%" else "..."
+                PillLayoutConfig(
+                    leftContent = left,
+                    leftDoubleLine = null,
+                    rightTemplate = rightTpl,
+                    rightContent = chip,
+                    showProgress = !indeterminate && progressMax > 0,
+                    progressVal = percent,
+                    statusChip = chip,
+                )
+            }
+            else -> { // "split" (Option 2 - Balanced Split)
+                val left = if (percent > 0) "$percent%" else "Downloading"
+                val right = liveMbpsSpeed ?: if (percent > 0) "$percent%" else "Live"
+                PillLayoutConfig(
+                    leftContent = left,
+                    leftDoubleLine = null,
+                    rightTemplate = OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT,
+                    rightContent = right,
+                    showProgress = !indeterminate && progressMax > 0,
+                    progressVal = percent,
+                    statusChip = right,
+                )
+            }
+        }
     }
 }

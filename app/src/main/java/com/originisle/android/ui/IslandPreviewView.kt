@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
@@ -86,6 +87,12 @@ private fun IslandHalves(preview: IslandPreview) {
         if (right is IslandPreview.Right.Score) {
             Crest()
             IslandText(right.home.toString(), Modifier.padding(start = 10.dp), size = 16)
+        } else if (preview.leftDoubleLine != null && preview.leftDoubleLine.size == 2) {
+            LeftIcon(preview.icon)
+            Column(Modifier.padding(start = 6.dp), verticalArrangement = Arrangement.Center) {
+                IslandText(preview.leftDoubleLine[0], size = 10, weight = FontWeight.SemiBold)
+                IslandText(preview.leftDoubleLine[1], size = 9, weight = FontWeight.Normal, color = IsleColors.TextSecondary)
+            }
         } else {
             LeftIcon(preview.icon)
             if (preview.left.isNotEmpty()) IslandText(preview.left, Modifier.padding(start = 8.dp))
