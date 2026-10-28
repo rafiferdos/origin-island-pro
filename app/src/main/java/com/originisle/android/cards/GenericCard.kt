@@ -24,6 +24,50 @@ import kotlin.math.abs
 object GenericCard {
     private const val RIGHT_TEXT_MAX_CHARS = 16
 
+    internal val MEETING_PACKAGES = setOf(
+        "com.google.android.apps.meetings", // Google Meet
+        "com.google.android.apps.tachyon",  // Google Meet / Duo
+        "us.zoom.videomeetings",            // Zoom
+        "com.microsoft.teams",              // Microsoft Teams
+        "com.cisco.webex.meetings",         // Webex
+        "com.skype.raider",                 // Skype
+    )
+
+    internal val CALL_KEYWORDS = listOf(
+        "your video",
+        "video call",
+        "in call",
+        "in a call",
+        "ongoing call",
+        "in a meeting",
+        "meeting in progress",
+        "return to call",
+        "return to meeting",
+        "tap to return to call",
+        "call in progress",
+        "microphone is on",
+        "camera is on",
+    )
+
+    /**
+     * Detects whether a notification is an ongoing video/audio call or meeting (e.g. Google Meet,
+     * Gmail embedded video meeting, Zoom, Teams, WhatsApp/Messenger call in progress).
+     */
+    fun isVideoCallOrMeeting(sbn: StatusBarNotification): Boolean {
+        val n = sbn.notification
+        val pkg = sbn.packageName
+        if (pkg in MEETING_PACKAGES) return true
+
+        val extras = n.extras
+        val title = (extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString() ?: "").lowercase()
+        val text = (extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString() ?: "").lowercase()
+        val bigText = (extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)?.toString() ?: "").lowercase()
+        val subText = (extras.getCharSequence(NotificationCompat.EXTRA_SUB_TEXT)?.toString() ?: "").lowercase()
+        val combined = "$title $text $bigText $subText"
+
+        return CALL_KEYWORDS.any { combined.contains(it) }
+    }
+
     /**
      * @param isLive whether [NotificationCastListener] classified this as a live/persistent
      * notification (ongoing, call, or progress) rather than a one-off message — determines whether
@@ -34,8 +78,10 @@ object GenericCard {
         val n = sbn.notification
         val extras = n.extras
         val id = IconCache.castIdFor(sbn)
+        val isVideoMeeting = isVideoCallOrMeeting(sbn)
         val isCall = n.category == NotificationCompat.CATEGORY_CALL ||
-            extras.getString(NotificationCompat.EXTRA_TEMPLATE) == "android.app.Notification\$CallStyle"
+            extras.getString(NotificationCompat.EXTRA_TEMPLATE) == "android.app.Notification\$CallStyle" ||
+            isVideoMeeting
 
         val text = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString()?.trim().orEmpty()
         val bigText = extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)?.toString()?.trim().orEmpty()
@@ -75,7 +121,8 @@ object GenericCard {
         val chip = when {
             showChrono && n.`when` > 0 && countDown ->
                 formatElapsed((n.`when` - System.currentTimeMillis()).coerceAtLeast(0) / 1000)
-            showChrono && n.`when` > 0 -> formatElapsed(abs(System.currentTimeMillis() - n.`when`) / 1000)
+            (showChrono || isVideoMeeting) && n.`when` > 0 ->
+                formatElapsed(abs(System.currentTimeMillis() - n.`when`) / 1000)
             shortCritical.isNotBlank() -> shortCritical
             else -> percentText
         }
@@ -179,8 +226,22 @@ object GenericCard {
                         appIcon?.let { putExtra("oi_left_icon", it) }
                     }
                     putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE) // 4
-                    if (finalChip.isNotBlank()) {
+                    if (isVideoMeeting) {
+                        if (finalChip.isNotBlank()) {
+                            putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT) // 6
+                            putExtra("oi_right_content", finalChip)
+                            putExtra("status_chip_text", finalChip)
+                        } else {
+                            // Video call/meeting without a timestamp: active sound/video waveform!
+                            putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_WAVE) // 1
+                            putExtra("oi_wave_state", 1)
+                            putExtra("oi_right_content", "Live")
+                            putExtra("status_chip_text", "Live")
+                        }
+                    } else if (finalChip.isNotBlank()) {
                         putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT) // 6
+                        putExtra("oi_right_content", finalChip)
+                        putExtra("status_chip_text", finalChip)
                     } else {
                         putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON) // 4
                         putExtra("oi_show_right_icon", false)
@@ -191,7 +252,19 @@ object GenericCard {
                             title.isNotBlank() && title != appLabel && cleanBody.isNotBlank() -> cleanBody
                             else -> cleanBody.ifBlank { body }
                         }
-                        putExtra("oi_right_content", IntelligentTextSanitizer.formatRightCapsule(combined, RIGHT_TEXT_MAX_CHARS))
+                        var rightContent = IntelligentTextSanitizer.formatRightCapsule(combined, RIGHT_TEXT_MAX_CHARS)
+                        // Automatic detection: if right side would otherwise be blank, ensure it's NEVER empty!
+                        if (rightContent.isBlank()) {
+                            if (sbn.isOngoing && n.`when` > 0) {
+                                rightContent = formatElapsed(abs(System.currentTimeMillis() - n.`when`) / 1000)
+                                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT) // 6
+                            } else if (sbn.isOngoing) {
+                                rightContent = "Active"
+                                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT) // 6
+                            }
+                        }
+                        putExtra("oi_right_content", rightContent)
+                        putExtra("status_chip_text", rightContent)
                     }
                 }
             }

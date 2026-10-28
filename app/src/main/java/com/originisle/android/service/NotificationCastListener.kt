@@ -374,11 +374,13 @@ class NotificationCastListener : NotificationListenerService() {
                                     MediaController(this@NotificationCastListener, token),
                                 )
                             }
-                        } else if (castNotifs && sbn.isOngoing &&
-                            extras.getBoolean(NotificationCompat.EXTRA_SHOW_CHRONOMETER, false)
-                        ) {
+                        } else if (castNotifs && sbn.isOngoing && (
+                            extras.getBoolean(NotificationCompat.EXTRA_SHOW_CHRONOMETER, false) ||
+                            GenericCard.isVideoCallOrMeeting(sbn) ||
+                            CallCard.isCall(sbn)
+                        )) {
                             foundLive = true
-                            onNotificationPosted(sbn) // refresh ticking chronometer
+                            onNotificationPosted(sbn) // refresh ticking chronometer & active meeting/video calls
                         } else if (castNotifs && sbn.isOngoing && DownloadCard.isDownload(sbn)) {
                             foundLive = true
                             onNotificationPosted(sbn) // refresh live download progress and Mbps speed
@@ -801,7 +803,7 @@ class NotificationCastListener : NotificationListenerService() {
 
         val isOngoing = (n.flags and Notification.FLAG_ONGOING_EVENT) != 0
         val hasProgress = extras.getInt(NotificationCompat.EXTRA_PROGRESS_MAX, 0) > 0
-        val isLive = isOngoing || isCall || hasProgress
+        val isLive = isOngoing || isCall || hasProgress || GenericCard.isVideoCallOrMeeting(sbn)
 
         // Turn-by-turn navigation -> vivo's own driving card (template 9) instead of the generic one.
         if (isNavigation(sbn, isOngoing)) {

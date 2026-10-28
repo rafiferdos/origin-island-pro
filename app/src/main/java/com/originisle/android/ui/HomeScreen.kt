@@ -89,6 +89,7 @@ fun HomeScreen(
     var privacyOn by remember { mutableStateOf(prefs.getBoolean("cast_privacy_mode", false)) }
     var chargingOn by remember { mutableStateOf(prefs.getBoolean("cast_charging", true)) }
     var chargingKeep by remember { mutableStateOf(prefs.getBoolean("cast_charging_keep", false)) }
+    var messagePreviewMode by remember { mutableStateOf(prefs.getString("cast_message_preview_mode", "smart") ?: "smart") }
     var downloadPillStyle by remember { mutableStateOf(prefs.getString("download_pill_style", "speed_ring") ?: "speed_ring") }
     var quietDnd by remember { mutableStateOf(prefs.getBoolean("cast_quiet_dnd", false)) }
     var quietSchedule by remember { mutableStateOf(prefs.getBoolean("cast_quiet_schedule", false)) }
@@ -336,6 +337,28 @@ fun HomeScreen(
                         subtitle = "WhatsApp, Messenger, Telegram, IMO, SMS…",
                     ) {
                         messagesOn = it; prefs.edit().putBoolean("cast_messages", it).apply()
+                    }
+                    if (messagesOn) {
+                        Row(
+                            Modifier.padding(start = 62.dp, end = 16.dp, bottom = 14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            listOf(
+                                "smart" to "Smart",
+                                "always_badge" to "Expand only",
+                                "full_text" to "Full text",
+                            ).forEach { (mode, label) ->
+                                ChoiceChip(
+                                    label,
+                                    selected = messagePreviewMode == mode,
+                                    onClick = {
+                                        messagePreviewMode = mode
+                                        prefs.edit().putString("cast_message_preview_mode", mode).apply()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
                     }
                     GroupDivider()
                     ToggleRow(

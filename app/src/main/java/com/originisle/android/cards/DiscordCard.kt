@@ -16,6 +16,7 @@ import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.IconCache
 import com.originisle.android.ui.PREFS_NAME
+import com.originisle.android.util.IntelligentTextSanitizer
 import com.originisle.android.util.PriorityArbitrator
 
 /**
@@ -104,17 +105,34 @@ object DiscordCard {
             val leftText = when {
                 discord.channel != null -> discord.channel
                 discord.sender.startsWith("@") -> discord.sender
-                else -> "@${shortSender(context, discord.sender)}"
+                else -> "@${IntelligentTextSanitizer.smartFirstName(discord.sender)}"
             }
             putExtra("oi_left_content", leftText)
             putExtra("oi_left_icon", appIcon)
 
-            // Right: Message content snippet, or mention alert
+            // Right: Message content snippet, or mention alert, or "View" badge
+            val previewMode = context.getSharedPreferences(PREFS_NAME, 0)
+                .getString("cast_message_preview_mode", "smart") ?: "smart"
             val rightSnippet = if (discord.isMention) "🔔 ${discord.message}" else discord.message
-            putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON)
-            putExtra("oi_show_right_icon", false)
-            putExtra("oi_right_content", rightSnippet.clip(45))
-            putExtra("status_chip_text", rightSnippet.clip(45))
+            val isShort = rightSnippet.length <= 16 && !rightSnippet.contains('\n')
+
+            val showViewBadge = when (previewMode) {
+                "always_badge" -> true
+                "full_text" -> false
+                else -> !isShort
+            }
+
+            if (showViewBadge) {
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT) // 6
+                putExtra("oi_right_content", "View")
+                putExtra("status_chip_text", "View")
+            } else {
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON) // 4
+                putExtra("oi_show_right_icon", false)
+                val rightText = if (previewMode == "smart") rightSnippet.trim() else rightSnippet.clip(45)
+                putExtra("oi_right_content", rightText)
+                putExtra("status_chip_text", rightText)
+            }
 
             // Expanded card presentation:
             putExtra("oi_large_icon", largeAvatar)

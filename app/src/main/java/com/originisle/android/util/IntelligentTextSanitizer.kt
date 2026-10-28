@@ -26,6 +26,64 @@ object IntelligentTextSanitizer {
 
     private val UNREAD_COUNT_REGEX = Regex("""\s*[\(\[]\d+(?:\s*(?:new|unread)?\s*(?:msgs?|messages?))?[\)\]]$""", RegexOption.IGNORE_CASE)
 
+    private val TITLE_PREFIXES = setOf(
+        // Religious & South Asian Honorifics (with & without dot, common abbreviations)
+        "md", "md.", "m.d.", "m.d", "mohd", "mohd.", "moh'd", "mohammad", "mohammed", "muhammad", "muhammed",
+        "mst", "mst.", "most", "most.", "musammat", "mosammat",
+        "sheikh", "shaikh", "syed", "sayed", "kazi", "qazi", "al", "el", "haji", "haji.",
+        "mir", "chowdhury",
+        // Professional titles
+        "dr", "dr.", "doc", "doctor",
+        "prof", "prof.", "professor",
+        "engr", "engr.", "engineer",
+        "adv", "adv.", "advocate",
+        "barrister",
+        "capt", "capt.", "captain", "col", "col.", "colonel", "maj", "maj.", "major", "gen", "gen.", "general",
+        // Social titles
+        "mr", "mr.", "mrs", "mrs.", "ms", "ms.", "miss", "sir", "madam"
+    )
+
+    /**
+     * Extracts a clean, single first name for the compact island pill.
+     * Intelligently strips honorifics and titles (e.g. "Md.", "MD", "Dr.", "Engr.", "Sheikh"),
+     * handles prefixes without space (e.g. "md.tanvir"), strips unread badges and emojis,
+     * and capitalizes properly, ensuring only the genuine first name is shown when collapsed.
+     */
+    fun smartFirstName(rawName: String): String {
+        var text = rawName.replace('\n', ' ')
+            .replace(Regex("""\s*\(\d+.*?\)$"""), "") // Remove "(2)"
+            .replace(Regex("""\s*\[\d+.*?\]$"""), "") // Remove "[3]"
+            .trim()
+
+        if (text.isBlank()) return "Message"
+
+        // If the name starts with prefix without space (e.g. "md.rafiul" or "dr.john"), split the prefix
+        text = text.replace(Regex("""^(?i)(md|dr|prof|engr|adv|mr|mrs|ms)\.([a-zA-Z])"""), "$1. $2")
+
+        // Split into tokens, stripping any leading/trailing symbols/emojis from each token
+        val tokens = text.split(Regex("""\s+"""))
+            .map { it.replace(Regex("""^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$"""), "").trim() }
+            .filter { it.isNotBlank() }
+
+        if (tokens.isEmpty()) return "Message"
+
+        // Skip leading honorifics / title prefixes
+        var index = 0
+        while (index < tokens.size) {
+            val tokenLower = tokens[index].lowercase()
+            if (tokenLower in TITLE_PREFIXES) {
+                index++
+            } else {
+                break
+            }
+        }
+
+        val chosen = if (index < tokens.size) tokens[index] else tokens[0]
+
+        // Clean capitalization: e.g. "rafiul" -> "Rafiul"
+        return chosen.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+    }
+
     private val ABBREVIATIONS = mapOf(
         "tomorrow" to "Tmrw",
         "yesterday" to "Yest",

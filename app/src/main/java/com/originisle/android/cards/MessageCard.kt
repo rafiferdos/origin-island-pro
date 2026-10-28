@@ -14,6 +14,7 @@ import com.originisle.android.R
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.IconCache
+import com.originisle.android.util.IntelligentTextSanitizer
 import com.originisle.android.util.PriorityArbitrator
 import com.originisle.android.ui.PREFS_NAME
 
@@ -87,8 +88,9 @@ object MessageCard {
             putExtra("source_app", appLabel)
             putExtra("source_pkg", sbn.packageName)
 
-            // Short/compact pill: App icon on left + clean sender name
-            putExtra("oi_left_content", shortName(context, top))
+            // Short/compact pill: App icon on left + smart clean first name
+            val firstName = IntelligentTextSanitizer.smartFirstName(top)
+            putExtra("oi_left_content", firstName)
             (appIcon ?: contactAvatar)?.let {
                 putExtra("oi_left_icon", it)
             }
@@ -97,11 +99,28 @@ object MessageCard {
                 putExtra("oi_large_icon", it)
             }
 
-            // Right side of compact pill: message preview
-            putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON)
-            putExtra("oi_show_right_icon", false)
-            putExtra("oi_right_content", displayText.clip(LINE_MAX_CHARS))
-            putExtra("status_chip_text", displayText.clip(LINE_MAX_CHARS))
+            // Right side of compact pill: smart preview or "View" badge
+            val previewMode = context.getSharedPreferences(PREFS_NAME, 0)
+                .getString("cast_message_preview_mode", "smart") ?: "smart"
+            val isShort = displayText.length <= 16 && !displayText.contains('\n')
+
+            val showViewBadge = when (previewMode) {
+                "always_badge" -> true
+                "full_text" -> false
+                else -> !isShort // "smart": show badge for longer texts to prevent marquee scrolling
+            }
+
+            if (showViewBadge) {
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT) // 6
+                putExtra("oi_right_content", "View")
+                putExtra("status_chip_text", "View")
+            } else {
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON) // 4
+                putExtra("oi_show_right_icon", false)
+                val rightText = if (previewMode == "smart") displayText.trim() else displayText.clip(LINE_MAX_CHARS)
+                putExtra("oi_right_content", rightText)
+                putExtra("status_chip_text", rightText)
+            }
             putExtra("icon_res", R.mipmap.ic_launcher_round)
             putExtra("when", n.`when`)
             putExtra("source_content_intent", extractDeepLinkIntent(context, sbn))

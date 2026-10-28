@@ -40,4 +40,23 @@ class IntelligentTextSanitizerTest {
         assertNotNull(plate)
         assertEquals("Dhaka Metro Ga-12-3456", plate)
     }
+
+    @Test
+    fun testSmartFirstName() {
+        assertEquals("Rafiul", IntelligentTextSanitizer.smartFirstName("Md. Rafiul Ferdos"))
+        assertEquals("Hasan", IntelligentTextSanitizer.smartFirstName("MD Hasan Mahmud"))
+        assertEquals("Sabbir", IntelligentTextSanitizer.smartFirstName("md sabbir"))
+        assertEquals("Tanvir", IntelligentTextSanitizer.smartFirstName("md.tanvir"))
+        assertEquals("Gregory", IntelligentTextSanitizer.smartFirstName("Dr. Gregory House"))
+        assertEquals("Albus", IntelligentTextSanitizer.smartFirstName("Prof. Albus Dumbledore"))
+        assertEquals("Hasib", IntelligentTextSanitizer.smartFirstName("Engr. Sheikh Hasib"))
+        assertEquals("Nazrul", IntelligentTextSanitizer.smartFirstName("Syed Nazrul Islam"))
+        assertEquals("Fatema", IntelligentTextSanitizer.smartFirstName("Mst. Fatema Akter"))
+        assertEquals("John", IntelligentTextSanitizer.smartFirstName("John Doe"))
+        assertEquals("Sarah", IntelligentTextSanitizer.smartFirstName("Sarah Connor"))
+        assertEquals("Sarah", IntelligentTextSanitizer.smartFirstName("✨ Sarah ✨"))
+        assertEquals("Rafiul", IntelligentTextSanitizer.smartFirstName("Rafiul (3)"))
+        assertEquals("Md", IntelligentTextSanitizer.smartFirstName("Md"))
+        assertEquals("Message", IntelligentTextSanitizer.smartFirstName(""))
+    }
 }
