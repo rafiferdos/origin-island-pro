@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -50,7 +51,12 @@ import com.originisle.android.ui.samples.IslandPreview
  * font, as on the device.
  */
 @Composable
-fun IslandPreviewView(preview: IslandPreview, modifier: Modifier = Modifier) {
+fun IslandPreviewView(
+    preview: IslandPreview,
+    modifier: Modifier = Modifier,
+    cameraGap: androidx.compose.ui.unit.Dp = CameraGap,
+    showCameraHole: Boolean = false,
+) {
     Layout(
         modifier = modifier
             .height(34.dp)
@@ -58,20 +64,40 @@ fun IslandPreviewView(preview: IslandPreview, modifier: Modifier = Modifier) {
             .background(Color.Black)
             .border(1.dp, IslandRim, CircleShape)
             .padding(horizontal = 6.dp),
-        content = { IslandHalves(preview) },
+        content = {
+            IslandHalves(preview)
+            if (showCameraHole) {
+                Box(
+                    modifier = Modifier
+                        .size(13.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                listOf(Color(0xFF0F1A2C), Color(0xFF05080F), Color(0xFF1E2838))
+                            )
+                        )
+                        .border(1.dp, Color(0xFF3A4250), CircleShape)
+                )
+            }
+        },
     ) { measurables, constraints ->
         // Each half gets the same width (the wider of the two, within bounds), leaving the camera
         // gap exactly in the middle; the left half hugs the left end, the right half the right end.
-        val gap = CameraGap.roundToPx()
+        val gap = cameraGap.roundToPx()
         val maxHalf = ((constraints.maxWidth - gap) / 2).coerceAtMost(MaxHalf.roundToPx())
         val loose = Constraints(maxWidth = maxHalf, maxHeight = constraints.maxHeight)
-        val (left, rightHalf) = measurables.map { it.measure(loose) }
+        val left = measurables[0].measure(loose)
+        val rightHalf = measurables[1].measure(loose)
+        val cameraMeasure = if (showCameraHole && measurables.size > 2) {
+            measurables[2].measure(Constraints.fixed(13.dp.roundToPx(), 13.dp.roundToPx()))
+        } else null
         val half = maxOf(left.width, rightHalf.width, MinHalf.roundToPx())
         val width = 2 * half + gap
         val height = constraints.maxHeight
         layout(width, height) {
             left.place(0, (height - left.height) / 2)
             rightHalf.place(width - rightHalf.width, (height - rightHalf.height) / 2)
+            cameraMeasure?.place((width - cameraMeasure.width) / 2, (height - cameraMeasure.height) / 2)
         }
     }
 }

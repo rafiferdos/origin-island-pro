@@ -3,6 +3,7 @@ package com.originisle.android.ui
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.drawable.Icon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,10 +25,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -48,11 +52,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import com.originisle.android.R
 import com.originisle.android.cards.ChargingCard
+import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.log.CastLog
 import com.originisle.android.service.NotificationCastListener
 import com.originisle.android.service.QuietHours
+import com.originisle.android.ui.samples.IslandPreview
 import com.originisle.android.ui.samples.IslandSamples
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -553,6 +560,18 @@ fun HomeScreen(
                 Modifier.alpha(if (castOn) 1f else 0.4f),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                SectionLabel("Punch-hole & Camera Cutout")
+                GroupCard {
+                    CameraCutoutTuner(context = context, prefs = prefs)
+                }
+            }
+        }
+
+        item {
+            Column(
+                Modifier.alpha(if (castOn) 1f else 0.4f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 SectionLabel("Quiet hours")
                 GroupCard {
                     ToggleRow(
@@ -783,5 +802,200 @@ private fun StatChip(
     ) {
         Text(value, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = color)
         Text(label, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = color.copy(alpha = 0.75f))
+    }
+}
+
+/**
+ * Real-time Punch-Hole Camera Cutout & Island Margin Tuner.
+ * Provides live visual feedback, position choices, gap & safe-margin sliders,
+ * and a one-tap live status bar test trigger.
+ */
+@Composable
+private fun CameraCutoutTuner(context: Context, prefs: SharedPreferences) {
+    val haptic = LocalHapticFeedback.current
+    var cutoutPos by remember { mutableStateOf(prefs.getString("camera_cutout_position", "center") ?: "center") }
+    var cutoutGap by remember { mutableFloatStateOf(prefs.getFloat("camera_cutout_gap", 34f)) }
+    var safeMargin by remember { mutableFloatStateOf(prefs.getFloat("camera_cutout_margin", 8f)) }
+    var testActive by remember { mutableStateOf(false) }
+
+    val testPreview = remember(cutoutGap, safeMargin) {
+        IslandPreview(
+            icon = R.drawable.ic_navigation,
+            left = "300m Left",
+            right = IslandPreview.Right.Capsule("12 min"),
+        )
+    }
+
+    SettingRow(
+        icon = IsleIcons.Camera,
+        tileColor = IsleColors.TileAmber,
+        title = "Punch-hole camera alignment",
+        subtitle = "Align island pill with your front camera cutout",
+    )
+
+    // Interactive Real-Time Live Preview Box
+    Column(
+        Modifier
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(IsleColors.PreviewBg)
+            .border(1.dp, IsleColors.PreviewBorder, RoundedCornerShape(20.dp))
+            .padding(vertical = 16.dp, horizontal = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            "LIVE TUNER PREVIEW",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = IsleColors.TextSecondary,
+            letterSpacing = 1.sp,
+        )
+
+        // Pill with visual camera hole dot right inside it
+        IslandPreviewView(
+            preview = testPreview,
+            cameraGap = cutoutGap.dp,
+            showCameraHole = true,
+        )
+
+        Text(
+            "Camera Gap: ${cutoutGap.toInt()} dp • Safe Margin: ${safeMargin.toInt()} dp",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = IsleColors.TileAmber,
+        )
+    }
+
+    // Cutout Position Chips (Center vs Corner)
+    Column(
+        Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text("Camera Position", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = IsleColors.Text)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ChoiceChip(
+                "Center (vivo X / iQOO)",
+                selected = cutoutPos == "center",
+                onClick = {
+                    cutoutPos = "center"
+                    prefs.edit().putString("camera_cutout_position", "center").apply()
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                },
+                modifier = Modifier.weight(1.2f),
+            )
+            ChoiceChip(
+                "Left Corner",
+                selected = cutoutPos == "left",
+                onClick = {
+                    cutoutPos = "left"
+                    prefs.edit().putString("camera_cutout_position", "left").apply()
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+
+    // Slider for Camera Cutout Gap (22dp to 50dp)
+    Column(
+        Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Camera Gap Width", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = IsleColors.Text)
+            Text("${cutoutGap.toInt()} dp", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = IsleColors.TileAmber)
+        }
+        Slider(
+            value = cutoutGap,
+            onValueChange = {
+                cutoutGap = it
+                prefs.edit().putFloat("camera_cutout_gap", it).apply()
+            },
+            valueRange = 22f..50f,
+            steps = 27,
+            colors = SliderDefaults.colors(
+                thumbColor = IsleColors.TileAmber,
+                activeTrackColor = IsleColors.TileAmber,
+                inactiveTrackColor = IsleColors.PreviewBorder,
+            ),
+        )
+    }
+
+    // Slider for Safe Text Margin (0dp to 16dp)
+    Column(
+        Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Punch-Hole Safe Margin", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = IsleColors.Text)
+            Text("${safeMargin.toInt()} dp", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = IsleColors.TileGreen)
+        }
+        Slider(
+            value = safeMargin,
+            onValueChange = {
+                safeMargin = it
+                prefs.edit().putFloat("camera_cutout_margin", it).apply()
+            },
+            valueRange = 0f..16f,
+            steps = 15,
+            colors = SliderDefaults.colors(
+                thumbColor = IsleColors.TileGreen,
+                activeTrackColor = IsleColors.TileGreen,
+                inactiveTrackColor = IsleColors.PreviewBorder,
+            ),
+        )
+    }
+
+    // Test on Actual Status Bar Button
+    Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp)) {
+        PillButton(
+            text = if (testActive) "Dismiss Status Bar Test" else "Test on Status Bar 🚀",
+            icon = if (testActive) IsleIcons.Close else IsleIcons.Send,
+            container = if (testActive) IsleColors.TileGray else IsleColors.TileAmber,
+            content = Color.Black,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                if (testActive) {
+                    context.startService(
+                        Intent(context, PlaygroundService::class.java)
+                            .setAction(PlaygroundService.ACTION_CANCEL)
+                            .putExtra("id", 88888)
+                            .putExtra("oi_scene", "NAVIGATION"),
+                    )
+                    testActive = false
+                } else {
+                    val testIntent = Intent(context, PlaygroundService::class.java).apply {
+                        action = PlaygroundService.ACTION_START
+                        putExtra("id", 88888)
+                        putExtra("oi_priority", 99)
+                        putExtra("oi_scene", "NAVIGATION")
+                        putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
+                        putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
+                        putExtra("title", "Camera Cutout Aligned ✓")
+                        putExtra("text", "Gap: ${cutoutGap.toInt()}dp • Margin: ${safeMargin.toInt()}dp")
+                        putExtra("subtext", "Origin Island Pro Tuner")
+                        putExtra("source_app", "Island Tuner")
+                        putExtra("oi_left_content", "◄ L-Fit")
+                        val navIcon = Icon.createWithResource(context, R.drawable.ic_navigation)
+                        putExtra("oi_left_icon", navIcon)
+                        putExtra("oi_large_icon", navIcon)
+                        putExtra("oi_right_content", "R-Fit ►")
+                        putExtra("status_chip_text", "R-Fit ►")
+                        putExtra("oi_bg_color", "#FF00C853")
+                        putExtra("oi_fg_color", "#FFFFFFFF")
+                        putExtra("oi_light_color", "#FF00C853")
+                        putExtra("oi_light_mode", 1)
+                        putExtra("icon_res", R.drawable.ic_navigation)
+                        putStringArrayListExtra("oi_button_titles", arrayListOf("Dismiss Test"))
+                        putIntegerArrayListExtra("oi_button_bg_colors", arrayListOf(0xFF2C2C2E.toInt()))
+                        putIntegerArrayListExtra("oi_button_text_colors", arrayListOf(0xFFFFFFFF.toInt()))
+                    }
+                    context.startService(testIntent)
+                    testActive = true
+                }
+            },
+        )
     }
 }
