@@ -217,21 +217,31 @@ object IslandSamples {
             }
         },
         OriginSample(
-            "Countdown timer", "TIMER · progress 40%",
-            IslandPreview(R.drawable.ic_timer, "Timer", IslandPreview.Right.Progress(0.4f)),
+            "Countdown timer", "TIMER · Tangerine Amber capsule · Pause/Reset",
+            IslandPreview(R.drawable.ic_timer, "Timer", IslandPreview.Right.Capsule("04:32")),
         ) { ctx ->
             start(ctx, 40006) {
                 putExtra("oi_scene", "NAVIGATION")
-                putExtra("oi_template", OriginIslandConstants.TEMPLATE_PROGRESS_VISUAL)
-                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS)
+                putExtra("oi_priority", 70)
+                putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
                 putExtra("title", "Timer")
-                putExtra("text", "6:00 remaining")
+                putExtra("text", "04:32 remaining")
+                putExtra("subtext", "Clock")
+                putExtra("source_app", "Clock")
                 putExtra("oi_left_content", "Timer")
-                putExtra("show_progress", true)
-                putExtra("progress", 40)
-                putExtra("progress_max", 100)
-                putExtra("status_chip_text", "6:00")
+                putExtra("oi_left_icon", Icon.createWithResource(ctx, R.drawable.ic_timer))
+                putExtra("oi_large_icon", Icon.createWithResource(ctx, R.drawable.ic_timer))
+                putExtra("oi_right_content", "04:32")
+                putExtra("status_chip_text", "04:32")
+                putExtra("oi_bg_color", "#FFFF9500")
+                putExtra("oi_fg_color", "#FFFFFFFF")
+                putExtra("oi_light_color", "#FFFF9500")
+                putExtra("oi_light_mode", 1)
                 putExtra("icon_res", R.drawable.ic_timer)
+                putStringArrayListExtra("oi_button_titles", arrayListOf("Pause", "Reset"))
+                putIntegerArrayListExtra("oi_button_bg_colors", arrayListOf(0xFFFF9500.toInt(), 0xFFFF3B30.toInt()))
+                putIntegerArrayListExtra("oi_button_text_colors", arrayListOf(0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt()))
             }
         },
         OriginSample(
@@ -319,6 +329,10 @@ object IslandSamples {
                 putExtra("oi_left_content", "#general")
                 putExtra("oi_right_content", "🔔 Check out the new release!")
                 putExtra("status_chip_text", "🔔 Check out the new release!")
+                putExtra("oi_bg_color", "#FF5865F2")
+                putExtra("oi_fg_color", "#FFFFFFFF")
+                putExtra("oi_light_color", "#FF5865F2")
+                putExtra("oi_light_mode", 1)
                 putExtra("icon_res", R.drawable.ic_discord)
                 putStringArrayListExtra("oi_button_titles", arrayListOf("Reply", "Mark Read", "Mute"))
                 putIntegerArrayListExtra(
@@ -340,7 +354,7 @@ object IslandSamples {
             // Short pill has app icon on left + sender name, expanded card has contact avatar + text.
             start(ctx, 40013) {
                 putExtra("oi_scene", "NAVIGATION")
-                putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE)
+                putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
                 putExtra("title", "Tanvir Ahmed")
                 putExtra("text", "Kire koi tui? Free achos? 💬")
                 putExtra("subtext", "WhatsApp")
@@ -348,11 +362,17 @@ object IslandSamples {
                 putExtra("oi_left_content", "Tanvir")
                 putExtra("oi_left_icon", Icon.createWithResource(ctx, R.drawable.ic_chat))
                 putExtra("oi_large_icon", Icon.createWithResource(ctx, R.drawable.ic_avatar))
-                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON)
-                putExtra("oi_show_right_icon", false)
-                putExtra("oi_right_content", "Kire koi tui? Free achos? 💬")
-                putExtra("status_chip_text", "Kire koi tui? Free achos? 💬")
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
+                putExtra("oi_right_content", "View")
+                putExtra("status_chip_text", "View")
+                putExtra("oi_bg_color", "#FF25D366")
+                putExtra("oi_fg_color", "#FFFFFFFF")
+                putExtra("oi_light_color", "#FF25D366")
+                putExtra("oi_light_mode", 1)
                 putExtra("icon_res", R.drawable.ic_chat)
+                putStringArrayListExtra("oi_button_titles", arrayListOf("Reply", "Mark Read"))
+                putIntegerArrayListExtra("oi_button_bg_colors", arrayListOf(0xFF25D366.toInt(), 0xFF1E2D52.toInt()))
+                putIntegerArrayListExtra("oi_button_text_colors", arrayListOf(0xFFFFFFFF.toInt(), 0xFF4D88FF.toInt()))
             }
         },
         OriginSample(

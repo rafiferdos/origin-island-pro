@@ -3,6 +3,7 @@ package com.originisle.android.cards
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.drawable.Icon
@@ -72,6 +73,28 @@ object MessageCard {
             emptyList()
         }
 
+        val appColor = resolveAppColor(sbn.packageName)
+        val btnTitles = ArrayList<String>()
+        val btnBgColors = ArrayList<Int>()
+        val btnTxtColors = ArrayList<Int>()
+
+        if (buttons.isNotEmpty()) {
+            val appParsedColor = runCatching { Color.parseColor(appColor) }.getOrDefault(0xFF007AFF.toInt())
+            buttons.take(3).forEach { a ->
+                val bTitle = a.title?.toString()?.trim().orEmpty()
+                btnTitles.add(bTitle)
+                val lower = bTitle.lowercase()
+                val (bg, fg) = when {
+                    lower.contains("reply") -> appParsedColor to Color.WHITE
+                    lower.contains("read") -> 0xFF1E2D52.toInt() to 0xFF4D88FF.toInt()
+                    lower.contains("mute") || lower.contains("dismiss") || lower.contains("delete") -> 0xFF24242C.toInt() to 0xFFFF453A.toInt()
+                    else -> 0xFF2C2C2E.toInt() to Color.WHITE
+                }
+                btnBgColors.add(bg)
+                btnTxtColors.add(fg)
+            }
+        }
+
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
@@ -88,9 +111,10 @@ object MessageCard {
             putExtra("source_app", appLabel)
             putExtra("source_pkg", sbn.packageName)
 
-            // Short/compact pill: App icon on left + smart clean first name
+            // Short/compact pill: App icon on left + smart clean first name (capped at 11 chars to prevent punch-hole collision)
             val firstName = IntelligentTextSanitizer.smartFirstName(top)
-            putExtra("oi_left_content", firstName)
+            val pillLeft = firstName.take(11).trim()
+            putExtra("oi_left_content", pillLeft)
             (appIcon ?: contactAvatar)?.let {
                 putExtra("oi_left_icon", it)
             }
@@ -99,7 +123,7 @@ object MessageCard {
                 putExtra("oi_large_icon", it)
             }
 
-            // Right side of compact pill: smart preview or "View" badge
+            // Right side of compact pill: smart preview or high-contrast brand badge
             val previewMode = context.getSharedPreferences(PREFS_NAME, 0)
                 .getString("cast_message_preview_mode", "smart") ?: "smart"
             val isShort = displayText.length <= 16 && !displayText.contains('\n')
@@ -112,8 +136,11 @@ object MessageCard {
 
             if (showViewBadge) {
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT) // 6
-                putExtra("oi_right_content", "View")
-                putExtra("status_chip_text", "View")
+                val badgeText = if (msg.count > 1) "${msg.count}" else "View"
+                putExtra("oi_right_content", badgeText)
+                putExtra("status_chip_text", badgeText)
+                putExtra("oi_bg_color", appColor)
+                putExtra("oi_fg_color", "#FFFFFFFF")
             } else {
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON) // 4
                 putExtra("oi_show_right_icon", false)
@@ -121,12 +148,56 @@ object MessageCard {
                 putExtra("oi_right_content", rightText)
                 putExtra("status_chip_text", rightText)
             }
+
+            // Ambient Edge Glow around expanded card matching app brand color
+            putExtra("oi_light_color", appColor)
+            putExtra("oi_light_mode", 1)
+
             putExtra("icon_res", R.mipmap.ic_launcher_round)
             putExtra("when", n.`when`)
             putExtra("source_content_intent", extractDeepLinkIntent(context, sbn))
-            if (buttons.isNotEmpty()) putParcelableArrayListExtra("actions", ArrayList(buttons))
+            if (buttons.isNotEmpty()) {
+                putParcelableArrayListExtra("actions", ArrayList(buttons))
+                putStringArrayListExtra("oi_button_titles", btnTitles)
+                putIntegerArrayListExtra("oi_button_bg_colors", btnBgColors)
+                putIntegerArrayListExtra("oi_button_text_colors", btnTxtColors)
+            }
         }
         context.startService(intent)
+    }
+
+    /**
+     * Resolves signature brand hex color for major chat and social apps.
+     */
+    fun resolveAppColor(packageName: String): String {
+        return when (packageName) {
+            // Telegram
+            "org.telegram.messenger", "org.telegram.plus", "org.thunderdog.challegram" -> "#FF2AABEE"
+            // WhatsApp
+            "com.whatsapp", "com.whatsapp.w4b" -> "#FF25D366"
+            // Facebook Messenger
+            "com.facebook.orca", "com.facebook.mlite" -> "#FF0084FF"
+            // Instagram
+            "com.instagram.android" -> "#FFE1306C"
+            // WeChat (Chinese ROM OriginOS)
+            "com.tencent.mm" -> "#FF07C160"
+            // QQ (Chinese ROM OriginOS)
+            "com.tencent.mobileqq", "com.tencent.tim" -> "#FF12B7F5"
+            // DingTalk & Feishu
+            "com.alibaba.android.rimet", "com.ss.android.lark" -> "#FF007AFF"
+            // Signal
+            "org.thoughtcrime.securesms" -> "#FF2C6BED"
+            // IMO
+            "com.imo.android.imoim", "com.imo.android.imoimbeta", "com.imo.android.imoimhd", "com.imo.android.imolite" -> "#FF00B2FF"
+            // Viber
+            "com.viber.voip" -> "#FF7360F2"
+            // Discord
+            "com.discord", "com.discord.canary", "com.discord.ptb" -> "#FF5865F2"
+            // Slack
+            "com.Slack" -> "#FF4A154B"
+            // Default SMS / Other
+            else -> "#FF007AFF"
+        }
     }
 
     /** Sender, text, group and avatar — handles MessagingStyle as well as title/text apps. */

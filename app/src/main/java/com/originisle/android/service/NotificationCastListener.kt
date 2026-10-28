@@ -217,6 +217,12 @@ class NotificationCastListener : NotificationListenerService() {
             "com.linkedin.android",               // LinkedIn Messages
             "com.Slack",                          // Slack
             "com.microsoft.teams",                // Microsoft Teams
+            // Chinese OriginOS 6 Top Messaging & Communication Apps
+            "com.tencent.mm",                     // WeChat
+            "com.tencent.mobileqq",               // QQ
+            "com.tencent.tim",                    // TIM (QQ Office)
+            "com.alibaba.android.rimet",          // DingTalk
+            "com.ss.android.lark",                // Feishu / Lark
         )
 
         /** Turn-by-turn navigation apps. Most set [Notification.CATEGORY_NAVIGATION] and are matched
@@ -637,11 +643,21 @@ class NotificationCastListener : NotificationListenerService() {
         if (prefs.getBoolean("cast_timer", true) && isTimer(sbn)) {
             val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString()?.trim().orEmpty()
             val text = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString()?.trim().orEmpty()
-            val timeText = if (n.`when` > 0) {
-                val diff = (n.`when` - System.currentTimeMillis()).coerceAtLeast(0) / 1000
-                String.format("%02d:%02d", diff / 60, diff % 60)
+            val now = System.currentTimeMillis()
+            val timeText = if (n.`when` > now) {
+                val diff = (n.`when` - now).coerceAtLeast(0) / 1000
+                if (diff >= 3600) {
+                    val h = diff / 3600
+                    val m = (diff % 3600) / 60
+                    val s = diff % 60
+                    String.format("%d:%02d:%02d", h, m, s)
+                } else {
+                    String.format("%02d:%02d", diff / 60, diff % 60)
+                }
             } else {
-                text.ifBlank { "00:00" }
+                val timePattern = Regex("""\b\d{1,2}:\d{2}(?::\d{2})?\b""")
+                val match = timePattern.find(text) ?: timePattern.find(title)
+                match?.value ?: text.ifBlank { "00:00" }
             }
             val appLbl = appLabel(sbn.packageName)
             val click = extractDeepLinkIntent(applicationContext, sbn)
@@ -943,10 +959,15 @@ class NotificationCastListener : NotificationListenerService() {
         return text.isNotBlank() || subText.isNotBlank()
     }
 
-    /** A timer, stopwatch or alarm — by category, or an ongoing countdown chronometer. */
+    /** A timer, stopwatch or alarm — by category, or an ongoing countdown chronometer / clock notification. */
     private fun isTimer(sbn: StatusBarNotification): Boolean {
         val n = sbn.notification
         if (n.category == Notification.CATEGORY_ALARM || n.category == Notification.CATEGORY_STOPWATCH) return true
+        if (sbn.isOngoing && sbn.packageName in TimerCard.CLOCK_APPS) {
+            val text = notificationText(sbn).lowercase()
+            if (text.contains("timer") || text.contains("stopwatch") || text.contains("countdown") ||
+                Regex("""\b\d{1,2}:\d{2}\b""").containsMatchIn(text)) return true
+        }
         val extras = n.extras
         return sbn.isOngoing &&
             extras.getBoolean(NotificationCompat.EXTRA_SHOW_CHRONOMETER, false) &&

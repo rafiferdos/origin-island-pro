@@ -17,11 +17,14 @@ class SemanticButtonTest {
         assertEquals(red, OriginIslandBuilder.resolveSemanticButtonBgColor("Hang up"))
         assertEquals(red, OriginIslandBuilder.resolveSemanticButtonBgColor("Cancel"))
         assertEquals(red, OriginIslandBuilder.resolveSemanticButtonBgColor("Deny"))
+        assertEquals(red, OriginIslandBuilder.resolveSemanticButtonBgColor("Reset"))
+        assertEquals(red, OriginIslandBuilder.resolveSemanticButtonBgColor("Delete"))
 
         assertEquals(green, OriginIslandBuilder.resolveSemanticButtonBgColor("Answer"))
         assertEquals(green, OriginIslandBuilder.resolveSemanticButtonBgColor("Accept"))
         assertEquals(green, OriginIslandBuilder.resolveSemanticButtonBgColor("Approve"))
         assertEquals(green, OriginIslandBuilder.resolveSemanticButtonBgColor("Join"))
+        assertEquals(green, OriginIslandBuilder.resolveSemanticButtonBgColor("Resume"))
 
         assertEquals(amber, OriginIslandBuilder.resolveSemanticButtonBgColor("Pause"))
         assertEquals(amber, OriginIslandBuilder.resolveSemanticButtonBgColor("Snooze"))

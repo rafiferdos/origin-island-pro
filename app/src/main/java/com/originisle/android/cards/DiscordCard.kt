@@ -101,13 +101,14 @@ object DiscordCard {
             putExtra("source_pkg", sbn.packageName)
 
             // Short/Compact Pill presentation:
-            // Left: Discord icon + Channel name (#general) or @Sender
+            // Left: Discord icon + Channel name (#general) or @Sender (capped at 11 chars to prevent punch-hole collision)
             val leftText = when {
                 discord.channel != null -> discord.channel
                 discord.sender.startsWith("@") -> discord.sender
                 else -> "@${IntelligentTextSanitizer.smartFirstName(discord.sender)}"
             }
-            putExtra("oi_left_content", leftText)
+            val pillLeft = leftText.take(11).trim()
+            putExtra("oi_left_content", pillLeft)
             putExtra("oi_left_icon", appIcon)
 
             // Right: Message content snippet, or mention alert, or "View" badge
@@ -122,10 +123,16 @@ object DiscordCard {
                 else -> !isShort
             }
 
+            // Discord Signature Blurple (#FF5865F2) or Warning Amber for mentions (#FFFF9500)
+            val discordColor = if (discord.isMention) "#FFFF9500" else "#FF5865F2"
+
             if (showViewBadge) {
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT) // 6
-                putExtra("oi_right_content", "View")
-                putExtra("status_chip_text", "View")
+                val chipText = if (discord.isMention) "@Mention" else "View"
+                putExtra("oi_right_content", chipText)
+                putExtra("status_chip_text", chipText)
+                putExtra("oi_bg_color", discordColor)
+                putExtra("oi_fg_color", "#FFFFFFFF")
             } else {
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON) // 4
                 putExtra("oi_show_right_icon", false)
@@ -142,6 +149,10 @@ object DiscordCard {
                 "source_content_intent",
                 extractDeepLinkIntent(context, sbn),
             )
+
+            // Ambient Edge Glow around expanded card
+            putExtra("oi_light_color", discordColor)
+            putExtra("oi_light_mode", 1)
 
             if (actions.isNotEmpty()) {
                 putParcelableArrayListExtra("actions", ArrayList(actions))

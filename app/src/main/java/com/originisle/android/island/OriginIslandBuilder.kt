@@ -90,9 +90,9 @@ object OriginIslandBuilder {
     fun resolveSemanticButtonBgColor(title: String, defaultColor: Int = 0): Int {
         val t = title.lowercase()
         return when {
-            listOf("decline", "reject", "hang up", "end", "cancel", "deny", "drop", "stop", "dismiss")
+            listOf("decline", "reject", "hang up", "end", "cancel", "deny", "drop", "stop", "dismiss", "reset", "delete")
                 .any { t.contains(it) } -> 0xFFFF3B30.toInt() // Apple / OriginOS Crimson Red
-            listOf("answer", "accept", "approve", "yes", "join", "allow", "start", "confirm", "open")
+            listOf("answer", "accept", "approve", "yes", "join", "allow", "start", "resume", "confirm", "open")
                 .any { t.contains(it) } -> 0xFF34C759.toInt() // Apple / OriginOS Emerald Green
             listOf("pause", "snooze", "later", "retry")
                 .any { t.contains(it) } -> 0xFFFF9500.toInt() // Radiant Amber
@@ -105,8 +105,8 @@ object OriginIslandBuilder {
     fun resolveSemanticButtonTextColor(title: String, defaultColor: Int = 0): Int {
         val t = title.lowercase()
         return when {
-            listOf("decline", "reject", "hang up", "end", "cancel", "deny", "drop", "stop", "dismiss",
-                   "answer", "accept", "approve", "yes", "join", "allow", "start", "confirm",
+            listOf("decline", "reject", "hang up", "end", "cancel", "deny", "drop", "stop", "dismiss", "reset", "delete",
+                   "answer", "accept", "approve", "yes", "join", "allow", "start", "resume", "confirm",
                    "pause", "snooze", "later", "retry").any { t.contains(it) } -> 0xFFFFFFFF.toInt()
             !isDefaultColor(defaultColor) -> defaultColor
             else -> 0xFFFFFFFF.toInt()
