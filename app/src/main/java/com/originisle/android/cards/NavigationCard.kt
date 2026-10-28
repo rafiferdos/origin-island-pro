@@ -97,8 +97,8 @@ object NavigationCard {
             putExtra("oi_bg_color", "#FF262626")
             putExtra("oi_fg_color", "#FFFFFFFF")
             putExtra("when", n.`when`)
-            // vivo requires a content intent; fall back to launching the source app.
-            putExtra("source_content_intent", n.contentIntent ?: fallbackClickIntent(context, sbn.packageName))
+            // vivo requires a content intent; extract direct nested deep-link or fall back to launching the source app.
+            putExtra("source_content_intent", extractDeepLinkIntent(context, sbn))
             n.actions?.let { putParcelableArrayListExtra("actions", ArrayList(it.toList())) }
             maneuverIcon?.let { putExtra("oi_large_icon", it) }
             pillIcon?.let { putExtra("oi_left_icon", it) }

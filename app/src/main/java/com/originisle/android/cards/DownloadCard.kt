@@ -274,7 +274,7 @@ object DownloadCard {
             a.actionIntent != null && !a.title.isNullOrBlank()
         }.take(2)
 
-        val clickIntent = n.contentIntent ?: fallbackClickIntent(context, sbn.packageName)
+        val clickIntent = extractDeepLinkIntent(context, sbn)
 
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START

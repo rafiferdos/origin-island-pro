@@ -40,6 +40,7 @@ import com.originisle.android.cards.RideCard
 import com.originisle.android.cards.SportsCard
 import com.originisle.android.cards.TimerCard
 import com.originisle.android.cards.WeatherCard
+import com.originisle.android.cards.extractDeepLinkIntent
 import com.originisle.android.cards.fallbackClickIntent
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.log.CastLog
@@ -604,7 +605,7 @@ class NotificationCastListener : NotificationListenerService() {
                 val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString()?.trim().orEmpty()
                 val text = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString()?.trim().orEmpty()
                 val appLbl = appLabel(sbn.packageName)
-                val click = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
+                val click = extractDeepLinkIntent(applicationContext, sbn)
                 val appIcon = runCatching {
                     Icon.createWithResource(sbn.packageName, packageManager.getApplicationInfo(sbn.packageName, 0).icon)
                 }.getOrNull()
@@ -634,7 +635,7 @@ class NotificationCastListener : NotificationListenerService() {
                 text.ifBlank { "00:00" }
             }
             val appLbl = appLabel(sbn.packageName)
-            val click = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
+            val click = extractDeepLinkIntent(applicationContext, sbn)
             TimerCard.post(
                 context = applicationContext,
                 id = IconCache.castIdFor(sbn),
@@ -698,7 +699,7 @@ class NotificationCastListener : NotificationListenerService() {
                     log(sbn, "skipped — duplicate delivery, unchanged", false); return
                 }
                 val appLbl = appLabel(sbn.packageName)
-                val click = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
+                val click = extractDeepLinkIntent(applicationContext, sbn)
                 val appIcon = runCatching {
                     val ai = packageManager.getApplicationInfo(sbn.packageName, 0)
                     Icon.createWithResource(sbn.packageName, ai.icon)
@@ -732,7 +733,7 @@ class NotificationCastListener : NotificationListenerService() {
                 }
                 val eta = DeliveryCard.extractEta("$text $big")
                 val appLbl = appLabel(sbn.packageName)
-                val click = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
+                val click = extractDeepLinkIntent(applicationContext, sbn)
                 val appIcon = runCatching {
                     val ai = packageManager.getApplicationInfo(sbn.packageName, 0)
                     Icon.createWithResource(sbn.packageName, ai.icon)
@@ -756,7 +757,7 @@ class NotificationCastListener : NotificationListenerService() {
                     log(sbn, "skipped — duplicate delivery, unchanged", false); return
                 }
                 val chip = WeatherCard.extractChip(title, "$text $big")
-                val click = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
+                val click = extractDeepLinkIntent(applicationContext, sbn)
                 WeatherCard.post(applicationContext, IconCache.castIdFor(sbn), title.ifBlank { "Weather" }, chip, click)
                 log(sbn, "cast — weather", true)
                 return
@@ -777,7 +778,7 @@ class NotificationCastListener : NotificationListenerService() {
                     log(sbn, "skipped — duplicate delivery, unchanged", false); return
                 }
                 val appLbl = appLabel(sbn.packageName)
-                val click = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
+                val click = extractDeepLinkIntent(applicationContext, sbn)
                 val appIcon = runCatching {
                     val ai = packageManager.getApplicationInfo(sbn.packageName, 0)
                     Icon.createWithResource(sbn.packageName, ai.icon)
@@ -1018,7 +1019,7 @@ class NotificationCastListener : NotificationListenerService() {
         // (short) auto-clear instead of resurrecting it as new.
         val id = matchCastId(match.home, match.away)
         val competition = sub.ifBlank { "Live" }
-        val clickResp = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
+        val clickResp = extractDeepLinkIntent(applicationContext, sbn)
         scope.launch {
             val fresh = SportsFeed.iconsFor(match.home, match.away, competition)
             val prev = lastMatchIcons[id]
@@ -1081,7 +1082,7 @@ class NotificationCastListener : NotificationListenerService() {
             val ai = packageManager.getApplicationInfo(sbn.packageName, 0)
             Icon.createWithResource(sbn.packageName, ai.icon)
         }.getOrNull()
-        val click = sbn.notification.contentIntent ?: fallbackClickIntent(applicationContext, sbn.packageName)
+        val click = extractDeepLinkIntent(applicationContext, sbn)
         PaymentCard.post(applicationContext, id, appIcon, info.amount, info.merchant, appLabel(sbn.packageName), click)
     }
 

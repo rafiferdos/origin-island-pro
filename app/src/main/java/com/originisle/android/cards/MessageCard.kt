@@ -104,7 +104,7 @@ object MessageCard {
             putExtra("status_chip_text", displayText.clip(LINE_MAX_CHARS))
             putExtra("icon_res", R.mipmap.ic_launcher_round)
             putExtra("when", n.`when`)
-            putExtra("source_content_intent", n.contentIntent ?: fallbackClickIntent(context, sbn.packageName))
+            putExtra("source_content_intent", extractDeepLinkIntent(context, sbn))
             if (buttons.isNotEmpty()) putParcelableArrayListExtra("actions", ArrayList(buttons))
         }
         context.startService(intent)

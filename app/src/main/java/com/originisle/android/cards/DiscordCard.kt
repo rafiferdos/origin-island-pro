@@ -122,7 +122,7 @@ object DiscordCard {
             putExtra("when", n.`when`)
             putExtra(
                 "source_content_intent",
-                n.contentIntent ?: fallbackClickIntent(context, sbn.packageName),
+                extractDeepLinkIntent(context, sbn),
             )
 
             if (actions.isNotEmpty()) {

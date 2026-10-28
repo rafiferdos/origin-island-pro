@@ -274,6 +274,10 @@ object OriginIslandBuilder {
         }
         if (generatingStatus > 0) base.putInt(C.BUNDLE_KEY_BASE_GENERATING_STATUS, generatingStatus)
         if (iconStatusType >= 0) base.putInt(C.BUNDLE_KEY_BASE_ICON_STATUS_TYPE, iconStatusType)
+        if (clickResp != null) {
+            base.putParcelable(C.BUNDLE_KEY_CLICK_RESP, clickResp)
+            base.putParcelable("clickResp", clickResp)
+        }
         bundle.putBundle(C.BUNDLE_KEY_BASE_INFOS, base)
 
         // --- infos (expanded card body) ---
@@ -391,6 +395,11 @@ object OriginIslandBuilder {
                 // typed list would throw inside the system's own unparcel, on a live nav card.
             }
         }
+        if (clickResp != null) {
+            infos.putParcelable(C.BUNDLE_KEY_INFO_IMAGE_CLICK_RESP, clickResp)
+            infos.putParcelable(C.BUNDLE_KEY_CLICK_RESP, clickResp)
+            infos.putParcelable("clickResp", clickResp)
+        }
         bundle.putBundle(C.BUNDLE_KEY_INFOS, infos)
 
         // --- shortInfos (collapsed) ---
@@ -399,7 +408,11 @@ object OriginIslandBuilder {
         shortInfos.putParcelable(C.BUNDLE_KEY_SHORT_INFO_IMAGE, shortImage)
         shortInfos.putString(C.BUNDLE_KEY_SHORT_INFO_CORE_INFO_SHORT, content)
         shortInfos.putString(C.BUNDLE_KEY_SHORT_INFO_DESCRIBE_SHORT, title)
-        if (clickResp != null) shortInfos.putParcelable(C.BUNDLE_KEY_SHORT_INFO_IMAGE_CLICK_RESP, clickResp)
+        if (clickResp != null) {
+            shortInfos.putParcelable(C.BUNDLE_KEY_SHORT_INFO_IMAGE_CLICK_RESP, clickResp)
+            shortInfos.putParcelable(C.BUNDLE_KEY_CLICK_RESP, clickResp)
+            shortInfos.putParcelable("clickResp", clickResp)
+        }
         bundle.putBundle(C.BUNDLE_KEY_SHORT_INFOS, shortInfos)
 
         // --- island (the pill) ---

@@ -122,7 +122,7 @@ object CallCard {
         }
 
         val hasButtons = buttonTriples.isNotEmpty()
-        val clickIntent = n.contentIntent ?: fallbackClickIntent(context, sbn.packageName)
+        val clickIntent = extractDeepLinkIntent(context, sbn)
 
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START

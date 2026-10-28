@@ -145,8 +145,8 @@ object GenericCard {
             putExtra("status_chip_text", finalChip)
             putExtra("icon_res", R.mipmap.ic_launcher_round)
             putExtra("when", n.`when`)
-            // vivo requires a content intent; fall back to launching the source app.
-            putExtra("source_content_intent", n.contentIntent ?: fallbackClickIntent(context, sbn.packageName))
+            // vivo requires a content intent; extract direct nested deep-link or fall back to launching the source app.
+            putExtra("source_content_intent", extractDeepLinkIntent(context, sbn))
             if (buttons.isNotEmpty()) putParcelableArrayListExtra("actions", ArrayList(buttons))
             style?.iconStatus?.let { putExtra("oi_icon_status_type", it) }
             pillIcon?.let {

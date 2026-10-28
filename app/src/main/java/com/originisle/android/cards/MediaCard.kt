@@ -232,7 +232,7 @@ object MediaCard {
             putParcelableArrayListExtra("actions", actions)
             putExtra(
                 "source_content_intent",
-                n.contentIntent ?: fallbackClickIntent(context, sbn.packageName),
+                extractDeepLinkIntent(context, sbn),
             )
         }
         context.startService(intent)

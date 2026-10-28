@@ -16,6 +16,7 @@ import android.util.Log
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import com.originisle.android.R
+import com.originisle.android.cards.fallbackClickIntent
 import com.originisle.android.service.IconCache
 import com.originisle.android.ui.PREFS_NAME
 import java.util.concurrent.ConcurrentHashMap
@@ -287,9 +288,11 @@ class PlaygroundService : Service() {
                 )
             } ?: emptyList()
 
+        val sourcePkg = intent.getStringExtra("source_pkg").orEmpty()
         val clickResp: PendingIntent? =
             intent.getParcelableExtra("source_content_intent", PendingIntent::class.java)
                 ?: intent.getParcelableExtra("click_resp", PendingIntent::class.java)
+                ?: if (sourcePkg.isNotBlank()) fallbackClickIntent(this, sourcePkg) else null
 
         val leftDoubleLine = intent.getStringArrayListExtra("oi_left_doubleline") ?: emptyList()
         val rightDoubleLine = intent.getStringArrayListExtra("oi_right_doubleline") ?: emptyList()
@@ -380,7 +383,18 @@ class PlaygroundService : Service() {
         activeIds.add(id)
         originScenes[id] = scene
         activeCardIds = activeIds.toSet()
-        postSuperX(id, iconRes, title, text, sourceApp, isOngoing, scene, bundle, intent.getLongExtra("when", 0L))
+        postSuperX(
+            id = id,
+            iconRes = iconRes,
+            title = title,
+            text = text,
+            sourceApp = sourceApp,
+            isOngoing = isOngoing,
+            scene = scene,
+            bundle = bundle,
+            whenMs = intent.getLongExtra("when", 0L),
+            clickResp = clickResp,
+        )
 
         // Auto-dismiss: only for non-live cards (isOngoing is the same live/persistent flag the
         // card posters set — media, sports and any ongoing/call/progress GenericCard all mark
@@ -420,6 +434,7 @@ class PlaygroundService : Service() {
         scene: String,
         bundle: android.os.Bundle,
         whenMs: Long,
+        clickResp: PendingIntent? = null,
     ) {
         OriginIslandBuilder.grantScenes(this)
         createNotificationChannel(ORIGIN_CHANNEL_ID)
@@ -440,6 +455,9 @@ class PlaygroundService : Service() {
             .setDeleteIntent(deletePi)
             .setSmallIcon(iconRes)
             .setExtras(bundle)
+        if (clickResp != null) {
+            builder.setContentIntent(clickResp)
+        }
         if (whenMs > 0) builder.setWhen(whenMs)
         if (sourceApp.isNotEmpty()) builder.setSubText(sourceApp)
         notificationManager.notify(OriginIslandConstants.SUPERX_TAG, id, builder.build())
