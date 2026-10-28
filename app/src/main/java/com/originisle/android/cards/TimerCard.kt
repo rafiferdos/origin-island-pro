@@ -33,6 +33,7 @@ object TimerCard {
         appLabel: String,
         clickResp: PendingIntent?,
         actions: List<Notification.Action> = emptyList(),
+        sourcePkg: String? = null,
     ) {
         val cleanTitle = title.ifBlank { "Timer" }
         val usable = actions.filter { a ->
@@ -42,6 +43,7 @@ object TimerCard {
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
+            sourcePkg?.let { putExtra("source_pkg", it) }
             putExtra("is_ongoing", true)
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_TIMER)
             putExtra("oi_scene", "NAVIGATION")

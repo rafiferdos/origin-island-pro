@@ -21,10 +21,12 @@ object WeatherCard {
         headline: String,
         chip: String,
         clickResp: PendingIntent?,
+        sourcePkg: String? = null,
     ) {
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
+            sourcePkg?.let { putExtra("source_pkg", it) }
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_WEATHER)
             putExtra("oi_scene", "NAVIGATION")
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE)

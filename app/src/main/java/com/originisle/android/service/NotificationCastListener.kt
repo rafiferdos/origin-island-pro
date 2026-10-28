@@ -620,6 +620,7 @@ class NotificationCastListener : NotificationListenerService() {
                     appIcon = appIcon,
                     clickResp = click,
                     actions = sbn.notification.actions.orEmpty().toList(),
+                    sourcePkg = sbn.packageName,
                 )
                 log(sbn, "cast — auth prompt", true)
                 return
@@ -646,6 +647,7 @@ class NotificationCastListener : NotificationListenerService() {
                 appLabel = appLbl,
                 clickResp = click,
                 actions = sbn.notification.actions.orEmpty().toList(),
+                sourcePkg = sbn.packageName,
             )
             log(sbn, "cast — timer", true)
             return
@@ -715,6 +717,7 @@ class NotificationCastListener : NotificationListenerService() {
                     appIcon = appIcon,
                     clickResp = click,
                     actions = sbn.notification.actions.orEmpty().toList(),
+                    sourcePkg = sbn.packageName,
                 )
                 log(sbn, "cast — ride", true)
                 return
@@ -740,7 +743,16 @@ class NotificationCastListener : NotificationListenerService() {
                     val ai = packageManager.getApplicationInfo(sbn.packageName, 0)
                     Icon.createWithResource(sbn.packageName, ai.icon)
                 }.getOrNull()
-                DeliveryCard.post(applicationContext, IconCache.castIdFor(sbn), title.ifBlank { appLbl }, eta, appLbl, appIcon, click)
+                DeliveryCard.post(
+                    context = applicationContext,
+                    id = IconCache.castIdFor(sbn),
+                    title = title.ifBlank { appLbl },
+                    eta = eta,
+                    carrier = appLbl,
+                    appIcon = appIcon,
+                    clickResp = click,
+                    sourcePkg = sbn.packageName,
+                )
                 log(sbn, "cast — delivery", true)
                 return
             }
@@ -760,7 +772,14 @@ class NotificationCastListener : NotificationListenerService() {
                 }
                 val chip = WeatherCard.extractChip(title, "$text $big")
                 val click = extractDeepLinkIntent(applicationContext, sbn)
-                WeatherCard.post(applicationContext, IconCache.castIdFor(sbn), title.ifBlank { "Weather" }, chip, click)
+                WeatherCard.post(
+                    context = applicationContext,
+                    id = IconCache.castIdFor(sbn),
+                    headline = title.ifBlank { "Weather" },
+                    chip = chip,
+                    clickResp = click,
+                    sourcePkg = sbn.packageName,
+                )
                 log(sbn, "cast — weather", true)
                 return
             }
@@ -795,6 +814,7 @@ class NotificationCastListener : NotificationListenerService() {
                     appIcon = appIcon,
                     clickResp = click,
                     actions = sbn.notification.actions.orEmpty().toList(),
+                    sourcePkg = sbn.packageName,
                 )
                 log(sbn, "cast — meeting", true)
                 return
@@ -1040,6 +1060,7 @@ class NotificationCastListener : NotificationListenerService() {
                 id = id,
                 homeLogo = icons.home, awayLogo = icons.away, centerLogo = icons.center,
                 clickResp = clickResp,
+                sourcePkg = sbn.packageName,
             )
         }
         return true
@@ -1085,7 +1106,10 @@ class NotificationCastListener : NotificationListenerService() {
             Icon.createWithResource(sbn.packageName, ai.icon)
         }.getOrNull()
         val click = extractDeepLinkIntent(applicationContext, sbn)
-        PaymentCard.post(applicationContext, id, appIcon, info.amount, info.merchant, appLabel(sbn.packageName), click)
+        PaymentCard.post(
+            applicationContext, id, appIcon, info.amount, info.merchant,
+            appLabel(sbn.packageName), click, sbn.packageName,
+        )
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {

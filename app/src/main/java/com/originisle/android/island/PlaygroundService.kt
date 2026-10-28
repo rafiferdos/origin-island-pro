@@ -288,7 +288,17 @@ class PlaygroundService : Service() {
                 )
             } ?: emptyList()
 
+        val landingOptIn = getSharedPreferences(PREFS_NAME, 0)
+            .getBoolean("cast_landing_animation", true)
         val sourcePkg = intent.getStringExtra("source_pkg").orEmpty()
+        val landingPkg = if (landingOptIn) {
+            intent.getStringExtra("oi_landing_pkg")?.ifBlank { null }
+                ?: sourcePkg.ifBlank { null }
+        } else null
+        val landingInfo = if (landingOptIn) {
+            intent.getStringExtra("oi_landing_info")?.ifBlank { null }
+                ?: landingPkg
+        } else null
         val clickResp: PendingIntent? =
             intent.getParcelableExtra("source_content_intent", PendingIntent::class.java)
                 ?: intent.getParcelableExtra("click_resp", PendingIntent::class.java)
@@ -359,6 +369,8 @@ class PlaygroundService : Service() {
             showNotify = showNotify,
             islandNotify = islandNotify,
             priority = priority,
+            landingPkg = landingPkg,
+            landingInfo = landingInfo,
         )
 
         val sourceApp = intent.getStringExtra("source_app").orEmpty()

@@ -89,6 +89,7 @@ object SportsCard {
         awayLogo: Icon? = null,
         centerLogo: Icon? = null,
         clickResp: PendingIntent? = null,
+        sourcePkg: String? = null,
     ) {
         val crowded = isCrowded(context, id)
         val prev = lastPosts[id]
@@ -99,6 +100,7 @@ object SportsCard {
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
+            sourcePkg?.let { putExtra("source_pkg", it) }
 
             // Must stay ongoing: a non-ongoing SuperX card is auto-cancelled by OriginOS after ~5s
             // (confirmed via dumpsys) and can't be refreshed fast enough to outrun that (updates

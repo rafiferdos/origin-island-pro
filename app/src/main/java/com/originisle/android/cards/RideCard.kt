@@ -45,6 +45,7 @@ object RideCard {
         appIcon: Icon?,
         clickResp: PendingIntent?,
         actions: List<Notification.Action> = emptyList(),
+        sourcePkg: String? = null,
     ) {
         val hay = "$title $details"
         val eta = DeliveryCard.extractEta(hay).ifBlank { "Ride" }
@@ -65,6 +66,7 @@ object RideCard {
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
+            sourcePkg?.let { putExtra("source_pkg", it) }
             putExtra("is_ongoing", true) // Live ongoing ride tracking
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_RIDE)
             putExtra("oi_scene", "NAVIGATION")

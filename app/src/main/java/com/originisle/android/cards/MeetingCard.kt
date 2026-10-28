@@ -48,6 +48,7 @@ object MeetingCard {
         appIcon: Icon?,
         clickResp: PendingIntent?,
         actions: List<Notification.Action> = emptyList(),
+        sourcePkg: String? = null,
     ) {
         val cleanTitle = IntelligentTextSanitizer.cleanTitle(title, appLabel)
         val cleanDetails = IntelligentTextSanitizer.cleanBody(details, cleanTitle, appLabel)
@@ -58,6 +59,7 @@ object MeetingCard {
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
+            sourcePkg?.let { putExtra("source_pkg", it) }
             putExtra("is_ongoing", false)
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_MEETING)
             putExtra("oi_scene", "NAVIGATION")

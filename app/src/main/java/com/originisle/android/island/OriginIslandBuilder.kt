@@ -211,6 +211,8 @@ object OriginIslandBuilder {
         showNotify: Boolean = true,
         islandNotify: Boolean = false,
         priority: Int = 0,
+        landingPkg: String? = null,
+        landingInfo: String? = null,
     ): Bundle {
         val C = OriginIslandConstants
         val bundle = Bundle()
@@ -236,6 +238,10 @@ object OriginIslandBuilder {
             })
         }
         if (clickResp != null) bundle.putParcelable(C.BUNDLE_KEY_CLICK_RESP, clickResp)
+        if (!landingPkg.isNullOrBlank()) {
+            bundle.putString(C.BUNDLE_KEY_ISLAND_LANDING_PKG, landingPkg)
+            bundle.putString(C.BUNDLE_KEY_ISLAND_LANDING_INFO, landingInfo ?: landingPkg)
+        }
 
         // First action that has a pending intent becomes the capsule sub-info button.
         val firstActionable = actions.firstOrNull { it.pendingIntent != null }
@@ -431,6 +437,10 @@ object OriginIslandBuilder {
         island.putBoolean(C.BUNDLE_KEY_ISLAND_SHOW_BAR_WHEN_CARD, false)
         island.putInt(C.BUNDLE_KEY_ISLAND_CLICK, 0)
         if (clickResp != null) island.putParcelable(C.BUNDLE_KEY_ISLAND_CLICK_RESP, clickResp)
+        if (!landingPkg.isNullOrBlank()) {
+            island.putString(C.BUNDLE_KEY_ISLAND_LANDING_PKG, landingPkg)
+            island.putString(C.BUNDLE_KEY_ISLAND_LANDING_INFO, landingInfo ?: landingPkg)
+        }
 
         val left = Bundle()
         if (showLeftIcon) left.putParcelable(C.BUNDLE_KEY_ISLAND_LEFT_ICON, leftIcon)
@@ -491,6 +501,10 @@ object OriginIslandBuilder {
         if (capsuleShowTime > 0) capsule.putInt(C.BUNDLE_KEY_CAPSULE_SHOW_TIME, capsuleShowTime)
         if (newNode > 0) capsule.putInt(C.BUNDLE_KEY_CAPSULE_NEW_NODE, newNode)
         if (clickResp != null) capsule.putParcelable(C.BUNDLE_KEY_CAPSULE_CLICK_RESP, clickResp)
+        if (!landingPkg.isNullOrBlank()) {
+            capsule.putBoolean(C.BUNDLE_KEY_CAPSULE_LANDING_AUTO_HIDE, true)
+            capsule.putString(C.BUNDLE_KEY_ISLAND_LANDING_PKG, landingPkg)
+        }
         bundle.putBundle(C.BUNDLE_KEY_CAPSULE, capsule)
 
         return bundle

@@ -52,6 +52,7 @@ object PaymentCard {
         merchant: String,
         appLabel: String,
         clickResp: PendingIntent?,
+        sourcePkg: String? = null,
     ) {
         val app = context.applicationContext
         // Privacy mode (opt-in, default off): vivo-safe — same template, same
@@ -74,6 +75,7 @@ object PaymentCard {
             iconStatus = -1,
             rightTemplate = OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_LOADING, // 3
             chip = "",
+            sourcePkg = sourcePkg,
         )
 
         // Phase 2 — done (green tick + glow), a beat later so the transition animates.
@@ -89,6 +91,7 @@ object PaymentCard {
                 iconStatus = OriginIslandConstants.ICON_STATUS_SUCCESS, // 0 -> green tick
                 rightTemplate = OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT, // 6
                 chip = "✓",
+                sourcePkg = sourcePkg,
             )
         }, PROCESS_MS)
 
@@ -115,10 +118,12 @@ object PaymentCard {
         iconStatus: Int,
         rightTemplate: Int,
         chip: String,
+        sourcePkg: String? = null,
     ) {
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
+            sourcePkg?.let { putExtra("source_pkg", it) }
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_PAYMENT)
             putExtra("oi_scene", "NAVIGATION") // granted carrier scene
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE) // 4

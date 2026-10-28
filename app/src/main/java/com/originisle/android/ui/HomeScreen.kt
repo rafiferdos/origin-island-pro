@@ -90,6 +90,7 @@ fun HomeScreen(
     var chargingOn by remember { mutableStateOf(prefs.getBoolean("cast_charging", true)) }
     var chargingKeep by remember { mutableStateOf(prefs.getBoolean("cast_charging_keep", false)) }
     var messagePreviewMode by remember { mutableStateOf(prefs.getString("cast_message_preview_mode", "smart") ?: "smart") }
+    var landingAnimOn by remember { mutableStateOf(prefs.getBoolean("cast_landing_animation", true)) }
     var downloadPillStyle by remember { mutableStateOf(prefs.getString("download_pill_style", "speed_ring") ?: "speed_ring") }
     var quietDnd by remember { mutableStateOf(prefs.getBoolean("cast_quiet_dnd", false)) }
     var quietSchedule by remember { mutableStateOf(prefs.getBoolean("cast_quiet_schedule", false)) }
@@ -320,6 +321,14 @@ fun HomeScreen(
                     ) {
                         lockscreenLiveCard = it
                         prefs.edit().putBoolean("cast_lockscreen_live_card", it).apply()
+                    }
+                    GroupDivider()
+                    ToggleRow(
+                        IsleIcons.TrendUp, IsleColors.TileCyan, "Island return animation", landingAnimOn,
+                        subtitle = "Dock closing app window directly into the active island",
+                    ) {
+                        landingAnimOn = it
+                        prefs.edit().putBoolean("cast_landing_animation", it).apply()
                     }
                 }
             }
