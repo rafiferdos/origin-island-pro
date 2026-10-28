@@ -23,17 +23,23 @@ fun extractDeepLinkIntent(context: Context, sbn: StatusBarNotification): Pending
     // attach the exact conversation/thread PendingIntent here.
     n.contentIntent?.let { return it }
 
-    // 2. Bubble metadata intent (Android 11+ conversation bubbles).
+    // 2. Full-screen intent (e.g. InCallActivity / VoIP call screen in Android)
+    n.fullScreenIntent?.let { return it }
+
+    // 3. Bubble metadata intent (Android 11+ conversation bubbles).
     // Apps like Facebook Messenger and Telegram configure conversation shortcuts and bubbles
     // with a dedicated activity PendingIntent.
     n.bubbleMetadata?.intent?.let { return it }
 
-    // 3. Check actions: find an action that opens the target item (excluding RemoteInput reply actions).
+    // 4. Check actions: find an action that opens the target item (excluding destructive & RemoteInput reply actions).
     n.actions?.firstOrNull { action ->
-        action.actionIntent != null && (action.remoteInputs == null || action.remoteInputs.isEmpty())
+        val title = action.title?.toString()?.lowercase().orEmpty()
+        val isDestructive = listOf("decline", "reject", "hang up", "end", "cancel", "deny", "drop", "stop", "dismiss", "delete")
+            .any { title.contains(it) }
+        action.actionIntent != null && !isDestructive && (action.remoteInputs == null || action.remoteInputs.isEmpty())
     }?.actionIntent?.let { return it }
 
-    // 4. Safe fallback to launch intent
+    // 5. Safe fallback to launch intent
     return fallbackClickIntent(context, sbn.packageName)
 }
 

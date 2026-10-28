@@ -237,7 +237,10 @@ object OriginIslandBuilder {
                 putInt(C.BUNDLE_KEY_EFFECT_LIGHT_MAIN_COLOR, lightColor)
             })
         }
-        if (clickResp != null) bundle.putParcelable(C.BUNDLE_KEY_CLICK_RESP, clickResp)
+        if (clickResp != null) {
+            bundle.putParcelable(C.BUNDLE_KEY_CLICK_RESP, clickResp)
+            bundle.putParcelable("clickResp", clickResp)
+        }
         if (!landingPkg.isNullOrBlank()) {
             bundle.putString(C.BUNDLE_KEY_ISLAND_LANDING_PKG, landingPkg)
             bundle.putString(C.BUNDLE_KEY_ISLAND_LANDING_INFO, landingInfo ?: landingPkg)
@@ -282,6 +285,7 @@ object OriginIslandBuilder {
         if (iconStatusType >= 0) base.putInt(C.BUNDLE_KEY_BASE_ICON_STATUS_TYPE, iconStatusType)
         if (clickResp != null) {
             base.putParcelable(C.BUNDLE_KEY_CLICK_RESP, clickResp)
+            base.putParcelable("notification.superx.baseInfos.clickResp", clickResp)
             base.putParcelable("clickResp", clickResp)
         }
         bundle.putBundle(C.BUNDLE_KEY_BASE_INFOS, base)
@@ -404,6 +408,8 @@ object OriginIslandBuilder {
         if (clickResp != null) {
             infos.putParcelable(C.BUNDLE_KEY_INFO_IMAGE_CLICK_RESP, clickResp)
             infos.putParcelable(C.BUNDLE_KEY_CLICK_RESP, clickResp)
+            infos.putParcelable("notification.superx.infos.clickResp", clickResp)
+            infos.putParcelable("imageClickResp", clickResp)
             infos.putParcelable("clickResp", clickResp)
         }
         bundle.putBundle(C.BUNDLE_KEY_INFOS, infos)

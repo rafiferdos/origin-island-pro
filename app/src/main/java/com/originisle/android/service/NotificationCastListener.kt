@@ -1119,6 +1119,7 @@ class NotificationCastListener : NotificationListenerService() {
         lastCastPostTime.remove(sbn.key)
         MediaCard.forget(IconCache.castIdFor(sbn))
         DownloadCard.forget(IconCache.castIdFor(sbn))
+        CallCard.forget(IconCache.castIdFor(sbn))
 
         // Score cards are keyed by team names (matchCastId), not by this notification's own identity
         // (see handleScore) — cancelling by IconCache.castIdFor(sbn) here would target the wrong id and
