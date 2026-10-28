@@ -89,7 +89,7 @@ fun HomeScreen(
     var privacyOn by remember { mutableStateOf(prefs.getBoolean("cast_privacy_mode", false)) }
     var chargingOn by remember { mutableStateOf(prefs.getBoolean("cast_charging", true)) }
     var chargingKeep by remember { mutableStateOf(prefs.getBoolean("cast_charging_keep", false)) }
-    var downloadPillStyle by remember { mutableStateOf(prefs.getString("download_pill_style", "split") ?: "split") }
+    var downloadPillStyle by remember { mutableStateOf(prefs.getString("download_pill_style", "speed_ring") ?: "speed_ring") }
     var quietDnd by remember { mutableStateOf(prefs.getBoolean("cast_quiet_dnd", false)) }
     var quietSchedule by remember { mutableStateOf(prefs.getBoolean("cast_quiet_schedule", false)) }
     var quietStart by remember { mutableIntStateOf(prefs.getInt("cast_quiet_start", QuietHours.DEFAULT_START)) }
@@ -444,23 +444,48 @@ fun HomeScreen(
                     GroupDivider()
                     SettingRow(
                         IsleIcons.Download, IsleColors.TileDownload, "Download pill style",
-                        subtitle = "Compact layout for active downloads",
+                        subtitle = "Choose how active downloads look on the island",
                     )
-                    Row(
+                    Column(
                         Modifier.padding(start = 62.dp, end = 16.dp, bottom = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        listOf(
-                            "split" to "Split",
-                            "doubleline" to "Dual-line",
-                            "speed_ring" to "Speed ring",
-                        ).forEach { (style, label) ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             ChoiceChip(
-                                label,
-                                selected = downloadPillStyle == style,
+                                "Speed & Ring",
+                                selected = downloadPillStyle == "speed_ring",
                                 onClick = {
-                                    downloadPillStyle = style
-                                    prefs.edit().putString("download_pill_style", style).apply()
+                                    downloadPillStyle = "speed_ring"
+                                    prefs.edit().putString("download_pill_style", "speed_ring").apply()
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                            ChoiceChip(
+                                "Dual-line",
+                                selected = downloadPillStyle == "doubleline",
+                                onClick = {
+                                    downloadPillStyle = "doubleline"
+                                    prefs.edit().putString("download_pill_style", "doubleline").apply()
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ChoiceChip(
+                                "Speed & %",
+                                selected = downloadPillStyle == "speed_capsule",
+                                onClick = {
+                                    downloadPillStyle = "speed_capsule"
+                                    prefs.edit().putString("download_pill_style", "speed_capsule").apply()
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                            ChoiceChip(
+                                "% & Speed",
+                                selected = downloadPillStyle == "percent_speed" || downloadPillStyle == "split",
+                                onClick = {
+                                    downloadPillStyle = "percent_speed"
+                                    prefs.edit().putString("download_pill_style", "percent_speed").apply()
                                 },
                                 modifier = Modifier.weight(1f),
                             )
@@ -468,9 +493,10 @@ fun HomeScreen(
                     }
                     Text(
                         when (downloadPillStyle) {
-                            "doubleline" -> "Dual-line: Left shows app name & speed (2 lines), right shows progress ring."
-                            "speed_ring" -> "Speed ring: Left shows live speed, right shows progress ring."
-                            else -> "Balanced Split: Left shows % progress, right shows Mbps speed badge."
+                            "doubleline" -> "Dual-line: Left shows [App Icon] + Name & Speed (2 lines), right shows circular progress ring."
+                            "speed_capsule" -> "Speed & % Badge: Left shows [App Icon] + live speed in Mbps, right shows % in capsule badge."
+                            "percent_speed", "split" -> "% & Speed Badge: Left shows [App Icon] + % progress, right shows live speed (Mbps) badge."
+                            else -> "Speed & Ring: Left shows [App Icon] + live speed in Mbps, right shows circular progress ring."
                         },
                         modifier = Modifier.padding(start = 62.dp, end = 16.dp, bottom = 14.dp),
                         fontSize = 12.sp,

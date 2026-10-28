@@ -53,47 +53,6 @@ class DownloadCardTest {
     }
 
     @Test
-    fun testResolvePillConfigSplit() {
-        // Option 2 (Balanced Info Split)
-        val config = DownloadCard.resolvePillConfig(
-            style = "split",
-            displayTitle = "Google Chrome",
-            percent = 75,
-            indeterminate = false,
-            progressMax = 100,
-            liveMbpsSpeed = "19.2 Mbps",
-        )
-        assertEquals("75%", config.leftContent)
-        assertNull(config.leftDoubleLine)
-        assertEquals(OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT, config.rightTemplate)
-        assertEquals("19.2 Mbps", config.rightContent)
-        assertEquals("19.2 Mbps", config.statusChip)
-        assertEquals(true, config.showProgress)
-        assertEquals(75, config.progressVal)
-    }
-
-    @Test
-    fun testResolvePillConfigDoubleline() {
-        // Option 3 (vivo OriginOS Native Dual-Line)
-        val config = DownloadCard.resolvePillConfig(
-            style = "doubleline",
-            displayTitle = "Genshin Impact",
-            percent = 45,
-            indeterminate = false,
-            progressMax = 100,
-            liveMbpsSpeed = "24.5 Mbps",
-        )
-        assertEquals("Genshin Impa", config.leftContent)
-        assertNotNull(config.leftDoubleLine)
-        assertEquals(listOf("Genshin Impa", "24.5 Mbps"), config.leftDoubleLine)
-        assertEquals(OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS, config.rightTemplate)
-        assertEquals("45%", config.rightContent)
-        assertEquals("45%", config.statusChip)
-        assertEquals(true, config.showProgress)
-        assertEquals(45, config.progressVal)
-    }
-
-    @Test
     fun testResolvePillConfigSpeedRing() {
         // Option 1 (Speed & Progress Ring)
         val config = DownloadCard.resolvePillConfig(
@@ -114,6 +73,67 @@ class DownloadCardTest {
     }
 
     @Test
+    fun testResolvePillConfigDoubleline() {
+        // Option 2 (vivo OriginOS Native Dual-Line)
+        val config = DownloadCard.resolvePillConfig(
+            style = "doubleline",
+            displayTitle = "Genshin Impact",
+            percent = 45,
+            indeterminate = false,
+            progressMax = 100,
+            liveMbpsSpeed = "24.5 Mbps",
+        )
+        assertEquals("Genshin Impa", config.leftContent)
+        assertNotNull(config.leftDoubleLine)
+        assertEquals(listOf("Genshin Impa", "24.5 Mbps"), config.leftDoubleLine)
+        assertEquals(OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS, config.rightTemplate)
+        assertEquals("45%", config.rightContent)
+        assertEquals("45%", config.statusChip)
+        assertEquals(true, config.showProgress)
+        assertEquals(45, config.progressVal)
+    }
+
+    @Test
+    fun testResolvePillConfigSpeedCapsule() {
+        // Option 3 (Speed & % Badge)
+        val config = DownloadCard.resolvePillConfig(
+            style = "speed_capsule",
+            displayTitle = "Google Chrome",
+            percent = 60,
+            indeterminate = false,
+            progressMax = 100,
+            liveMbpsSpeed = "18.5 Mbps",
+        )
+        assertEquals("18.5 Mbps", config.leftContent)
+        assertNull(config.leftDoubleLine)
+        assertEquals(OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT, config.rightTemplate)
+        assertEquals("60%", config.rightContent)
+        assertEquals("60%", config.statusChip)
+        assertEquals(true, config.showProgress)
+        assertEquals(60, config.progressVal)
+    }
+
+    @Test
+    fun testResolvePillConfigPercentSpeed() {
+        // Option 4 (% & Speed Badge)
+        val config = DownloadCard.resolvePillConfig(
+            style = "percent_speed",
+            displayTitle = "Google Chrome",
+            percent = 75,
+            indeterminate = false,
+            progressMax = 100,
+            liveMbpsSpeed = "19.2 Mbps",
+        )
+        assertEquals("75%", config.leftContent)
+        assertNull(config.leftDoubleLine)
+        assertEquals(OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT, config.rightTemplate)
+        assertEquals("19.2 Mbps", config.rightContent)
+        assertEquals("19.2 Mbps", config.statusChip)
+        assertEquals(true, config.showProgress)
+        assertEquals(75, config.progressVal)
+    }
+
+    @Test
     fun testResolvePillConfigIndeterminate() {
         val config = DownloadCard.resolvePillConfig(
             style = "doubleline",
@@ -121,10 +141,10 @@ class DownloadCardTest {
             percent = 0,
             indeterminate = true,
             progressMax = 0,
-            liveMbpsSpeed = null,
+            liveMbpsSpeed = "0.0 Mbps",
         )
         assertEquals("Asset Fetch", config.leftContent)
-        assertEquals(listOf("Asset Fetch", "Downloading"), config.leftDoubleLine)
+        assertEquals(listOf("Asset Fetch", "0.0 Mbps"), config.leftDoubleLine)
         assertEquals(OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_LOADING, config.rightTemplate)
         assertEquals("...", config.statusChip)
         assertEquals(false, config.showProgress)

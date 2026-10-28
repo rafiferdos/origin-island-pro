@@ -58,7 +58,7 @@ object DownloadCard {
         "ডাউনলোড", "আপডেট", "ট্রান্সফার",
     )
 
-    private val SPEED_REGEX = Regex("""(?i)(\d+(?:\.\d+)?)\s*(?:KB/s|MB/s|kb/s|mb/s|kB/s|mB/s|Mbps|mbps|Kbps|kbps)""")
+    private val SPEED_REGEX = Regex("""(?i)(\d+(?:\.\d+)?)\s*(?:KB/s|MB/s|GB/s|kb/s|mb/s|gb/s|kB/s|mB/s|Mbps|mbps|Kbps|kbps|m/s|k/s)""")
     private val SIZE_REGEX = Regex("""(?i)(\d+(?:\.\d+)?\s*(?:MB|GB|KB|TB))\s*(?:/|of)\s*(\d+(?:\.\d+)?\s*(?:MB|GB|KB|TB))""")
     private val ETA_REGEX = Regex("""(?i)(\d+\s*(?:min|mins|minute|minutes|sec|secs|second|seconds|hr|hrs|hour|hours|s|m|h)\s*(?:remaining|left))|((?:about|approx\.?)\s*\d+\s*(?:min|mins|hour|hrs)\s*left)""")
 
@@ -130,6 +130,7 @@ object DownloadCard {
         val num = match.groupValues[1].toDoubleOrNull() ?: return null
         val raw = match.value.lowercase()
         val mbps = when {
+            raw.contains("gb/s") -> num * 8000.0
             raw.contains("mbps") -> num
             raw.contains("kbps") -> num / 1000.0
             raw.contains("mb/s") || raw.contains("m/s") -> num * 8.0
@@ -144,6 +145,7 @@ object DownloadCard {
         val num = match.groupValues[1].toDoubleOrNull() ?: return null
         val raw = match.value.lowercase()
         val mbps = when {
+            raw.contains("gb/s") -> num * 8000.0
             raw.contains("mbps") -> num
             raw.contains("kbps") -> num / 1000.0
             raw.contains("mb/s") || raw.contains("m/s") -> num * 8.0
@@ -189,12 +191,16 @@ object DownloadCard {
         val textMbps = convertToMbps(combined)
 
         // 2. Real-time network throughput measurement via TrafficStats (for ANY app without speed in text)
-        val uid = sbn.uid
+        // Queries app-specific UID first, with seamless fallback to device-level total network throughput
+        val appUid = runCatching { context.packageManager.getPackageUid(sbn.packageName, 0) }.getOrNull() ?: sbn.uid
         val now = System.currentTimeMillis()
-        val currentRxBytes = if (uid > 0) TrafficStats.getUidRxBytes(uid) else -1L
+        val uidRx = if (appUid > 0) TrafficStats.getUidRxBytes(appUid) else -1L
+        // Android 10+ restricts getUidRxBytes for third-party apps, returning -1.
+        // Fall back to TrafficStats.getTotalRxBytes() which is 100% unrestricted and captures all download traffic.
+        val currentRxBytes = if (uidRx > 0) uidRx else TrafficStats.getTotalRxBytes()
 
+        val prevSample = trafficSamples[id]
         val measuredMbps: Double? = if (currentRxBytes > 0) {
-            val prevSample = trafficSamples[id]
             if (prevSample != null && prevSample.timestampMs > 0) {
                 val deltaBytes = currentRxBytes - prevSample.rxBytes
                 val deltaMs = now - prevSample.timestampMs
@@ -215,8 +221,11 @@ object DownloadCard {
             null
         }
 
-        // Resolve active speed in Mbps: text speed wins, fallback to live TrafficStats
-        val liveMbpsSpeed: String? = textMbps ?: measuredMbps?.takeIf { it > 0.05 }?.let { formatMbps(it) }
+        // Guaranteed live Mbps speed: text speed wins, followed by measured throughput, then last known sample, defaulting to "0.0 Mbps"
+        val liveMbpsSpeed: String = textMbps
+            ?: measuredMbps?.takeIf { it > 0.01 }?.let { formatMbps(it) }
+            ?: prevSample?.lastComputedMbps?.takeIf { it > 0.01 }?.let { formatMbps(it) }
+            ?: "0.0 Mbps"
 
         // Authentic Source App Launcher Icon (e.g. Genshin Impact, Chrome, Play Store, Telegram)
         val appIcon = runCatching {
@@ -247,7 +256,7 @@ object DownloadCard {
         }
 
         val style = context.getSharedPreferences(com.originisle.android.ui.PREFS_NAME, 0)
-            .getString("download_pill_style", "split") ?: "split"
+            .getString("download_pill_style", "speed_ring") ?: "speed_ring"
 
         val pillConfig = resolvePillConfig(
             style = style,
@@ -322,57 +331,72 @@ object DownloadCard {
         percent: Int,
         indeterminate: Boolean,
         progressMax: Int,
-        liveMbpsSpeed: String?,
+        liveMbpsSpeed: String,
     ): PillLayoutConfig {
+        val pctText = if (percent > 0) "$percent%" else "0%"
+        val hasProgress = !indeterminate && progressMax > 0
+
         return when (style) {
             "doubleline" -> {
+                // Option 2: vivo OriginOS Native Dual-Line
                 val line1 = displayTitle.take(12)
-                val line2 = liveMbpsSpeed ?: if (percent > 0) "$percent%" else "Downloading"
-                val rightTpl = if (!indeterminate && progressMax > 0) {
+                val line2 = liveMbpsSpeed
+                val rightTpl = if (hasProgress) {
                     OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS
                 } else {
                     OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_LOADING
                 }
-                val chip = if (!indeterminate && progressMax > 0) "$percent%" else "..."
+                val chip = if (hasProgress) pctText else "..."
                 PillLayoutConfig(
                     leftContent = line1,
                     leftDoubleLine = arrayListOf(line1, line2),
                     rightTemplate = rightTpl,
                     rightContent = chip,
-                    showProgress = !indeterminate && progressMax > 0,
+                    showProgress = hasProgress,
                     progressVal = percent,
                     statusChip = chip,
                 )
             }
-            "speed_ring" -> {
-                val left = liveMbpsSpeed ?: if (percent > 0) "$percent%" else "Downloading"
-                val rightTpl = if (!indeterminate && progressMax > 0) {
+            "speed_capsule" -> {
+                // Option 3: Speed & % Badge
+                PillLayoutConfig(
+                    leftContent = liveMbpsSpeed,
+                    leftDoubleLine = null,
+                    rightTemplate = OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT,
+                    rightContent = pctText,
+                    showProgress = hasProgress,
+                    progressVal = percent,
+                    statusChip = pctText,
+                )
+            }
+            "percent_speed", "split" -> {
+                // Option 4: % & Speed Badge
+                PillLayoutConfig(
+                    leftContent = pctText,
+                    leftDoubleLine = null,
+                    rightTemplate = OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT,
+                    rightContent = liveMbpsSpeed,
+                    showProgress = hasProgress,
+                    progressVal = percent,
+                    statusChip = liveMbpsSpeed,
+                )
+            }
+            else -> { // "speed_ring" (Default & User's favorite)
+                // Option 1: Speed & Ring
+                val rightTpl = if (hasProgress) {
                     OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS
                 } else {
                     OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_LOADING
                 }
-                val chip = if (!indeterminate && progressMax > 0) "$percent%" else "..."
+                val chip = if (hasProgress) pctText else "..."
                 PillLayoutConfig(
-                    leftContent = left,
+                    leftContent = liveMbpsSpeed,
                     leftDoubleLine = null,
                     rightTemplate = rightTpl,
                     rightContent = chip,
-                    showProgress = !indeterminate && progressMax > 0,
+                    showProgress = hasProgress,
                     progressVal = percent,
                     statusChip = chip,
-                )
-            }
-            else -> { // "split" (Option 2 - Balanced Split)
-                val left = if (percent > 0) "$percent%" else "Downloading"
-                val right = liveMbpsSpeed ?: if (percent > 0) "$percent%" else "Live"
-                PillLayoutConfig(
-                    leftContent = left,
-                    leftDoubleLine = null,
-                    rightTemplate = OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT,
-                    rightContent = right,
-                    showProgress = !indeterminate && progressMax > 0,
-                    progressVal = percent,
-                    statusChip = right,
                 )
             }
         }

@@ -38,8 +38,8 @@ object IslandSamples {
             )
         },
         OriginSample(
-            "App download", "Play Store download · 75% · 19.2 Mbps",
-            IslandPreview(R.drawable.ic_download, "75%", IslandPreview.Right.Capsule("19.2 Mbps")),
+            "App download", "Play Store download · 19.2 Mbps · 75%",
+            IslandPreview(R.drawable.ic_download, "19.2 Mbps", IslandPreview.Right.Progress(0.75f)),
         ) { ctx ->
             val playStoreIcon = try {
                 val appInfo = ctx.packageManager.getApplicationInfo("com.android.vending", 0)
@@ -48,7 +48,7 @@ object IslandSamples {
                 Icon.createWithResource(ctx, R.drawable.ic_download)
             }
             val style = ctx.getSharedPreferences(PREFS_NAME, 0)
-                .getString("download_pill_style", "split") ?: "split"
+                .getString("download_pill_style", "speed_ring") ?: "speed_ring"
             val config = DownloadCard.resolvePillConfig(
                 style = style,
                 displayTitle = "Google Chrome",
