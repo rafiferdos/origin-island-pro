@@ -238,6 +238,12 @@ class NotificationCastListener : NotificationListenerService() {
          */
         private val NAV_APPS = setOf(
             "com.google.android.apps.maps", // Google Maps
+            "com.baidu.BaiduMap",           // Baidu Maps (OriginOS China)
+            "com.here.app.maps",            // HERE WeGo
+            "app.organicmaps",              // Organic Maps
+            "net.osmand",                   // OsmAnd
+            "com.sygic.aura",               // Sygic
+            "com.huawei.maps.app",          // Petal Maps
         )
 
         /** Wallet / bank / money apps whose notifications are treated as payments (Apple-Pay card). */

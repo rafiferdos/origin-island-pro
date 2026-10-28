@@ -59,4 +59,21 @@ class IntelligentTextSanitizerTest {
         assertEquals("Md", IntelligentTextSanitizer.smartFirstName("Md"))
         assertEquals("Message", IntelligentTextSanitizer.smartFirstName(""))
     }
+
+    @Test
+    fun testFormatNavigationPill() {
+        assertEquals("300m Left", IntelligentTextSanitizer.formatNavigationPill("In 300 m, use the left 2 lanes to turn left onto Gulshan Ave"))
+        assertEquals("1.5km Exit", IntelligentTextSanitizer.formatNavigationPill("In 1.5 km, take exit 4 toward Airport"))
+        assertEquals("Turn Right", IntelligentTextSanitizer.formatNavigationPill("Turn right on Airport Rd"))
+        assertEquals("U-Turn", IntelligentTextSanitizer.formatNavigationPill("Make a U-turn"))
+        assertEquals("4km Straight", IntelligentTextSanitizer.formatNavigationPill("Continue straight for 4 km"))
+        assertEquals("350m", IntelligentTextSanitizer.formatNavigationPill("350 m"))
+        assertEquals("Arrived 🏁", IntelligentTextSanitizer.formatNavigationPill("You have arrived at your destination"))
+    }
+
+    @Test
+    fun testExtractNavigationAssist() {
+        assertEquals("Use the left 2 lanes", IntelligentTextSanitizer.extractNavigationAssist("In 300 m, use the left 2 lanes to turn left onto Gulshan Ave"))
+        assertEquals("Toward Airport", IntelligentTextSanitizer.extractNavigationAssist("In 1.5 km, take exit 4 toward Airport"))
+    }
 }

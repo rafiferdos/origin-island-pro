@@ -379,20 +379,27 @@ object IslandSamples {
         },
         OriginSample(
             "Driving navigation", "Driving-navi template · maneuver + street + ETA",
-            IslandPreview(R.drawable.ic_navigation, "350 m", IslandPreview.Right.Capsule("12 min")),
+            IslandPreview(R.drawable.ic_navigation, "350m Left", IslandPreview.Right.Capsule("12 min")),
         ) { ctx ->
-            // The template the real NavigationCard posts. Unproven on hardware: if nothing appears,
-            // OriginOS rejected template 9 and the Cast tab's navigation toggle should stay off.
             start(ctx, 40011) {
                 putExtra("oi_scene", "NAVIGATION")
                 putExtra("oi_template", OriginIslandConstants.TEMPLATE_DRIVING_NAVI)
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
-                putExtra("title", "350 m")
+                putExtra("title", "In 350 m, turn left")
                 putExtra("text", "Rue de Rivoli")
                 putExtra("oi_nav_msg", "12 min · 4,5 km · 14:32")
-                putExtra("oi_nav_assist", "Keep left")
-                putExtra("oi_left_content", "350 m")
+                putExtra("oi_nav_assist", "Use the left 2 lanes")
+                putExtra("oi_left_content", "350m Left")
                 putExtra("status_chip_text", "12 min")
+                putExtra("oi_right_content", "12 min")
+                putExtra("oi_bg_color", "#FF00C853")
+                putExtra("oi_fg_color", "#FFFFFFFF")
+                putExtra("oi_light_color", "#FF00C853")
+                putExtra("oi_light_mode", 1)
+                putExtra("oi_force_show", true)
+                val navIcon = android.graphics.drawable.Icon.createWithResource(ctx, R.drawable.ic_navigation)
+                putExtra("oi_left_icon", navIcon)
+                putExtra("oi_large_icon", navIcon)
                 putExtra("icon_res", R.drawable.ic_navigation)
             }
         },

@@ -225,4 +225,116 @@ object IntelligentTextSanitizer {
         val match = platePattern.find(text)
         return match?.value?.trim()
     }
+
+    private val NAV_DISTANCE_REGEX = Regex(
+        """\b(\d+(?:\.\d+)?)\s*(m|km|mi|ft|yd|meters?|metres?|kilometres?|kilometers?|miles?|feet)\b""",
+        RegexOption.IGNORE_CASE
+    )
+
+    private val NAV_ACTION_KEYWORDS = listOf(
+        "u-turn" to "U-Turn",
+        "uturn" to "U-Turn",
+        "sharp left" to "Sharp Left",
+        "sharp right" to "Sharp Right",
+        "slight left" to "Slight Left",
+        "slight right" to "Slight Right",
+        "turn left" to "Turn Left",
+        "turn right" to "Turn Right",
+        "keep left" to "Keep Left",
+        "keep right" to "Keep Right",
+        "take exit" to "Exit",
+        "exit" to "Exit",
+        "roundabout" to "Roundabout",
+        "continue straight" to "Straight",
+        "straight" to "Straight",
+        "continue" to "Straight",
+        "arrived" to "Arrived 🏁",
+        "destination" to "Arrived 🏁",
+        "head north" to "North",
+        "head south" to "South",
+        "head east" to "East",
+        "head west" to "West",
+        "merge" to "Merge",
+        "left" to "Left",
+        "right" to "Right"
+    )
+
+    /**
+     * Extracts a concise, high-density glanceable navigation snippet for the compact island pill (max 10-12 chars).
+     * Prevents text overflowing across the front camera punch-hole cutout on vivo devices.
+     * Examples:
+     * - "In 300 m, use the left 2 lanes to turn left onto Gulshan Ave" -> "300m Left"
+     * - "In 1.5 km, take exit 4 toward Airport" -> "1.5km Exit"
+     * - "Turn right on Airport Rd" -> "Turn Right"
+     * - "Make a U-turn" -> "U-Turn"
+     * - "Continue straight for 4 km" -> "4km Straight"
+     * - "350 m" -> "350m"
+     * - "You have arrived at your destination" -> "Arrived 🏁"
+     */
+    fun formatNavigationPill(rawManeuver: String, street: String = ""): String {
+        val clean = rawManeuver.replace('\n', ' ').trim()
+        if (clean.isEmpty()) return if (street.isNotBlank()) street.take(10) else "Navigating"
+
+        // 1. Distance extraction & normalization ("300 m" -> "300m", "1.5 km" -> "1.5km")
+        val distMatch = NAV_DISTANCE_REGEX.find(clean)
+        val distanceNormalized = distMatch?.let { match ->
+            val num = match.groupValues[1]
+            val unitRaw = match.groupValues[2].lowercase()
+            val unit = when {
+                unitRaw.startsWith("k") -> "km"
+                unitRaw.startsWith("m") && (unitRaw == "m" || unitRaw.startsWith("meter") || unitRaw.startsWith("metre")) -> "m"
+                unitRaw.startsWith("mi") -> "mi"
+                unitRaw.startsWith("f") -> "ft"
+                unitRaw.startsWith("y") -> "yd"
+                else -> unitRaw
+            }
+            "$num$unit"
+        }
+
+        // 2. Direction / Action extraction
+        val lower = clean.lowercase()
+        var actionFound: String? = null
+        for ((keyword, label) in NAV_ACTION_KEYWORDS) {
+            if (lower.contains(keyword)) {
+                actionFound = label
+                break
+            }
+        }
+
+        // 3. Compose high-density pill text
+        return when {
+            distanceNormalized != null && actionFound != null -> {
+                // When distance is present, simplify compound actions to fit strictly within 12 chars
+                // e.g. "Turn Left" -> "Left", "Turn Right" -> "Right", "Slight Left" -> "Left"
+                val compactAction = when (actionFound) {
+                    "Turn Left", "Slight Left", "Sharp Left", "Keep Left" -> "Left"
+                    "Turn Right", "Slight Right", "Sharp Right", "Keep Right" -> "Right"
+                    "Straight" -> "Straight"
+                    else -> actionFound
+                }
+                val combined = "$distanceNormalized $compactAction"
+                if (combined.length <= 12) combined else distanceNormalized
+            }
+            distanceNormalized != null -> distanceNormalized
+            actionFound != null -> actionFound
+            else -> {
+                clean.replace(Regex("""^(?i)in\s+"""), "")
+                    .split(Regex("""\s+on\s+|\s+onto\s+"""))[0]
+                    .take(11)
+                    .trim()
+            }
+        }
+    }
+
+    /**
+     * Extracts secondary driving lane assist or turn advice (e.g. "Use the left 2 lanes").
+     */
+    fun extractNavigationAssist(rawManeuver: String, street: String = ""): String? {
+        val combined = "$rawManeuver $street"
+        val laneRegex = Regex(
+            """(?i)\b(use (?:the )?(?:(?:left|right|center|\d+)\s+)+(?:lanes?|lane)|stay in (?:the )?(?:(?:left|right|center|\d+)\s+)+(?:lanes?|lane)|watch for [^,\.]+|toward[s]? [^,\.]+)\b"""
+        )
+        val match = laneRegex.find(combined)
+        return match?.value?.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }?.trim()
+    }
 }
