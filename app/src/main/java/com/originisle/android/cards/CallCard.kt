@@ -348,6 +348,10 @@ object CallCard {
             putExtra("source_content_intent", clickIntent)
             putExtra("click_resp", clickIntent)
 
+            // Ambient Edge Glow around expanded call card (Emerald Green)
+            putExtra("oi_light_color", "#FF34C759")
+            putExtra("oi_light_mode", 1)
+
             if (isOngoing) {
                 // Pill right: Live ticking duration badge (e.g. "02:45")
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)

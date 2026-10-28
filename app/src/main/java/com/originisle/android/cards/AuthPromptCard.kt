@@ -54,6 +54,24 @@ object AuthPromptCard {
             a.actionIntent != null && !a.title.isNullOrBlank()
         }.take(2)
 
+        val authColor = "#FF007AFF"
+        val btnTitles = ArrayList<String>()
+        val btnBgColors = ArrayList<Int>()
+        val btnTxtColors = ArrayList<Int>()
+
+        usable.forEach { a ->
+            val aTitle = a.title?.toString()?.trim().orEmpty()
+            btnTitles.add(aTitle)
+            val lower = aTitle.lowercase()
+            val (bg, fg) = when {
+                lower.contains("approve") || lower.contains("yes") || lower.contains("accept") -> 0xFF34C759.toInt() to 0xFFFFFFFF.toInt()
+                lower.contains("deny") || lower.contains("reject") || lower.contains("no") -> 0xFFFF3B30.toInt() to 0xFFFFFFFF.toInt()
+                else -> 0xFF2C2C2E.toInt() to 0xFFFFFFFF.toInt()
+            }
+            btnBgColors.add(bg)
+            btnTxtColors.add(fg)
+        }
+
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
@@ -79,9 +97,21 @@ object AuthPromptCard {
             }
             putExtra("oi_right_content", "Approve?")
             putExtra("status_chip_text", "Approve?")
+            putExtra("oi_bg_color", authColor)
+            putExtra("oi_fg_color", "#FFFFFFFF")
+
+            // Ambient Edge Glow around expanded card
+            putExtra("oi_light_color", authColor)
+            putExtra("oi_light_mode", 1)
+
             putExtra("icon_res", R.mipmap.ic_launcher_round)
             putExtra("source_content_intent", clickResp)
-            if (usable.isNotEmpty()) putParcelableArrayListExtra("actions", ArrayList(usable))
+            if (usable.isNotEmpty()) {
+                putParcelableArrayListExtra("actions", ArrayList(usable))
+                putStringArrayListExtra("oi_button_titles", btnTitles)
+                putIntegerArrayListExtra("oi_button_bg_colors", btnBgColors)
+                putIntegerArrayListExtra("oi_button_text_colors", btnTxtColors)
+            }
         }
         context.startService(intent)
     }

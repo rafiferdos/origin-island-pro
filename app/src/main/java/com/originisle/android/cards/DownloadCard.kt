@@ -275,6 +275,25 @@ object DownloadCard {
         }.take(2)
 
         val clickIntent = extractDeepLinkIntent(context, sbn)
+        val downloadColor = "#FF007AFF" // Electric Download Blue
+
+        val btnTitles = ArrayList<String>()
+        val btnBgColors = ArrayList<Int>()
+        val btnTxtColors = ArrayList<Int>()
+
+        actions.forEach { a ->
+            val title = a.title?.toString()?.trim().orEmpty()
+            btnTitles.add(title)
+            val lower = title.lowercase()
+            val (bg, fg) = when {
+                lower.contains("pause") -> 0xFFFF9500.toInt() to 0xFFFFFFFF.toInt() // Radiant Amber
+                lower.contains("cancel") || lower.contains("stop") || lower.contains("delete") -> 0xFFFF3B30.toInt() to 0xFFFFFFFF.toInt() // Crimson Red
+                lower.contains("resume") || lower.contains("start") -> 0xFF34C759.toInt() to 0xFFFFFFFF.toInt() // Emerald Green
+                else -> 0xFF2C2C2E.toInt() to 0xFFFFFFFF.toInt()
+            }
+            btnBgColors.add(bg)
+            btnTxtColors.add(fg)
+        }
 
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START
@@ -293,6 +312,14 @@ object DownloadCard {
                 putExtra("progress_max", progressMax)
             }
 
+            // Dynamic High-Contrast Capsule Badge Colors
+            putExtra("oi_bg_color", downloadColor)
+            putExtra("oi_fg_color", "#FFFFFFFF")
+
+            // Ambient Edge Glow around expanded card
+            putExtra("oi_light_color", downloadColor)
+            putExtra("oi_light_mode", 1)
+
             putExtra("title", displayTitle)
             putExtra("text", details)
             putExtra("subtext", if (displayTitle != appLabel) "$appLabel • Download Manager" else "$appLabel • Live Download")
@@ -310,6 +337,9 @@ object DownloadCard {
 
             if (actions.isNotEmpty()) {
                 putParcelableArrayListExtra("actions", ArrayList(actions))
+                putStringArrayListExtra("oi_button_titles", btnTitles)
+                putIntegerArrayListExtra("oi_button_bg_colors", btnBgColors)
+                putIntegerArrayListExtra("oi_button_text_colors", btnTxtColors)
             }
         }
         context.startService(intent)

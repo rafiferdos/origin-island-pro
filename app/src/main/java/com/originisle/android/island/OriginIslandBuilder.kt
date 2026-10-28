@@ -338,6 +338,30 @@ object OriginIslandBuilder {
                     C.BUNDLE_KEY_INFO_BG_COLOR,
                     context.resources.getColor(R.color.vivo_super_x_progress_bar_bkg_default_color, null),
                 )
+
+                // Inject interactive action buttons (Pause/Cancel) into Template 2 (Progress)
+                val triples: List<Triple<String, Icon?, PendingIntent>> = when {
+                    actions.any { it.pendingIntent != null } ->
+                        actions.filter { it.pendingIntent != null }
+                            .map { Triple(it.title, it.icon, it.pendingIntent!!) }
+                    buttonTitles.isNotEmpty() && clickResp != null ->
+                        buttonTitles.map { Triple(it, null as Icon?, clickResp) }
+                    else -> emptyList()
+                }.take(3)
+                if (triples.isNotEmpty()) {
+                    val textColors = triples.mapIndexed { idx, item ->
+                        buttonTextColors.getOrNull(idx) ?: resolveSemanticButtonTextColor(item.first, fgColor)
+                    }
+                    val btnColors = triples.mapIndexed { idx, item ->
+                        buttonBgColors.getOrNull(idx) ?: resolveSemanticButtonBgColor(item.first, bgColor)
+                    }
+                    infos.putInt(C.BUNDLE_KEY_INFO_BTN_TYPE, 1)
+                    infos.putStringArrayList(C.BUNDLE_KEY_INFO_BTN_TEXT_LIST, ArrayList(triples.map { it.first }))
+                    infos.putParcelableArrayList(C.BUNDLE_KEY_INFO_BTN_ICON_LIST, ArrayList(triples.map { it.second }))
+                    infos.putIntegerArrayList(C.BUNDLE_KEY_INFO_BTN_TEXT_COLOR_LIST, ArrayList(textColors))
+                    infos.putIntegerArrayList(C.BUNDLE_KEY_INFO_BTN_COLOR_LIST, ArrayList(btnColors))
+                    infos.putParcelableArrayList(C.BUNDLE_KEY_INFO_BTN_CLICK_RESP_LIST, ArrayList(triples.map { it.third }))
+                }
             }
             4 -> {
                 // BASE had no case here at all — the expanded-card `infos` bundle stayed completely

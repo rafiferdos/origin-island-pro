@@ -153,6 +153,8 @@ object SportsCard {
             putExtra("oi_force_show", true)
             putExtra("oi_dismiss_when_kill", true)
             putExtra("oi_keep_duration", 0)
+            putExtra("oi_light_color", "#FF34C759")
+            putExtra("oi_light_mode", 1)
             // A content intent is required for vivo to accept the SuperX post. Real casts pass the
             // source app's own intent; the in-app sample has none, so it falls back to opening us.
             putExtra(

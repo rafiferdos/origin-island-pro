@@ -283,6 +283,34 @@ object IslandSamples {
             }
         },
         OriginSample(
+            "OTP / Login Code", "OTP · 482 913 · Prominent [Copy Code] button",
+            IslandPreview(R.drawable.ic_key, "Code", IslandPreview.Right.Capsule("482 913")),
+        ) { ctx ->
+            start(ctx, 40023) {
+                putExtra("oi_scene", "NAVIGATION")
+                putExtra("oi_priority", 85)
+                putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
+                putExtra("title", "482 913")
+                putExtra("text", "Login code · Google")
+                putExtra("subtext", "Verification Code")
+                putExtra("source_app", "Google")
+                putExtra("oi_left_content", "Code")
+                putExtra("oi_left_icon", Icon.createWithResource(ctx, R.drawable.ic_key))
+                putExtra("oi_large_icon", Icon.createWithResource(ctx, R.drawable.ic_key))
+                putExtra("oi_right_content", "482913")
+                putExtra("status_chip_text", "482913")
+                putExtra("oi_bg_color", "#FF007AFF")
+                putExtra("oi_fg_color", "#FFFFFFFF")
+                putExtra("oi_light_color", "#FF007AFF")
+                putExtra("oi_light_mode", 1)
+                putExtra("icon_res", R.drawable.ic_key)
+                putStringArrayListExtra("oi_button_titles", arrayListOf("Copy Code"))
+                putIntegerArrayListExtra("oi_button_bg_colors", arrayListOf(0xFF007AFF.toInt()))
+                putIntegerArrayListExtra("oi_button_text_colors", arrayListOf(0xFFFFFFFF.toInt()))
+            }
+        },
+        OriginSample(
             "Gmail email", "Gmail · sender + subject on pill · Archive/Reply/Delete",
             IslandPreview(R.drawable.ic_mail, "GitHub", IslandPreview.Right.Text("Security alert")),
         ) { ctx ->

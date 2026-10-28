@@ -45,7 +45,9 @@ object DeliveryCard {
             putExtra("oi_right_content", eta.take(12))
             putExtra("icon_res", R.drawable.ic_alert)
             putExtra("oi_bg_color", CYAN)
+            putExtra("oi_fg_color", "#FFFFFFFF")
             putExtra("oi_light_color", CYAN)
+            putExtra("oi_light_mode", 1)
             appIcon?.let {
                 putExtra("oi_left_icon", it)
                 putExtra("oi_large_icon", it)

@@ -148,6 +148,7 @@ object PaymentCard {
             putExtra("oi_bg_color", GREEN)
             putExtra("oi_fg_color", if (chip == "✓") WHITE else GREEN)
             putExtra("oi_light_color", GREEN)
+            putExtra("oi_light_mode", 1)
             putExtra("oi_force_show", true)
             putExtra("oi_dismiss_when_kill", true)
             clickResp?.let { putExtra("click_resp", it) }

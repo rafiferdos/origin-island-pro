@@ -88,6 +88,11 @@ object RideCard {
             }
             putExtra("oi_right_content", eta)
             putExtra("status_chip_text", eta)
+            val rideColor = "#FFFF9500" // Radiant Amber
+            putExtra("oi_bg_color", rideColor)
+            putExtra("oi_fg_color", "#FFFFFFFF")
+            putExtra("oi_light_color", rideColor)
+            putExtra("oi_light_mode", 1)
             putExtra("icon_res", R.mipmap.ic_launcher_round)
             putExtra("source_content_intent", clickResp)
             if (usable.isNotEmpty()) putParcelableArrayListExtra("actions", ArrayList(usable))

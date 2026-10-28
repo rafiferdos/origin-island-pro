@@ -268,6 +268,10 @@ object GenericCard {
                     }
                 }
             }
+            // Ambient Edge Glow around expanded card
+            putExtra("oi_light_color", "#FF007AFF")
+            putExtra("oi_light_mode", 1)
+
             // The expanded card only — the pill chosen above stays as it is.
             when {
                 style != null -> Unit

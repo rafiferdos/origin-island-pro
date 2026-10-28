@@ -81,6 +81,11 @@ object MeetingCard {
             }
             putExtra("oi_right_content", timeSnippet)
             putExtra("status_chip_text", timeSnippet)
+            val meetingColor = "#FF007AFF"
+            putExtra("oi_bg_color", meetingColor)
+            putExtra("oi_fg_color", "#FFFFFFFF")
+            putExtra("oi_light_color", meetingColor)
+            putExtra("oi_light_mode", 1)
             putExtra("icon_res", R.mipmap.ic_launcher_round)
             putExtra("source_content_intent", clickResp)
             if (usable.isNotEmpty()) putParcelableArrayListExtra("actions", ArrayList(usable))

@@ -117,6 +117,9 @@ object MailCard {
             putExtra("status_chip_text", rightSubject.clip(45))
 
             // Expanded card presentation:
+            val mailColor = if (sbn.packageName.contains("gmail", ignoreCase = true)) "#FFEA4335" else "#FF007AFF"
+            putExtra("oi_light_color", mailColor)
+            putExtra("oi_light_mode", 1)
             putExtra("oi_large_icon", largeAvatar)
             putExtra("icon_res", R.drawable.ic_mail)
             putExtra("when", n.`when`)
