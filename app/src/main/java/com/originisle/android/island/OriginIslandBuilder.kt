@@ -244,6 +244,10 @@ object OriginIslandBuilder {
         if (!landingPkg.isNullOrBlank()) {
             bundle.putString(C.BUNDLE_KEY_ISLAND_LANDING_PKG, landingPkg)
             bundle.putString(C.BUNDLE_KEY_ISLAND_LANDING_INFO, landingInfo ?: landingPkg)
+            bundle.putString("notification.superx.landingPkg", landingPkg)
+            bundle.putString("notification.superx.landingInfo", landingInfo ?: landingPkg)
+            bundle.putString("landingPkg", landingPkg)
+            bundle.putString("landingInfo", landingInfo ?: landingPkg)
         }
 
         // First action that has a pending intent becomes the capsule sub-info button.
@@ -285,8 +289,16 @@ object OriginIslandBuilder {
         if (iconStatusType >= 0) base.putInt(C.BUNDLE_KEY_BASE_ICON_STATUS_TYPE, iconStatusType)
         if (clickResp != null) {
             base.putParcelable(C.BUNDLE_KEY_CLICK_RESP, clickResp)
+            base.putParcelable(C.BUNDLE_KEY_BASE_SUB_INFO_CLICK_RESP, clickResp)
             base.putParcelable("notification.superx.baseInfos.clickResp", clickResp)
+            base.putParcelable("subInfoClickResp", clickResp)
             base.putParcelable("clickResp", clickResp)
+        }
+        if (!landingPkg.isNullOrBlank()) {
+            base.putString(C.BUNDLE_KEY_ISLAND_LANDING_PKG, landingPkg)
+            base.putString(C.BUNDLE_KEY_ISLAND_LANDING_INFO, landingInfo ?: landingPkg)
+            base.putString("landingPkg", landingPkg)
+            base.putString("landingInfo", landingInfo ?: landingPkg)
         }
         bundle.putBundle(C.BUNDLE_KEY_BASE_INFOS, base)
 
@@ -446,6 +458,9 @@ object OriginIslandBuilder {
         if (!landingPkg.isNullOrBlank()) {
             island.putString(C.BUNDLE_KEY_ISLAND_LANDING_PKG, landingPkg)
             island.putString(C.BUNDLE_KEY_ISLAND_LANDING_INFO, landingInfo ?: landingPkg)
+            island.putString("landingPkg", landingPkg)
+            island.putString("landingInfo", landingInfo ?: landingPkg)
+            island.putBoolean(C.BUNDLE_KEY_ISLAND_PERMANENT, true)
         }
 
         val left = Bundle()
@@ -508,8 +523,13 @@ object OriginIslandBuilder {
         if (newNode > 0) capsule.putInt(C.BUNDLE_KEY_CAPSULE_NEW_NODE, newNode)
         if (clickResp != null) capsule.putParcelable(C.BUNDLE_KEY_CAPSULE_CLICK_RESP, clickResp)
         if (!landingPkg.isNullOrBlank()) {
-            capsule.putBoolean(C.BUNDLE_KEY_CAPSULE_LANDING_AUTO_HIDE, true)
+            capsule.putBoolean(C.BUNDLE_KEY_CAPSULE_LANDING_AUTO_HIDE, false)
+            capsule.putBoolean("landingAutoHide", false)
             capsule.putString(C.BUNDLE_KEY_ISLAND_LANDING_PKG, landingPkg)
+            capsule.putString("island.superx.landingPkg", landingPkg)
+            capsule.putString("landingPkg", landingPkg)
+            capsule.putString(C.BUNDLE_KEY_ISLAND_LANDING_INFO, landingInfo ?: landingPkg)
+            capsule.putString("landingInfo", landingInfo ?: landingPkg)
         }
         bundle.putBundle(C.BUNDLE_KEY_CAPSULE, capsule)
 

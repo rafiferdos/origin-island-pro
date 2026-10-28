@@ -65,10 +65,36 @@ object CallCard {
             template.contains("CallStyle", ignoreCase = true)
         if (isCategoryCall) return true
 
+        val extras = n.extras
+        val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString().orEmpty()
+        val text = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString().orEmpty()
+        val subText = extras.getCharSequence(NotificationCompat.EXTRA_SUB_TEXT)?.toString().orEmpty()
+        val bigText = extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)?.toString().orEmpty()
+        val combined = "$title $text $subText $bigText".lowercase()
+
+        // 1. Action button examination
+        val actionTitles = n.actions.orEmpty().mapNotNull { it.title?.toString()?.lowercase() }
+        val hasCallAction = actionTitles.any { act ->
+            listOf("hang up", "hangup", "end call", "decline", "answer", "accept call", "return to call").any { act.contains(it) }
+        }
+        if (hasCallAction && (sbn.packageName in CALL_PACKAGES || sbn.isOngoing)) {
+            return true
+        }
+
+        // 2. Keyword detection
+        val callKeywords = listOf(
+            "incoming call", "calling...", "voice call", "video call", "ringing",
+            "call in progress", "ongoing call", "tap to return to call", "touch to return to call",
+            "in call", "active call", "return to call",
+        )
+        if (callKeywords.any { combined.contains(it) }) {
+            return true
+        }
+
         val pkg = sbn.packageName
-        if (pkg in CALL_PACKAGES) {
-            val text = "${n.extras.getCharSequence(NotificationCompat.EXTRA_TITLE)} ${n.extras.getCharSequence(NotificationCompat.EXTRA_TEXT)}".lowercase()
-            if (listOf("incoming call", "calling...", "voice call", "video call", "ringing", "call in progress", "ongoing call").any { text.contains(it) }) {
+        if (pkg in CALL_PACKAGES && sbn.isOngoing) {
+            val lowerPkg = pkg.lowercase()
+            if (lowerPkg.contains("dialer") || lowerPkg.contains("incallui")) {
                 return true
             }
         }
@@ -133,30 +159,35 @@ object CallCard {
         val n = sbn.notification
         val declinePi = declineAction?.actionIntent
 
-        // 1. Primary contentIntent from the source notification (if not identical to declinePi)
-        if (n.contentIntent != null && n.contentIntent != declinePi) {
-            return n.contentIntent
-        }
-
-        // 2. fullScreenIntent - used by VoIP and in-call services for the active call activity
+        // 1. fullScreenIntent - The primary Android standard for direct active call activity
         if (n.fullScreenIntent != null && n.fullScreenIntent != declinePi) {
             return n.fullScreenIntent
         }
 
-        // 3. Conversation / bubble intent
-        n.bubbleMetadata?.intent?.let { return it }
+        // 2. contentIntent - only if it is an actual Activity (avoids Android 14/15 background broadcast drops)
+        if (n.contentIntent != null && n.contentIntent != declinePi && n.contentIntent.isActivity) {
+            return n.contentIntent
+        }
 
-        // 4. Non-destructive call action intent (e.g., "Return to call", "Show call", "Open call")
+        // 3. Conversation / bubble intent
+        n.bubbleMetadata?.intent?.takeIf { it.isActivity }?.let { return it }
+
+        // 4. Non-destructive call action intent with Activity
         n.actions?.firstOrNull { action ->
             val title = action.title?.toString()?.lowercase().orEmpty()
-            val isDestructive = listOf("decline", "reject", "hang up", "end", "cancel", "deny", "drop", "stop", "dismiss").any { title.contains(it) }
-            val isCallOpen = listOf("return", "open", "show", "view", "call", "speaker", "video").any { title.contains(it) }
-            action.actionIntent != null && isCallOpen && !isDestructive && action.actionIntent != declinePi
+            val isDestructive = listOf("decline", "reject", "hang up", "hangup", "end", "cancel", "deny", "drop", "stop", "dismiss").any { title.contains(it) }
+            val isCallOpen = listOf("return", "open", "show", "view", "call", "speaker", "video", "back").any { title.contains(it) }
+            action.actionIntent != null && isCallOpen && !isDestructive && action.actionIntent != declinePi && action.actionIntent.isActivity
         }?.actionIntent?.let { return it }
 
-        // 5. Fallback: Launch the app's task and bring in-call window to front
+        // 5. Fallback: Launch the app's task with REORDER_TO_FRONT to bring the call activity directly to the foreground
         val launch = context.packageManager.getLaunchIntentForPackage(sbn.packageName)?.apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+            )
         } ?: Intent(context, MainActivity::class.java)
 
         return PendingIntent.getActivity(
@@ -210,26 +241,44 @@ object CallCard {
             else -> if (isOngoing) "Ongoing call" else "Incoming call"
         }
 
+        val clickIntent = extractCallDeepLinkIntent(context, sbn, declineAction)
+
         val buttonTriples = mutableListOf<Notification.Action>()
         val buttonBgColors = ArrayList<Int>()
         val buttonTextColors = ArrayList<Int>()
 
         if (isOngoing) {
-            // For ongoing calls, only provide the Decline/Hang-up button
-            if (declineAction != null) {
-                buttonTriples.add(declineAction)
+            // For ongoing calls:
+            // 1. Explicit Emerald Green "Call Screen" button to directly jump to in-call screen
+            val callScreenAction = Notification.Action.Builder(
+                Icon.createWithResource(context, R.drawable.ic_call),
+                "Call Screen",
+                clickIntent,
+            ).build()
+            buttonTriples.add(callScreenAction)
+            buttonBgColors.add(COLOR_ANSWER)
+            buttonTextColors.add(Color.WHITE)
+
+            // 2. Decline/Hang-up button (Red)
+            val hangUpAction = if (declineAction != null) {
+                Notification.Action.Builder(
+                    declineAction.getIcon() ?: Icon.createWithResource(context, R.drawable.ic_call_end),
+                    declineAction.title?.takeIf { it.isNotBlank() } ?: "Hang Up",
+                    declineAction.actionIntent,
+                ).build()
+            } else {
+                actions.firstOrNull { a -> a.actionIntent != null && !a.title.isNullOrBlank() }?.let { a ->
+                    Notification.Action.Builder(
+                        a.getIcon() ?: Icon.createWithResource(context, R.drawable.ic_call_end),
+                        a.title,
+                        a.actionIntent,
+                    ).build()
+                }
+            }
+            if (hangUpAction != null) {
+                buttonTriples.add(hangUpAction)
                 buttonBgColors.add(COLOR_DECLINE)
                 buttonTextColors.add(Color.WHITE)
-            } else {
-                // If specific decline action wasn't resolved, use first available hangup-like action
-                val usable = actions.firstOrNull { a ->
-                    a.actionIntent != null && !a.title.isNullOrBlank()
-                }
-                if (usable != null) {
-                    buttonTriples.add(usable)
-                    buttonBgColors.add(COLOR_DECLINE)
-                    buttonTextColors.add(Color.WHITE)
-                }
             }
         } else {
             // For incoming ringing calls, provide Decline (red) and Answer (green)
@@ -258,8 +307,6 @@ object CallCard {
         }
 
         val hasButtons = buttonTriples.isNotEmpty()
-        val clickIntent = extractCallDeepLinkIntent(context, sbn, declineAction)
-
         val smartCaller = IntelligentTextSanitizer.smartFirstName(callerName)
 
         val intent = Intent(context, PlaygroundService::class.java).apply {
@@ -268,6 +315,11 @@ object CallCard {
             putExtra("is_ongoing", true)
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_CALL)
             putExtra("oi_scene", "NAVIGATION")
+            putExtra("oi_force_show", true)
+            putExtra("oi_dismiss_when_kill", true)
+            putExtra("source_pkg", sbn.packageName)
+            putExtra("oi_landing_pkg", sbn.packageName)
+            putExtra("oi_landing_info", sbn.packageName)
             putExtra("oi_template", if (hasButtons) OriginIslandConstants.TEMPLATE_BUTTONS else OriginIslandConstants.TEMPLATE_BASE)
 
             // Pill left: Intelligent first-name trimming (Md./Dr./Prof. skipped)
@@ -317,7 +369,7 @@ object CallCard {
 
     private fun isDeclineAction(action: Notification.Action): Boolean {
         val t = action.title?.toString()?.lowercase().orEmpty()
-        return listOf("decline", "reject", "hang up", "end", "dismiss", "cancel", "drop").any { t.contains(it) }
+        return listOf("decline", "reject", "hang up", "hangup", "end call", "end", "dismiss", "cancel", "drop", "disconnect").any { t.contains(it) }
     }
 
     private fun isAnswerAction(action: Notification.Action): Boolean {
