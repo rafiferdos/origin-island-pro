@@ -15,6 +15,7 @@ import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.IconCache
+import com.originisle.android.ui.PREFS_NAME
 import com.originisle.android.util.IntelligentTextSanitizer
 import com.originisle.android.util.PriorityArbitrator
 import java.util.concurrent.ConcurrentHashMap
@@ -249,17 +250,23 @@ object CallCard {
 
         if (isOngoing) {
             // For ongoing calls:
-            // 1. Explicit Emerald Green "Call Screen" button to directly jump to in-call screen
-            val callScreenAction = Notification.Action.Builder(
-                Icon.createWithResource(context, R.drawable.ic_call),
-                "Call Screen",
-                clickIntent,
-            ).build()
-            buttonTriples.add(callScreenAction)
-            buttonBgColors.add(COLOR_ANSWER)
-            buttonTextColors.add(Color.WHITE)
+            // Native single-button UI: only the clean Red "Hang Up" button is shown.
+            // Tapping anywhere else on the expanded card (avatar, caller name, duration, card body)
+            // directly launches the active call screen via clickIntent!
+            val showCallScreenBtn = context.getSharedPreferences(PREFS_NAME, 0)
+                .getBoolean("call_show_screen_btn", false)
+            if (showCallScreenBtn) {
+                val callScreenAction = Notification.Action.Builder(
+                    Icon.createWithResource(context, R.drawable.ic_call),
+                    "Call Screen",
+                    clickIntent,
+                ).build()
+                buttonTriples.add(callScreenAction)
+                buttonBgColors.add(COLOR_ANSWER)
+                buttonTextColors.add(Color.WHITE)
+            }
 
-            // 2. Decline/Hang-up button (Red)
+            // Decline/Hang-up button (Red)
             val hangUpAction = if (declineAction != null) {
                 Notification.Action.Builder(
                     declineAction.getIcon() ?: Icon.createWithResource(context, R.drawable.ic_call_end),

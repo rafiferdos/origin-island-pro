@@ -453,6 +453,8 @@ object OriginIslandBuilder {
         // separate promoted chip ("Notification: Starting navigation… [Exit navigation]") in the
         // shade, on top of the island itself.
         island.putBoolean(C.BUNDLE_KEY_ISLAND_SHOW_BAR_WHEN_CARD, false)
+        island.putInt(C.BUNDLE_KEY_ISLAND_STATE, 1)
+        island.putInt("state", 1)
         island.putInt(C.BUNDLE_KEY_ISLAND_CLICK, 0)
         if (clickResp != null) island.putParcelable(C.BUNDLE_KEY_ISLAND_CLICK_RESP, clickResp)
         if (!landingPkg.isNullOrBlank()) {
@@ -461,7 +463,10 @@ object OriginIslandBuilder {
             island.putString("landingPkg", landingPkg)
             island.putString("landingInfo", landingInfo ?: landingPkg)
             island.putBoolean(C.BUNDLE_KEY_ISLAND_PERMANENT, true)
+            island.putBoolean("permanent", true)
         }
+        island.putBundle(C.BUNDLE_KEY_ISLAND_BASE_INFOS, base)
+        island.putBundle(C.BUNDLE_KEY_ISLAND_CARD_INFOS, infos)
 
         val left = Bundle()
         if (showLeftIcon) left.putParcelable(C.BUNDLE_KEY_ISLAND_LEFT_ICON, leftIcon)

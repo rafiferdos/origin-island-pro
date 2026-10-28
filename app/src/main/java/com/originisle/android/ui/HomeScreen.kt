@@ -330,6 +330,15 @@ fun HomeScreen(
                         landingAnimOn = it
                         prefs.edit().putBoolean("cast_landing_animation", it).apply()
                     }
+                    GroupDivider()
+                    var showCallScreenBtn by remember { mutableStateOf(prefs.getBoolean("call_show_screen_btn", false)) }
+                    ToggleRow(
+                        IsleIcons.Call, IsleColors.TileCall, "Call screen action button", showCallScreenBtn,
+                        subtitle = "Show secondary Call Screen button (card body already opens call screen)",
+                    ) {
+                        showCallScreenBtn = it
+                        prefs.edit().putBoolean("call_show_screen_btn", it).apply()
+                    }
                 }
             }
         }
