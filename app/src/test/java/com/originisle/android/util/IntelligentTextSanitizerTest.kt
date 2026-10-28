@@ -69,6 +69,10 @@ class IntelligentTextSanitizerTest {
         assertEquals("4km Straight", IntelligentTextSanitizer.formatNavigationPill("Continue straight for 4 km"))
         assertEquals("350m", IntelligentTextSanitizer.formatNavigationPill("350 m"))
         assertEquals("Arrived 🏁", IntelligentTextSanitizer.formatNavigationPill("You have arrived at your destination"))
+
+        // Cutout safe-margin constrained limits
+        assertEquals("300m Left", IntelligentTextSanitizer.formatNavigationPill("In 300 m, turn left", maxChars = 10))
+        assertEquals("300m", IntelligentTextSanitizer.formatNavigationPill("In 300 m, use the left 2 lanes to turn left onto Gulshan Ave", maxChars = 8))
     }
 
     @Test

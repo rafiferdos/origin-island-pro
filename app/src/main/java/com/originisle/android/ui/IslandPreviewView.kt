@@ -56,49 +56,111 @@ fun IslandPreviewView(
     modifier: Modifier = Modifier,
     cameraGap: androidx.compose.ui.unit.Dp = CameraGap,
     showCameraHole: Boolean = false,
+    cutoutPosition: String = "center",
+    safeMargin: androidx.compose.ui.unit.Dp = 8.dp,
 ) {
     Layout(
         modifier = modifier
             .height(34.dp)
             .clip(CircleShape)
             .background(Color.Black)
-            .border(1.dp, IslandRim, CircleShape)
+            .border(1.2.dp, IslandRim, CircleShape)
             .padding(horizontal = 6.dp),
         content = {
-            IslandHalves(preview)
+            IslandLeftHalf(preview)
+            IslandRightHalf(preview)
             if (showCameraHole) {
-                Box(
-                    modifier = Modifier
-                        .size(13.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                listOf(Color(0xFF0F1A2C), Color(0xFF05080F), Color(0xFF1E2838))
-                            )
-                        )
-                        .border(1.dp, Color(0xFF3A4250), CircleShape)
-                )
+                CameraLensHole()
             }
         },
     ) { measurables, constraints ->
-        // Each half gets the same width (the wider of the two, within bounds), leaving the camera
-        // gap exactly in the middle; the left half hugs the left end, the right half the right end.
+        val isLeftCorner = cutoutPosition == "left"
         val gap = cameraGap.roundToPx()
-        val maxHalf = ((constraints.maxWidth - gap) / 2).coerceAtMost(MaxHalf.roundToPx())
-        val loose = Constraints(maxWidth = maxHalf, maxHeight = constraints.maxHeight)
-        val left = measurables[0].measure(loose)
-        val rightHalf = measurables[1].measure(loose)
-        val cameraMeasure = if (showCameraHole && measurables.size > 2) {
-            measurables[2].measure(Constraints.fixed(13.dp.roundToPx(), 13.dp.roundToPx()))
-        } else null
-        val half = maxOf(left.width, rightHalf.width, MinHalf.roundToPx())
-        val width = 2 * half + gap
-        val height = constraints.maxHeight
-        layout(width, height) {
-            left.place(0, (height - left.height) / 2)
-            rightHalf.place(width - rightHalf.width, (height - rightHalf.height) / 2)
-            cameraMeasure?.place((width - cameraMeasure.width) / 2, (height - cameraMeasure.height) / 2)
+        val marginPx = safeMargin.roundToPx()
+
+        if (isLeftCorner && showCameraHole && measurables.size > 2) {
+            val cameraMeasure = measurables[2].measure(Constraints.fixed(13.dp.roundToPx(), 13.dp.roundToPx()))
+            val maxRemaining = ((constraints.maxWidth - cameraMeasure.width - marginPx) / 2)
+                .coerceIn(MinHalf.roundToPx(), MaxHalf.roundToPx())
+            val loose = Constraints(maxWidth = maxRemaining, maxHeight = constraints.maxHeight)
+            val left = measurables[0].measure(loose)
+            val rightHalf = measurables[1].measure(loose)
+
+            val width = (cameraMeasure.width + marginPx + left.width + 14.dp.roundToPx() + rightHalf.width)
+                .coerceAtMost(constraints.maxWidth)
+            val height = constraints.maxHeight
+
+            layout(width, height) {
+                // Hole on the left
+                cameraMeasure.place(2.dp.roundToPx(), (height - cameraMeasure.height) / 2)
+                // Left content starts after the hole + safe margin
+                val leftX = 2.dp.roundToPx() + cameraMeasure.width + marginPx
+                left.place(leftX, (height - left.height) / 2)
+                // Right half hugs the right edge
+                rightHalf.place(width - rightHalf.width, (height - rightHalf.height) / 2)
+            }
+        } else {
+            val effectiveGap = if (showCameraHole) maxOf(gap, 13.dp.roundToPx() + 2 * marginPx) else gap
+            val maxHalf = ((constraints.maxWidth - effectiveGap) / 2).coerceAtMost(MaxHalf.roundToPx())
+            val loose = Constraints(maxWidth = maxHalf, maxHeight = constraints.maxHeight)
+            val left = measurables[0].measure(loose)
+            val rightHalf = measurables[1].measure(loose)
+            val cameraMeasure = if (showCameraHole && measurables.size > 2) {
+                measurables[2].measure(Constraints.fixed(13.dp.roundToPx(), 13.dp.roundToPx()))
+            } else null
+
+            val half = maxOf(left.width, rightHalf.width, MinHalf.roundToPx())
+            val width = (2 * half + effectiveGap).coerceAtMost(constraints.maxWidth)
+            val height = constraints.maxHeight
+
+            layout(width, height) {
+                left.place(0, (height - left.height) / 2)
+                rightHalf.place(width - rightHalf.width, (height - rightHalf.height) / 2)
+                cameraMeasure?.place((width - cameraMeasure.width) / 2, (height - cameraMeasure.height) / 2)
+            }
         }
+    }
+}
+
+/**
+ * Realistic front camera punch-hole lens with anti-reflective optical sapphire reflection.
+ */
+@Composable
+fun CameraLensHole(
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp = 13.dp,
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(Color(0xFF141720))
+            .border(1.2.dp, Color(0xFF475569), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        // Inner optical lens aperture
+        Box(
+            modifier = Modifier
+                .size(size - 3.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF1E293B),
+                            Color(0xFF030712),
+                        )
+                    )
+                )
+        )
+        // Sapphire anti-reflective reflection highlight
+        Box(
+            modifier = Modifier
+                .size(3.5.dp)
+                .align(Alignment.TopEnd)
+                .padding(top = 1.dp, end = 1.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF38BDF8).copy(alpha = 0.9f))
+        )
     }
 }
 
@@ -107,7 +169,7 @@ private val MinHalf = 52.dp
 private val MaxHalf = 104.dp
 
 @Composable
-private fun IslandHalves(preview: IslandPreview) {
+private fun IslandLeftHalf(preview: IslandPreview) {
     val right = preview.right
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (right is IslandPreview.Right.Score) {
@@ -124,6 +186,11 @@ private fun IslandHalves(preview: IslandPreview) {
             if (preview.left.isNotEmpty()) IslandText(preview.left, Modifier.padding(start = 8.dp))
         }
     }
+}
+
+@Composable
+private fun IslandRightHalf(preview: IslandPreview) {
+    val right = preview.right
     Row(verticalAlignment = Alignment.CenterVertically) {
         when (right) {
             is IslandPreview.Right.Score -> {
@@ -147,7 +214,7 @@ private fun IslandHalves(preview: IslandPreview) {
     }
 }
 
-private val IslandRim = Color(0xFF2E2E32)
+private val IslandRim = Color(0xFF383C48)
 private val CapsuleGrey = Color(0xFF2C2C2E)
 private val IconTileGrey = Color(0xFF1C1C1E)
 private val SuccessGreen = Color(0xFF34C759)

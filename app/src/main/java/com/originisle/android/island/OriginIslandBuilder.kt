@@ -494,7 +494,8 @@ object OriginIslandBuilder {
 
         val left = Bundle()
         if (showLeftIcon) left.putParcelable(C.BUNDLE_KEY_ISLAND_LEFT_ICON, leftIcon)
-        left.putString(C.BUNDLE_KEY_ISLAND_LEFT_CONTENT, leftContent)
+        val formattedLeft = CutoutConfig.applyCutoutPadding(context, leftContent)
+        left.putString(C.BUNDLE_KEY_ISLAND_LEFT_CONTENT, formattedLeft)
         if (leftDoubleLine.isNotEmpty()) {
             left.putCharSequenceArrayList(C.BUNDLE_KEY_ISLAND_LEFT_DOUBLELINE, ArrayList(leftDoubleLine))
         }

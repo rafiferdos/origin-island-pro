@@ -9,6 +9,7 @@ import android.graphics.drawable.Icon
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
 import com.originisle.android.R
+import com.originisle.android.island.CutoutConfig
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.IconCache
@@ -59,7 +60,8 @@ object NavigationCard {
         val summary = extras.getCharSequence(NotificationCompat.EXTRA_SUB_TEXT)?.toString()?.trim().orEmpty()
 
         // 1. Pill Left Content: Clean, glanceable distance + action (never overflows camera punch-hole)
-        val pillLeft = IntelligentTextSanitizer.formatNavigationPill(maneuver, street)
+        val leftLimit = CutoutConfig.getPillLeftLimit(context)
+        val pillLeft = IntelligentTextSanitizer.formatNavigationPill(maneuver, street, maxChars = leftLimit)
 
         // 2. Pill Chip: ETA / Duration
         val shortCritical = extras.getCharSequence("android.shortCriticalText")?.toString()?.trim().orEmpty()

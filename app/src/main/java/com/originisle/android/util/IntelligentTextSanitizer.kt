@@ -271,9 +271,9 @@ object IntelligentTextSanitizer {
      * - "350 m" -> "350m"
      * - "You have arrived at your destination" -> "Arrived 🏁"
      */
-    fun formatNavigationPill(rawManeuver: String, street: String = ""): String {
+    fun formatNavigationPill(rawManeuver: String, street: String = "", maxChars: Int = 12): String {
         val clean = rawManeuver.replace('\n', ' ').trim()
-        if (clean.isEmpty()) return if (street.isNotBlank()) street.take(10) else "Navigating"
+        if (clean.isEmpty()) return if (street.isNotBlank()) street.take(maxChars.coerceAtMost(10)) else "Navigating"
 
         // 1. Distance extraction & normalization ("300 m" -> "300m", "1.5 km" -> "1.5km")
         val distMatch = NAV_DISTANCE_REGEX.find(clean)
@@ -304,7 +304,7 @@ object IntelligentTextSanitizer {
         // 3. Compose high-density pill text
         return when {
             distanceNormalized != null && actionFound != null -> {
-                // When distance is present, simplify compound actions to fit strictly within 12 chars
+                // When distance is present, simplify compound actions to fit strictly within maxChars
                 // e.g. "Turn Left" -> "Left", "Turn Right" -> "Right", "Slight Left" -> "Left"
                 val compactAction = when (actionFound) {
                     "Turn Left", "Slight Left", "Sharp Left", "Keep Left" -> "Left"
@@ -313,14 +313,14 @@ object IntelligentTextSanitizer {
                     else -> actionFound
                 }
                 val combined = "$distanceNormalized $compactAction"
-                if (combined.length <= 12) combined else distanceNormalized
+                if (combined.length <= maxChars) combined else distanceNormalized
             }
             distanceNormalized != null -> distanceNormalized
-            actionFound != null -> actionFound
+            actionFound != null -> if (actionFound.length <= maxChars) actionFound else actionFound.take(maxChars)
             else -> {
                 clean.replace(Regex("""^(?i)in\s+"""), "")
                     .split(Regex("""\s+on\s+|\s+onto\s+"""))[0]
-                    .take(11)
+                    .take(maxChars.coerceAtMost(11))
                     .trim()
             }
         }

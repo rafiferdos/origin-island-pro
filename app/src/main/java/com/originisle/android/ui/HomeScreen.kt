@@ -1,9 +1,11 @@
 package com.originisle.android.ui
 
+import android.app.Notification
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.graphics.drawable.Icon
+import android.graphics.drawable.Icon as AndroidIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,12 +13,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -52,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import com.originisle.android.MainActivity
 import com.originisle.android.R
 import com.originisle.android.cards.ChargingCard
 import com.originisle.android.island.OriginIslandConstants
@@ -816,14 +823,12 @@ private fun CameraCutoutTuner(context: Context, prefs: SharedPreferences) {
     var cutoutPos by remember { mutableStateOf(prefs.getString("camera_cutout_position", "center") ?: "center") }
     var cutoutGap by remember { mutableFloatStateOf(prefs.getFloat("camera_cutout_gap", 34f)) }
     var safeMargin by remember { mutableFloatStateOf(prefs.getFloat("camera_cutout_margin", 8f)) }
-    var testActive by remember { mutableStateOf(false) }
+    var testActive by remember { mutableStateOf(PlaygroundService.activeCardIds.contains(40099)) }
 
-    val testPreview = remember(cutoutGap, safeMargin) {
-        IslandPreview(
-            icon = R.drawable.ic_navigation,
-            left = "300m Left",
-            right = IslandPreview.Right.Capsule("12 min"),
-        )
+    fun updateCutoutIfActive(pos: String, gap: Float, margin: Float) {
+        if (testActive) {
+            postStatusBarTest(context, pos, gap, margin)
+        }
     }
 
     SettingRow(
@@ -833,40 +838,13 @@ private fun CameraCutoutTuner(context: Context, prefs: SharedPreferences) {
         subtitle = "Align island pill with your front camera cutout",
     )
 
-    // Interactive Real-Time Live Preview Box
-    Column(
-        Modifier
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(IsleColors.PreviewBg)
-            .border(1.dp, IsleColors.PreviewBorder, RoundedCornerShape(20.dp))
-            .padding(vertical = 16.dp, horizontal = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(
-            "LIVE TUNER PREVIEW",
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = IsleColors.TextSecondary,
-            letterSpacing = 1.sp,
-        )
-
-        // Pill with visual camera hole dot right inside it
-        IslandPreviewView(
-            preview = testPreview,
-            cameraGap = cutoutGap.dp,
-            showCameraHole = true,
-        )
-
-        Text(
-            "Camera Gap: ${cutoutGap.toInt()} dp • Safe Margin: ${safeMargin.toInt()} dp",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = IsleColors.TileAmber,
-        )
-    }
+    // Interactive Real-Time Live Status Bar Preview Box
+    StatusBarPreviewFrame(
+        cutoutPos = cutoutPos,
+        cutoutGap = cutoutGap,
+        safeMargin = safeMargin,
+        isTestPinnedOnDevice = testActive,
+    )
 
     // Cutout Position Chips (Center vs Corner)
     Column(
@@ -882,6 +860,7 @@ private fun CameraCutoutTuner(context: Context, prefs: SharedPreferences) {
                     cutoutPos = "center"
                     prefs.edit().putString("camera_cutout_position", "center").apply()
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    updateCutoutIfActive("center", cutoutGap, safeMargin)
                 },
                 modifier = Modifier.weight(1.2f),
             )
@@ -892,6 +871,7 @@ private fun CameraCutoutTuner(context: Context, prefs: SharedPreferences) {
                     cutoutPos = "left"
                     prefs.edit().putString("camera_cutout_position", "left").apply()
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    updateCutoutIfActive("left", cutoutGap, safeMargin)
                 },
                 modifier = Modifier.weight(1f),
             )
@@ -912,6 +892,7 @@ private fun CameraCutoutTuner(context: Context, prefs: SharedPreferences) {
             onValueChange = {
                 cutoutGap = it
                 prefs.edit().putFloat("camera_cutout_gap", it).apply()
+                updateCutoutIfActive(cutoutPos, it, safeMargin)
             },
             valueRange = 22f..50f,
             steps = 27,
@@ -937,6 +918,7 @@ private fun CameraCutoutTuner(context: Context, prefs: SharedPreferences) {
             onValueChange = {
                 safeMargin = it
                 prefs.edit().putFloat("camera_cutout_margin", it).apply()
+                updateCutoutIfActive(cutoutPos, cutoutGap, it)
             },
             valueRange = 0f..16f,
             steps = 15,
@@ -961,41 +943,264 @@ private fun CameraCutoutTuner(context: Context, prefs: SharedPreferences) {
                     context.startService(
                         Intent(context, PlaygroundService::class.java)
                             .setAction(PlaygroundService.ACTION_CANCEL)
-                            .putExtra("id", 88888)
+                            .putExtra("id", 40099)
                             .putExtra("oi_scene", "NAVIGATION"),
                     )
                     testActive = false
+                    android.widget.Toast.makeText(context, "Status bar test dismissed.", android.widget.Toast.LENGTH_SHORT).show()
                 } else {
-                    val testIntent = Intent(context, PlaygroundService::class.java).apply {
-                        action = PlaygroundService.ACTION_START
-                        putExtra("id", 88888)
-                        putExtra("oi_priority", 99)
-                        putExtra("oi_scene", "NAVIGATION")
-                        putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
-                        putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
-                        putExtra("title", "Camera Cutout Aligned ✓")
-                        putExtra("text", "Gap: ${cutoutGap.toInt()}dp • Margin: ${safeMargin.toInt()}dp")
-                        putExtra("subtext", "Origin Island Pro Tuner")
-                        putExtra("source_app", "Island Tuner")
-                        putExtra("oi_left_content", "◄ L-Fit")
-                        val navIcon = Icon.createWithResource(context, R.drawable.ic_navigation)
-                        putExtra("oi_left_icon", navIcon)
-                        putExtra("oi_large_icon", navIcon)
-                        putExtra("oi_right_content", "R-Fit ►")
-                        putExtra("status_chip_text", "R-Fit ►")
-                        putExtra("oi_bg_color", "#FF00C853")
-                        putExtra("oi_fg_color", "#FFFFFFFF")
-                        putExtra("oi_light_color", "#FF00C853")
-                        putExtra("oi_light_mode", 1)
-                        putExtra("icon_res", R.drawable.ic_navigation)
-                        putStringArrayListExtra("oi_button_titles", arrayListOf("Dismiss Test"))
-                        putIntegerArrayListExtra("oi_button_bg_colors", arrayListOf(0xFF2C2C2E.toInt()))
-                        putIntegerArrayListExtra("oi_button_text_colors", arrayListOf(0xFFFFFFFF.toInt()))
-                    }
-                    context.startService(testIntent)
+                    postStatusBarTest(context, cutoutPos, cutoutGap, safeMargin)
                     testActive = true
+                    android.widget.Toast.makeText(context, "Test card cast to status bar!", android.widget.Toast.LENGTH_SHORT).show()
                 }
             },
         )
     }
+}
+
+/**
+ * High-contrast, realistic phone status bar simulation frame.
+ * Displays top phone speaker, clock, 5G/battery system status, and the Island pill.
+ */
+@Composable
+private fun StatusBarPreviewFrame(
+    cutoutPos: String,
+    cutoutGap: Float,
+    safeMargin: Float,
+    isTestPinnedOnDevice: Boolean,
+) {
+    val isLeft = cutoutPos == "left"
+    val testPreview = remember(cutoutPos, cutoutGap, safeMargin) {
+        IslandPreview(
+            icon = R.drawable.ic_navigation,
+            left = if (isLeft) "◄ Left-Fit" else "300m Left",
+            right = IslandPreview.Right.Capsule("${cutoutGap.toInt()} dp"),
+        )
+    }
+
+    Column(
+        Modifier
+            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0xFF1E212A), Color(0xFF13151A))
+                )
+            )
+            .border(1.2.dp, Color(0xFF333A48), RoundedCornerShape(22.dp))
+            .padding(top = 10.dp, bottom = 12.dp, start = 12.dp, end = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        // Top phone speaker slit simulation
+        Box(
+            modifier = Modifier
+                .width(42.dp)
+                .height(3.5.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF2A2E3B))
+        )
+
+        // Mock Phone Status Bar Surface
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(46.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFF0C0E12))
+                .border(1.dp, Color(0xFF252A36), RoundedCornerShape(14.dp))
+                .padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            // Left Status: Time clock (or Corner Cutout + Time)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                if (isLeft) {
+                    CameraLensHole(size = 12.dp)
+                }
+                Text(
+                    "09:41",
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp,
+                )
+            }
+
+            // Center: The dynamic island pill preview
+            Box(
+                modifier = Modifier.padding(horizontal = 2.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                IslandPreviewView(
+                    preview = testPreview,
+                    cameraGap = cutoutGap.dp,
+                    showCameraHole = true,
+                    cutoutPosition = cutoutPos,
+                    safeMargin = safeMargin.dp,
+                )
+            }
+
+            // Right Status: Icons (5G, Wi-Fi, Battery)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Text(
+                    "5G",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                )
+                Icon(
+                    IsleIcons.Pulse,
+                    null,
+                    modifier = Modifier.size(13.dp),
+                    tint = Color.White.copy(alpha = 0.85f),
+                )
+                // Battery capsule with 85% green charge
+                Row(
+                    modifier = Modifier
+                        .width(22.dp)
+                        .height(11.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .border(1.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(3.dp))
+                        .padding(1.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .weight(0.85f)
+                            .clip(RoundedCornerShape(1.5.dp))
+                            .background(Color(0xFF34C759))
+                    )
+                    Spacer(Modifier.weight(0.15f))
+                }
+            }
+        }
+
+        // Live Telemetry Info Row
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                if (isLeft) "Punch-Hole: Left Corner" else "Punch-Hole: Center Cutout",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = IsleColors.TextSecondary,
+            )
+            Text(
+                "Gap: ${cutoutGap.toInt()}dp • Margin: ${safeMargin.toInt()}dp",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = IsleColors.TileAmber,
+            )
+        }
+
+        if (isTestPinnedOnDevice) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF0F291E))
+                    .border(1.dp, Color(0xFF1E5E43), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF00E676))
+                )
+                Text(
+                    "LIVE ON ORIGIN STATUS BAR • REAL-TIME SYNC",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF00E676),
+                    letterSpacing = 0.5.sp,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Posts an ongoing, high-priority test card directly onto the Vivo OriginOS Status Bar.
+ * Sets is_ongoing, click_resp, oi_force_show, and interactive dismissal action.
+ */
+private fun postStatusBarTest(
+    context: Context,
+    cutoutPos: String,
+    cutoutGap: Float,
+    safeMargin: Float,
+) {
+    val openIntent = PendingIntent.getActivity(
+        context,
+        40099,
+        Intent(context, MainActivity::class.java),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+    val dismissIntent = PendingIntent.getService(
+        context,
+        40099,
+        Intent(context, PlaygroundService::class.java)
+            .setAction(PlaygroundService.ACTION_CANCEL)
+            .putExtra("id", 40099)
+            .putExtra("oi_scene", "NAVIGATION"),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+    val dismissAction = Notification.Action.Builder(
+        AndroidIcon.createWithResource(context, R.drawable.ic_delete),
+        "Dismiss",
+        dismissIntent,
+    ).build()
+
+    val navIcon = AndroidIcon.createWithResource(context, R.drawable.ic_navigation)
+    val isLeft = cutoutPos == "left"
+    val leftContent = if (isLeft) "◄ Left-Fit" else "◄ L-Fit"
+    val rightContent = "${cutoutGap.toInt()}dp ►"
+
+    val testIntent = Intent(context, PlaygroundService::class.java).apply {
+        action = PlaygroundService.ACTION_START
+        putExtra("id", 40099)
+        putExtra("is_ongoing", true)
+        putExtra("oi_force_show", true)
+        putExtra("oi_priority", 99)
+        putExtra("oi_scene", "NAVIGATION")
+        putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
+        putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
+        putExtra("title", "Camera Cutout Aligned ✓")
+        putExtra("text", "Pos: ${if (isLeft) "Left Corner" else "Center"} • Gap: ${cutoutGap.toInt()}dp • Margin: ${safeMargin.toInt()}dp")
+        putExtra("subtext", "Origin Island Pro Tuner")
+        putExtra("source_app", "Island Tuner")
+        putExtra("oi_left_content", leftContent)
+        putExtra("oi_right_content", rightContent)
+        putExtra("status_chip_text", rightContent)
+        putExtra("oi_left_icon", navIcon)
+        putExtra("oi_large_icon", navIcon)
+        putExtra("icon_res", R.drawable.ic_navigation)
+        putExtra("oi_bg_color", "#FF00C853")
+        putExtra("oi_fg_color", "#FFFFFFFF")
+        putExtra("oi_light_color", "#FF00C853")
+        putExtra("oi_light_mode", 1)
+        putExtra("source_pkg", context.packageName)
+        putExtra("oi_landing_pkg", context.packageName)
+        putExtra("oi_landing_info", context.packageName)
+        putExtra("source_content_intent", openIntent)
+        putExtra("click_resp", openIntent)
+        putExtra("oi_displays", OriginIslandConstants.DISPLAY_STATUSBAR or OriginIslandConstants.DISPLAY_AOD)
+        putParcelableArrayListExtra("actions", arrayListOf(dismissAction))
+        putStringArrayListExtra("oi_button_titles", arrayListOf("Dismiss Test"))
+        putIntegerArrayListExtra("oi_button_bg_colors", arrayListOf(0xFFFF3B30.toInt()))
+        putIntegerArrayListExtra("oi_button_text_colors", arrayListOf(0xFFFFFFFF.toInt()))
+    }
+    context.startService(testIntent)
 }
