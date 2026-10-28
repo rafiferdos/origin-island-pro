@@ -574,7 +574,9 @@ object OriginIslandBuilder {
                     rightContent.trim().equals("✦ View", ignoreCase = true)) && isGeminiGlowEnabled(context)
                 if (isGeminiView) {
                     right.putCharSequence(C.BUNDLE_KEY_ISLAND_RIGHT_CAPSULE_CONTENT, buildGeminiTextSpan(rightContent.trim()))
-                    val geminiBg = if (isDefaultColor(bgColor) || bgColor == 0xFF2C2C2E.toInt()) 0xFF1E1730.toInt() else bgColor
+                    val geminiBg = if (isDefaultColor(bgColor) || bgColor == 0xFF2C2C2E.toInt() || bgColor == 0xFF1E1730.toInt()) {
+                        0xFFA855F7.toInt() // Radiant Glowing Gemini Purple
+                    } else bgColor
                     right.putInt(C.BUNDLE_KEY_ISLAND_RIGHT_BG_COLOR, geminiBg)
                 } else {
                     right.putCharSequence(C.BUNDLE_KEY_ISLAND_RIGHT_CAPSULE_CONTENT, colorSpan(rightContent, fgColor))
@@ -597,7 +599,7 @@ object OriginIslandBuilder {
             rightContent.trim().equals("✦ View", ignoreCase = true)) && isGeminiGlowEnabled(context)
         if (isGeminiViewChip) {
             capsule.putCharSequence(C.BUNDLE_KEY_CAPSULE_CONTENT, buildGeminiTextSpan(rightContent.trim()))
-            capsule.putInt(C.BUNDLE_KEY_CAPSULE_BG_COLOR, 0xFF1E1730.toInt())
+            capsule.putInt(C.BUNDLE_KEY_CAPSULE_BG_COLOR, 0xFFA855F7.toInt())
         } else {
             capsule.putString(C.BUNDLE_KEY_CAPSULE_CONTENT, rightContent)
             if (!isDefaultColor(fgColor)) capsule.putInt(C.BUNDLE_KEY_CAPSULE_CONTENT_COLOR, fgColor)

@@ -1,5 +1,6 @@
 package com.originisle.android.ui
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -33,6 +34,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.res.painterResource
@@ -225,63 +227,153 @@ private fun IslandRightHalf(preview: IslandPreview) {
 }
 
 /**
- * Google Gemini signature iridescent chromatic gradient glow badge.
- * Features glowing ✦ star, celestial glass backing, and luminous cyan-indigo-purple-pink text.
+ * Google Gemini signature live animated iridescent chromatic glow badge.
+ * Features:
+ * - Ambient animated bloom halo breathing behind the capsule
+ * - Full badge background filled with live flowing Aurora/Gemini colors (Cyan → Indigo → Purple → Coral Pink)
+ * - Animated glowing border that sweeps with the flow
+ * - Frosted glass luster glaze with luminous white typography and pulsing ✦ star
  */
 @Composable
 fun GeminiViewBadge(
     text: String = "View",
     modifier: Modifier = Modifier,
 ) {
-    val geminiColors = remember {
-        listOf(
-            Color(0xFF38BDF8), // Electric Cyan
-            Color(0xFF818CF8), // Radiant Indigo
-            Color(0xFFC084FC), // Celestial Purple
-            Color(0xFFF472B6), // Sunset Rose Pink
-        )
-    }
-    val geminiBrush = remember { Brush.horizontalGradient(geminiColors) }
+    val infiniteTransition = rememberInfiniteTransition(label = "gemini_live")
+
+    // Continuous flow animation: 0f to 1f over 3200ms
+    val flowPhase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "gemini_flow",
+    )
+
+    // Breathing pulse for ambient glow halo: 0.35f to 0.75f over 1600ms
+    val haloPulse by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.75f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "gemini_halo",
+    )
+
+    // Cosmic sparkle pulse: 0.85f to 1.25f
+    val starScale by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.25f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "gemini_star",
+    )
+
+    // Core Gemini Palette
+    val c0 = Color(0xFF00E5FF) // Electric Cyan
+    val c1 = Color(0xFF6366F1) // Royal Indigo
+    val c2 = Color(0xFFA855F7) // Celestial Purple
+    val c3 = Color(0xFFFF2A85) // Sunset Magenta / Neon Pink
+    val c4 = Color(0xFFFB7185) // Cosmic Coral
+
+    val palette = listOf(c0, c1, c2, c3, c4, c0, c1)
+    val startOffset = flowPhase * 180f
+
+    val flowingBrush = Brush.linearGradient(
+        colors = palette,
+        start = androidx.compose.ui.geometry.Offset(startOffset, 0f),
+        end = androidx.compose.ui.geometry.Offset(startOffset + 240f, 60f),
+    )
+
+    val borderBrush = Brush.linearGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.85f),
+            c0,
+            c2,
+            c3,
+            Color.White.copy(alpha = 0.85f),
+        ),
+        start = androidx.compose.ui.geometry.Offset(startOffset, 0f),
+        end = androidx.compose.ui.geometry.Offset(startOffset + 200f, 50f),
+    )
 
     Box(
-        modifier = modifier
-            .height(26.dp)
-            .clip(CircleShape)
-            // Iridescent Gemini gradient border
-            .border(1.2.dp, geminiBrush, CircleShape)
-            // Deep obsidian-indigo glass background
-            .background(
-                Brush.horizontalGradient(
-                    listOf(
-                        Color(0xFF1E1730),
-                        Color(0xFF12101F),
-                    )
-                )
-            )
-            .padding(horizontal = 9.dp),
+        modifier = modifier.height(26.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(3.dp),
+        // 1. Ambient Bloom Halo behind the capsule
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(-2.5.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            c2.copy(alpha = haloPulse * 0.7f),
+                            c0.copy(alpha = haloPulse * 0.35f),
+                            Color.Transparent,
+                        ),
+                    )
+                )
+        )
+
+        // 2. Main Glowing Capsule (The ENTIRE background glows!)
+        Box(
+            modifier = Modifier
+                .height(26.dp)
+                .clip(CircleShape)
+                // Flowing Gemini animated background
+                .background(flowingBrush)
+                // Flowing luminous border
+                .border(1.2.dp, borderBrush, CircleShape)
+                .padding(horizontal = 9.dp),
+            contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = "✦",
-                style = TextStyle(
-                    brush = geminiBrush,
+            // 3. Frosted Glass Luster Highlight overlay
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(CircleShape)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.32f),
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.22f),
+                            )
+                        )
+                    )
+            )
+
+            // 4. Content: Pulsing ✦ Sparkle Star + Luminous High-Contrast Text
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(3.5.dp),
+            ) {
+                Text(
+                    text = "✦",
+                    color = Color.White,
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                ),
-            )
-            Text(
-                text = text,
-                style = TextStyle(
-                    brush = geminiBrush,
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = starScale
+                        scaleY = starScale
+                    },
+                )
+                Text(
+                    text = text,
+                    color = Color.White,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.3.sp,
-                ),
-            )
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.4.sp,
+                )
+            }
         }
     }
 }

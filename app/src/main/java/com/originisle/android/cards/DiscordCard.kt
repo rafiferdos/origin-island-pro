@@ -132,8 +132,8 @@ object DiscordCard {
                 putExtra("oi_right_content", chipText)
                 putExtra("status_chip_text", chipText)
                 if (chipText == "View") {
-                    putExtra("oi_bg_color", "#FF1E1730")
-                    putExtra("oi_fg_color", "#FFC084FC")
+                    putExtra("oi_bg_color", "#FFA855F7")
+                    putExtra("oi_fg_color", "#FFFFFFFF")
                     putExtra("oi_light_color", "#FFA855F7") // Gemini Radiant Purple Glow
                 } else {
                     putExtra("oi_bg_color", discordColor)
