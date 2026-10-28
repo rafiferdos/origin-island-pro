@@ -202,9 +202,8 @@ private fun IslandRightHalf(preview: IslandPreview) {
                 Crest()
             }
             is IslandPreview.Right.Capsule -> {
-                if (right.text.trim().equals("View", ignoreCase = true) ||
-                    right.text.trim().equals("✦ View", ignoreCase = true)
-                ) {
+                val cleanText = right.text.trim().removePrefix("✦").removePrefix("✨").trim()
+                if (cleanText.equals("View", ignoreCase = true)) {
                     GeminiViewBadge("View")
                 } else {
                     Box(
@@ -310,13 +309,17 @@ fun GeminiViewBadge(
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .padding(-2.5.dp)
+                .graphicsLayer {
+                    scaleX = 1.25f
+                    scaleY = 1.4f
+                    alpha = haloPulse
+                }
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            c2.copy(alpha = haloPulse * 0.7f),
-                            c0.copy(alpha = haloPulse * 0.35f),
+                            c2.copy(alpha = 0.7f),
+                            c0.copy(alpha = 0.35f),
                             Color.Transparent,
                         ),
                     )

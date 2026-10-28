@@ -158,7 +158,9 @@ object MessageCard {
             }
 
             // Ambient Edge Glow around expanded card matching app brand color
-            putExtra("oi_light_color", appColor)
+            if (!hasExtra("oi_light_color")) {
+                putExtra("oi_light_color", appColor)
+            }
             putExtra("oi_light_mode", 1)
 
             putExtra("icon_res", R.mipmap.ic_launcher_round)

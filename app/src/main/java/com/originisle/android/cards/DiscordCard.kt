@@ -159,7 +159,9 @@ object DiscordCard {
             )
 
             // Ambient Edge Glow around expanded card
-            putExtra("oi_light_color", discordColor)
+            if (!hasExtra("oi_light_color")) {
+                putExtra("oi_light_color", discordColor)
+            }
             putExtra("oi_light_mode", 1)
 
             if (actions.isNotEmpty()) {

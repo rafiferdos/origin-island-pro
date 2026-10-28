@@ -141,7 +141,7 @@ object OriginIslandBuilder {
         }
     }
 
-    private val GEMINI_PALETTE = intArrayOf(
+    internal val GEMINI_PALETTE = intArrayOf(
         0xFF38BDF8.toInt(), // Sky / Electric Cyan
         0xFF818CF8.toInt(), // Radiant Indigo
         0xFFC084FC.toInt(), // Celestial Purple
@@ -153,9 +153,11 @@ object OriginIslandBuilder {
      * Colors each character along the cyan-indigo-purple-pink spectrum with bold typeface.
      */
     fun buildGeminiTextSpan(text: String): SpannableString {
-        val fullText = if (!text.startsWith("✦") && !text.startsWith("✨")) "✦ $text" else text
+        val clean = text.trim().removePrefix("✦").removePrefix("✨").trim()
+        val fullText = if (clean.isEmpty()) "✦ View" else "✦ $clean"
         val span = SpannableString(fullText)
         val len = fullText.length
+        if (len <= 0) return span
         for (i in fullText.indices) {
             val colorIndex = (i * (GEMINI_PALETTE.size - 1) / maxOf(1, len - 1)).coerceIn(0, GEMINI_PALETTE.size - 1)
             span.setSpan(
@@ -570,10 +572,12 @@ object OriginIslandBuilder {
                 if (clickResp != null) right.putParcelable(C.BUNDLE_KEY_ISLAND_RIGHT_CLICK_RESP, clickResp)
             }
             6 -> {
-                val isGeminiView = (rightContent.trim().equals("View", ignoreCase = true) ||
-                    rightContent.trim().equals("✦ View", ignoreCase = true)) && isGeminiGlowEnabled(context)
+                val cleanText = rightContent.trim().removePrefix("✦").removePrefix("✨").trim()
+                val isGeminiView = cleanText.equals("View", ignoreCase = true) && isGeminiGlowEnabled(context)
                 if (isGeminiView) {
-                    right.putCharSequence(C.BUNDLE_KEY_ISLAND_RIGHT_CAPSULE_CONTENT, buildGeminiTextSpan(rightContent.trim()))
+                    val span = runCatching { buildGeminiTextSpan(rightContent.trim()) }
+                        .getOrDefault(SpannableString(rightContent))
+                    right.putCharSequence(C.BUNDLE_KEY_ISLAND_RIGHT_CAPSULE_CONTENT, span)
                     val geminiBg = if (isDefaultColor(bgColor) || bgColor == 0xFF2C2C2E.toInt() || bgColor == 0xFF1E1730.toInt()) {
                         0xFFA855F7.toInt() // Radiant Glowing Gemini Purple
                     } else bgColor
@@ -595,11 +599,13 @@ object OriginIslandBuilder {
         val capsule = Bundle()
         capsule.putInt(C.BUNDLE_KEY_CAPSULE_STATE, 1)
         capsule.putParcelable(C.BUNDLE_KEY_CAPSULE_ICON, rightIcon)
-        val isGeminiViewChip = (rightContent.trim().equals("View", ignoreCase = true) ||
-            rightContent.trim().equals("✦ View", ignoreCase = true)) && isGeminiGlowEnabled(context)
+        val cleanChipText = rightContent.trim().removePrefix("✦").removePrefix("✨").trim()
+        val isGeminiViewChip = cleanChipText.equals("View", ignoreCase = true) && isGeminiGlowEnabled(context)
         if (isGeminiViewChip) {
-            capsule.putCharSequence(C.BUNDLE_KEY_CAPSULE_CONTENT, buildGeminiTextSpan(rightContent.trim()))
+            val plainChip = "✦ View"
+            capsule.putString(C.BUNDLE_KEY_CAPSULE_CONTENT, plainChip)
             capsule.putInt(C.BUNDLE_KEY_CAPSULE_BG_COLOR, 0xFFA855F7.toInt())
+            capsule.putInt(C.BUNDLE_KEY_CAPSULE_CONTENT_COLOR, 0xFFFFFFFF.toInt())
         } else {
             capsule.putString(C.BUNDLE_KEY_CAPSULE_CONTENT, rightContent)
             if (!isDefaultColor(fgColor)) capsule.putInt(C.BUNDLE_KEY_CAPSULE_CONTENT_COLOR, fgColor)
