@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -35,6 +36,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -197,10 +199,18 @@ private fun IslandRightHalf(preview: IslandPreview) {
                 IslandText(right.away.toString(), Modifier.padding(end = 10.dp), size = 16)
                 Crest()
             }
-            is IslandPreview.Right.Capsule -> Box(
-                Modifier.height(26.dp).clip(CircleShape).background(CapsuleGrey).padding(horizontal = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) { IslandText(right.text, size = 13, weight = FontWeight.Normal) }
+            is IslandPreview.Right.Capsule -> {
+                if (right.text.trim().equals("View", ignoreCase = true) ||
+                    right.text.trim().equals("✦ View", ignoreCase = true)
+                ) {
+                    GeminiViewBadge("View")
+                } else {
+                    Box(
+                        Modifier.height(26.dp).clip(CircleShape).background(CapsuleGrey).padding(horizontal = 10.dp),
+                        contentAlignment = Alignment.Center,
+                    ) { IslandText(right.text, size = 13, weight = FontWeight.Normal) }
+                }
+            }
             is IslandPreview.Right.Progress -> ProgressRing(right.fraction)
             IslandPreview.Right.Loading -> LoadingDots()
             IslandPreview.Right.Wave -> WaveBars()
@@ -210,6 +220,68 @@ private fun IslandRightHalf(preview: IslandPreview) {
                 contentAlignment = Alignment.Center,
             ) { Icon(IsleIcons.Check, null, Modifier.size(15.dp), tint = Color.White) }
             IslandPreview.Right.None -> Unit
+        }
+    }
+}
+
+/**
+ * Google Gemini signature iridescent chromatic gradient glow badge.
+ * Features glowing ✦ star, celestial glass backing, and luminous cyan-indigo-purple-pink text.
+ */
+@Composable
+fun GeminiViewBadge(
+    text: String = "View",
+    modifier: Modifier = Modifier,
+) {
+    val geminiColors = remember {
+        listOf(
+            Color(0xFF38BDF8), // Electric Cyan
+            Color(0xFF818CF8), // Radiant Indigo
+            Color(0xFFC084FC), // Celestial Purple
+            Color(0xFFF472B6), // Sunset Rose Pink
+        )
+    }
+    val geminiBrush = remember { Brush.horizontalGradient(geminiColors) }
+
+    Box(
+        modifier = modifier
+            .height(26.dp)
+            .clip(CircleShape)
+            // Iridescent Gemini gradient border
+            .border(1.2.dp, geminiBrush, CircleShape)
+            // Deep obsidian-indigo glass background
+            .background(
+                Brush.horizontalGradient(
+                    listOf(
+                        Color(0xFF1E1730),
+                        Color(0xFF12101F),
+                    )
+                )
+            )
+            .padding(horizontal = 9.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                text = "✦",
+                style = TextStyle(
+                    brush = geminiBrush,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                ),
+            )
+            Text(
+                text = text,
+                style = TextStyle(
+                    brush = geminiBrush,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.3.sp,
+                ),
+            )
         }
     }
 }

@@ -139,8 +139,16 @@ object MessageCard {
                 val badgeText = if (msg.count > 1) "${msg.count}" else "View"
                 putExtra("oi_right_content", badgeText)
                 putExtra("status_chip_text", badgeText)
-                putExtra("oi_bg_color", appColor)
-                putExtra("oi_fg_color", "#FFFFFFFF")
+                if (badgeText == "View") {
+                    putExtra("oi_bg_color", "#FF1E1730")
+                    putExtra("oi_fg_color", "#FFC084FC")
+                    putExtra("oi_light_color", "#FFA855F7") // Gemini Radiant Purple Glow
+                } else {
+                    putExtra("oi_bg_color", appColor)
+                    putExtra("oi_fg_color", "#FFFFFFFF")
+                    putExtra("oi_light_color", appColor)
+                }
+                putExtra("oi_light_mode", 1)
             } else {
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON) // 4
                 putExtra("oi_show_right_icon", false)

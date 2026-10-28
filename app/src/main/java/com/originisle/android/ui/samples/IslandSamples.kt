@@ -375,8 +375,8 @@ object IslandSamples {
             }
         },
         OriginSample(
-            "Message", "Chat · app icon + sender left, message right",
-            IslandPreview(R.drawable.ic_chat, "Tanvir", IslandPreview.Right.Text("Kire koi tui? Free achos? 💬")),
+            "Message", "Chat · Tanvir + Gemini Glow [✦ View] badge",
+            IslandPreview(R.drawable.ic_chat, "Tanvir", IslandPreview.Right.Capsule("View")),
         ) { ctx ->
             // The same extras MessageCard sends for a real chat notification:
             // Short pill has app icon on left + sender name, expanded card has contact avatar + text.
@@ -393,9 +393,9 @@ object IslandSamples {
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
                 putExtra("oi_right_content", "View")
                 putExtra("status_chip_text", "View")
-                putExtra("oi_bg_color", "#FF25D366")
-                putExtra("oi_fg_color", "#FFFFFFFF")
-                putExtra("oi_light_color", "#FF25D366")
+                putExtra("oi_bg_color", "#FF1E1730")
+                putExtra("oi_fg_color", "#FFC084FC")
+                putExtra("oi_light_color", "#FFA855F7")
                 putExtra("oi_light_mode", 1)
                 putExtra("icon_res", R.drawable.ic_chat)
                 putStringArrayListExtra("oi_button_titles", arrayListOf("Reply", "Mark Read"))

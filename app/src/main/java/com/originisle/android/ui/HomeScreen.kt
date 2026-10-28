@@ -87,6 +87,7 @@ fun HomeScreen(
     var mediaOn by remember { mutableStateOf(prefs.getBoolean("cast_media_sessions", false)) }
     var includeMessages by remember { mutableStateOf(prefs.getBoolean("cast_include_messages", false)) }
     var messagesOn by remember { mutableStateOf(prefs.getBoolean("cast_messages", true)) }
+    var geminiGlowOn by remember { mutableStateOf(prefs.getBoolean("cast_gemini_view_glow", true)) }
     var ignoreSilent by remember { mutableStateOf(prefs.getBoolean("cast_ignore_silent", true)) }
     var lockscreenLiveCard by remember { mutableStateOf(prefs.getBoolean("cast_lockscreen_live_card", false)) }
     var autoDismissSec by remember { mutableStateOf(prefs.getInt("cast_auto_dismiss_seconds", 0)) }
@@ -391,6 +392,13 @@ fun HomeScreen(
                                 )
                             }
                         }
+                    }
+                    GroupDivider()
+                    ToggleRow(
+                        IsleIcons.Sparkle, IsleColors.TilePurple, "Gemini glow on 'View' badge", geminiGlowOn,
+                        subtitle = "Iridescent chromatic AI gradient glow on compact View capsules",
+                    ) {
+                        geminiGlowOn = it; prefs.edit().putBoolean("cast_gemini_view_glow", it).apply()
                     }
                     GroupDivider()
                     ToggleRow(
