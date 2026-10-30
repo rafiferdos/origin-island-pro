@@ -100,6 +100,11 @@ fun HomeScreen(
     var deliveryOn by remember { mutableStateOf(prefs.getBoolean("cast_delivery", true)) }
     var weatherOn by remember { mutableStateOf(prefs.getBoolean("cast_weather", true)) }
     var actionsOn by remember { mutableStateOf(prefs.getBoolean("cast_show_actions", true)) }
+    var raidenOn by remember { mutableStateOf(prefs.getBoolean("cast_raiden", true)) }
+    var raidenLiveOn by remember { mutableStateOf(prefs.getBoolean("cast_raiden_live", true)) }
+    var raidenMessagesOn by remember { mutableStateOf(prefs.getBoolean("cast_raiden_messages", true)) }
+    var raidenDoneOn by remember { mutableStateOf(prefs.getBoolean("cast_raiden_done", true)) }
+    var raidenAlwaysOnTop by remember { mutableStateOf(prefs.getBoolean("raiden_always_on_top", false)) }
     var privacyOn by remember { mutableStateOf(prefs.getBoolean("cast_privacy_mode", false)) }
     var chargingOn by remember { mutableStateOf(prefs.getBoolean("cast_charging", true)) }
     var chargingKeep by remember { mutableStateOf(prefs.getBoolean("cast_charging_keep", false)) }
@@ -417,6 +422,59 @@ fun HomeScreen(
                         subtitle = "Approve login requests with one tap",
                     ) {
                         authOn = it; prefs.edit().putBoolean("cast_auth", it).apply()
+                    }
+                    GroupDivider()
+                    ToggleRow(
+                        IsleIcons.Sparkles, IsleColors.TileRaiden, "Raiden Assistant", raidenOn,
+                        subtitle = "AI companion activity & live working state (Muse app)",
+                    ) {
+                        raidenOn = it; prefs.edit().putBoolean("cast_raiden", it).apply()
+                    }
+                    if (raidenOn) {
+                        Column(
+                            Modifier.padding(start = 62.dp, end = 16.dp, bottom = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                ChoiceChip(
+                                    "Live state",
+                                    selected = raidenLiveOn,
+                                    onClick = {
+                                        raidenLiveOn = !raidenLiveOn
+                                        prefs.edit().putBoolean("cast_raiden_live", raidenLiveOn).apply()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                                ChoiceChip(
+                                    "Messages",
+                                    selected = raidenMessagesOn,
+                                    onClick = {
+                                        raidenMessagesOn = !raidenMessagesOn
+                                        prefs.edit().putBoolean("cast_raiden_messages", raidenMessagesOn).apply()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                                ChoiceChip(
+                                    "Done notice",
+                                    selected = raidenDoneOn,
+                                    onClick = {
+                                        raidenDoneOn = !raidenDoneOn
+                                        prefs.edit().putBoolean("cast_raiden_done", raidenDoneOn).apply()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            ToggleRow(
+                                IsleIcons.Bolt, IsleColors.TileAmber, "Always on top", raidenAlwaysOnTop,
+                                subtitle = if (raidenAlwaysOnTop)
+                                    "⚠️ Priority 100: Can displace incoming calls!"
+                                else
+                                    "Keep below calls, navigation, and timers (Priority 85)",
+                            ) {
+                                raidenAlwaysOnTop = it
+                                prefs.edit().putBoolean("raiden_always_on_top", it).apply()
+                            }
+                        }
                     }
                     GroupDivider()
                     ToggleRow(

@@ -75,6 +75,7 @@ object IsleColors {
     val TileSports = Color(0xFF10B981)    // Emerald Green for sports
     val TileMedia = Color(0xFFFA2D48)     // Apple Music Red for media
     val TilePayment = Color(0xFFE2136E)   // bKash Magenta / Payment
+    val TileRaiden = Color(0xFFA855F7)    // Electric Violet for Raiden companion
 
     // Legacy aliases preserved for backward compatibility
     val TileBlue = Color(0xFF2D6BF5)

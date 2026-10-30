@@ -86,5 +86,14 @@
             android:name=".service.CopyCodeReceiver"
             android:exported="false" />
 
+        <!-- Direct broadcast receiver for Raiden AI companion states (Route B). -->
+        <receiver
+            android:name=".service.RaidenStateReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.originisle.android.action.RAIDEN_STATE" />
+            </intent-filter>
+        </receiver>
+
     </application>
 </manifest>

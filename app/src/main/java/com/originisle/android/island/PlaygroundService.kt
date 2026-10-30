@@ -16,6 +16,7 @@ import android.util.Log
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import com.originisle.android.R
+import com.originisle.android.cards.RaidenCard
 import com.originisle.android.cards.fallbackClickIntent
 import com.originisle.android.service.IconCache
 import com.originisle.android.ui.PREFS_NAME
@@ -38,6 +39,7 @@ class PlaygroundService : Service() {
         // Just brings the foreground service up (no card) so the process — and the notification
         // listener living in it — stays alive for background casts.
         const val ACTION_KEEPALIVE = "ACTION_KEEPALIVE"
+        const val ACTION_RAIDEN_STATE = "com.originisle.android.action.RAIDEN_STATE"
 
         /** Start/keep the foreground service alive. Safe to call from a foreground context. */
         fun keepAlive(context: Context) {
@@ -52,6 +54,9 @@ class PlaygroundService : Service() {
         /** Ids of cards currently on the island — used to detect a crowded island. */
         @Volatile
         var activeCardIds: Set<Int> = emptySet()
+
+        /** Priorities of active cards on the island. */
+        val activeCardPriorities = ConcurrentHashMap<Int, Int>()
 
         const val ORIGIN_CHANNEL_ID = "originisle_island_hi"
         const val FGS_ID = 9999
@@ -98,6 +103,7 @@ class PlaygroundService : Service() {
                 ACTION_START -> readAndPost(intent)
                 ACTION_CANCEL -> cancelNotification(intent)
                 ACTION_STOP -> stopEverything()
+                ACTION_RAIDEN_STATE -> handleRaidenState(intent)
                 ACTION_KEEPALIVE -> Unit // ensureForeground() above is all that's needed
             }
         } catch (e: Throwable) {
@@ -395,6 +401,7 @@ class PlaygroundService : Service() {
         activeIds.add(id)
         originScenes[id] = scene
         activeCardIds = activeIds.toSet()
+        activeCardPriorities[id] = priority
         postSuperX(
             id = id,
             iconRes = iconRes,
@@ -509,6 +516,7 @@ class PlaygroundService : Service() {
         }
         activeIds.remove(id)
         originChangeRecord.remove(id)
+        activeCardPriorities.remove(id)
         activeCardIds = activeIds.toSet()
         // Keep the sceneCurrentId entry (now stale) so the NEXT different card clears this scene's
         // leftovers via the staleness-aware replace in readAndPost.
@@ -531,6 +539,7 @@ class PlaygroundService : Service() {
         sceneCurrentId.clear()
         val ids = activeIds.toList()
         activeIds.clear()
+        activeCardPriorities.clear()
         activeCardIds = emptySet()
         val finish = {
             ids.forEach {
@@ -566,5 +575,18 @@ class PlaygroundService : Service() {
     private fun String?.orEmptyOr(fallback: String): String {
         val v = this?.trim().orEmpty()
         return v.ifBlank { fallback }
+    }
+
+    private fun handleRaidenState(intent: Intent) {
+        val state = intent.getStringExtra("state")
+            ?: intent.getStringExtra("raiden_state")
+            ?: "working"
+        val task = intent.getStringExtra("task")
+            ?: intent.getStringExtra("text")
+            ?: intent.getStringExtra("details")
+        val file = intent.getStringExtra("file")
+        val sourcePkg = intent.getStringExtra("source_pkg")
+            ?: intent.getStringExtra("muse_pkg")
+        RaidenCard.postDirectState(this, state, task, file, sourcePkg)
     }
 }

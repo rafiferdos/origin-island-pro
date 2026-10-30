@@ -37,6 +37,7 @@ import com.originisle.android.cards.MessageCard
 import com.originisle.android.cards.NavigationCard
 import com.originisle.android.cards.OtpCard
 import com.originisle.android.cards.PaymentCard
+import com.originisle.android.cards.RaidenCard
 import com.originisle.android.cards.RideCard
 import com.originisle.android.cards.SportsCard
 import com.originisle.android.cards.TimerCard
@@ -446,6 +447,7 @@ class NotificationCastListener : NotificationListenerService() {
                             val isMeeting = GenericCard.isVideoCallOrMeeting(sbn)
                             val isDownload = DownloadCard.isDownload(sbn)
                             val isTimer = isTimer(sbn)
+                            val isRaiden = RaidenCard.isMuseApp(applicationContext, sbn.packageName)
                             val isScore = sbn.packageName in SCORE_APPS && prefs.getBoolean("cast_sports", true)
 
                             // Media cards are event-driven via MediaController.Callback and OnActiveSessionsChangedListener!
@@ -458,9 +460,9 @@ class NotificationCastListener : NotificationListenerService() {
                                         MediaController(this@NotificationCastListener, token),
                                     )
                                 }
-                            } else if (castNotifs && sbn.isOngoing && (isChrono || isMeeting || isCall || isTimer)) {
+                            } else if (castNotifs && sbn.isOngoing && (isChrono || isMeeting || isCall || isTimer || isRaiden)) {
                                 foundLive = true
-                                onNotificationPosted(sbn) // refresh ticking chronometer, active call timer & ongoing countdown
+                                onNotificationPosted(sbn) // refresh ticking chronometer, active call timer, ongoing countdown & live raiden
                             } else if (castNotifs && sbn.isOngoing && isDownload) {
                                 foundLive = true
                                 onNotificationPosted(sbn) // refresh live download progress and speed
@@ -703,6 +705,20 @@ class NotificationCastListener : NotificationListenerService() {
             }
         }
         if (!castNotifs) { log(sbn, "skipped — media only, notifications off", false); return }
+
+        // Raiden Activity & Companion (Muse App)
+        if (!isCall && RaidenCard.isMuseApp(applicationContext, sbn.packageName)) {
+            val raidenOn = prefs.getBoolean("cast_raiden", true)
+            if (!raidenOn) {
+                log(sbn, "skipped — Raiden casting is off in settings", false)
+                return
+            }
+            if (RaidenCard.post(applicationContext, sbn, appLabel(sbn.packageName))) {
+                log(sbn, "cast — raiden activity", true)
+                if (sbn.isOngoing) ensureLivePolling()
+                return
+            }
+        }
 
         // Login / verification codes: ahead of payments (a bank's "code to confirm your €12 payment"
         // is a code, not a receipt) and of the plain-message filter, which would otherwise drop it.
@@ -1267,6 +1283,12 @@ class NotificationCastListener : NotificationListenerService() {
         MediaCard.forget(IconCache.castIdFor(sbn))
         DownloadCard.forget(IconCache.castIdFor(sbn))
         CallCard.forget(IconCache.castIdFor(sbn))
+
+        if (RaidenCard.isMuseApp(applicationContext, sbn.packageName)) {
+            RaidenCard.forget(sbn)
+            RaidenCard.cancel(applicationContext)
+            return
+        }
 
         // Score cards are keyed by team names (matchCastId), not by this notification's own identity
         // (see handleScore) — cancelling by IconCache.castIdFor(sbn) here would target the wrong id and
