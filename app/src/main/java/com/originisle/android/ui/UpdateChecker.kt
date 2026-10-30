@@ -223,7 +223,9 @@ object UpdateChecker {
             var bytesReadTotal = 0L
             var lastProgressTime = System.currentTimeMillis()
             var bytesAtLastSample = 0L
-            var speedBytesPerSec = 0L
+            var smoothedSpeedBytesPerSec = 0L
+            var lastNonZeroSpeedBytesPerSec = 0L
+            var lastNonZeroTime = System.currentTimeMillis()
 
             createNotificationChannel(context)
 
@@ -242,10 +244,27 @@ object UpdateChecker {
 
                         val now = System.currentTimeMillis()
                         val delta = now - lastProgressTime
-                        if (delta >= 150) {
-                            speedBytesPerSec = ((bytesReadTotal - bytesAtLastSample) * 1000L) / delta.coerceAtLeast(1)
+                        if (delta >= 300) {
+                            val instantSpeed = ((bytesReadTotal - bytesAtLastSample) * 1000L) / delta.coerceAtLeast(1)
                             bytesAtLastSample = bytesReadTotal
                             lastProgressTime = now
+
+                            if (instantSpeed > 1024L) {
+                                lastNonZeroTime = now
+                                lastNonZeroSpeedBytesPerSec = instantSpeed
+                                smoothedSpeedBytesPerSec = if (smoothedSpeedBytesPerSec <= 1024L) {
+                                    instantSpeed
+                                } else {
+                                    (0.40 * instantSpeed + 0.60 * smoothedSpeedBytesPerSec).toLong()
+                                }
+                            } else {
+                                // Anti-flicker: if temporary 0 in this 300ms window, check if within 3.5s of active transfer
+                                if (now - lastNonZeroTime < 3500L && lastNonZeroSpeedBytesPerSec > 1024L) {
+                                    smoothedSpeedBytesPerSec = (smoothedSpeedBytesPerSec * 0.90).toLong()
+                                } else {
+                                    smoothedSpeedBytesPerSec = 0L
+                                }
+                            }
 
                             val progress = if (totalBytes > 0) {
                                 (bytesReadTotal.toFloat() / totalBytes.toFloat()).coerceIn(0f, 1f)
@@ -256,7 +275,7 @@ object UpdateChecker {
                                     progress = progress,
                                     bytesDownloaded = bytesReadTotal,
                                     totalBytes = totalBytes,
-                                    speedBytesPerSec = speedBytesPerSec,
+                                    speedBytesPerSec = smoothedSpeedBytesPerSec,
                                 )
                             )
                             postDownloadProgressNotification(context, (progress * 100).toInt(), bytesReadTotal, totalBytes)
@@ -526,12 +545,12 @@ object UpdateChecker {
 
     fun formatSpeed(bytesPerSec: Long): String {
         if (bytesPerSec <= 0) return "0 KB/s"
-        val mb = bytesPerSec.toDouble() / (1024 * 1024)
+        val mb = bytesPerSec.toDouble() / (1024.0 * 1024.0)
         return if (mb >= 1.0) {
             String.format(Locale.US, "%.1f MB/s", mb)
         } else {
-            val kb = bytesPerSec.toDouble() / 1024
-            String.format(Locale.US, "%.0f KB/s", kb)
+            val kb = bytesPerSec.toDouble() / 1024.0
+            String.format(Locale.US, "%.0f KB/s", kb.coerceAtLeast(1.0))
         }
     }
 }

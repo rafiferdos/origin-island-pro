@@ -116,6 +116,7 @@ fun HomeScreen(
     var messagePreviewMode by remember { mutableStateOf(prefs.getString("cast_message_preview_mode", "smart") ?: "smart") }
     var landingAnimOn by remember { mutableStateOf(prefs.getBoolean("cast_landing_animation", true)) }
     var downloadPillStyle by remember { mutableStateOf(prefs.getString("download_pill_style", "speed_ring") ?: "speed_ring") }
+    var downloadSpeedUnit by remember { mutableStateOf(prefs.getString("download_speed_unit", "auto") ?: "auto") }
     var quietDnd by remember { mutableStateOf(prefs.getBoolean("cast_quiet_dnd", false)) }
     var quietSchedule by remember { mutableStateOf(prefs.getBoolean("cast_quiet_schedule", false)) }
     var quietStart by remember { mutableIntStateOf(prefs.getInt("cast_quiet_start", QuietHours.DEFAULT_START)) }
@@ -749,6 +750,35 @@ fun HomeScreen(
                                 onClick = {
                                     downloadPillStyle = "percent_speed"
                                     prefs.edit().putString("download_pill_style", "percent_speed").apply()
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ChoiceChip(
+                                "Auto Unit",
+                                selected = downloadSpeedUnit == "auto",
+                                onClick = {
+                                    downloadSpeedUnit = "auto"
+                                    prefs.edit().putString("download_speed_unit", "auto").apply()
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                            ChoiceChip(
+                                "MB/s (OriginOS)",
+                                selected = downloadSpeedUnit == "mbs",
+                                onClick = {
+                                    downloadSpeedUnit = "mbs"
+                                    prefs.edit().putString("download_speed_unit", "mbs").apply()
+                                },
+                                modifier = Modifier.weight(1.2f),
+                            )
+                            ChoiceChip(
+                                "Mbps",
+                                selected = downloadSpeedUnit == "mbps",
+                                onClick = {
+                                    downloadSpeedUnit = "mbps"
+                                    prefs.edit().putString("download_speed_unit", "mbps").apply()
                                 },
                                 modifier = Modifier.weight(1f),
                             )

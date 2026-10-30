@@ -13,18 +13,34 @@ class DownloadCardTest {
         val text1 = "Downloading update.zip • 45 MB / 120 MB • 2.4 MB/s • 30s left"
         assertEquals("19.2 Mbps", DownloadCard.convertToMbps(text1))
         assertEquals("19.2M", DownloadCard.extractCompactMbps(text1))
+        assertEquals("2.4 MB/s", DownloadCard.extractRawSpeedText(text1))
 
         val text2 = "origin-island.apk: 850 KB/s - 15 seconds remaining"
         assertEquals("6.8 Mbps", DownloadCard.convertToMbps(text2))
         assertEquals("6.8M", DownloadCard.extractCompactMbps(text2))
+        assertEquals("850 KB/s", DownloadCard.extractRawSpeedText(text2))
 
         val text3 = "Streaming asset at 15 Mbps"
         assertEquals("15.0 Mbps", DownloadCard.convertToMbps(text3))
         assertEquals("15.0M", DownloadCard.extractCompactMbps(text3))
+        assertEquals("15 Mbps", DownloadCard.extractRawSpeedText(text3))
 
         val textNoSpeed = "Downloading file without speed info"
         assertNull(DownloadCard.convertToMbps(textNoSpeed))
         assertNull(DownloadCard.extractCompactMbps(textNoSpeed))
+        assertNull(DownloadCard.extractRawSpeedText(textNoSpeed))
+    }
+
+    @Test
+    fun testZeroSpeedRejectionForAntiFlicker() {
+        // Dummy 0 B/s or 0.00 KB/s text shouldn't be extracted as active text speed
+        val zero1 = "Connecting... 0 B/s"
+        assertNull(DownloadCard.convertToMbps(zero1))
+        assertNull(DownloadCard.extractRawSpeedText(zero1))
+
+        val zero2 = "Buffering: 0.00 KB/s"
+        assertNull(DownloadCard.convertToMbps(zero2))
+        assertNull(DownloadCard.extractRawSpeedText(zero2))
     }
 
     @Test
@@ -50,6 +66,20 @@ class DownloadCardTest {
         assertEquals("120M", DownloadCard.formatCompactMbps(120.0))
         assertEquals("500 Kbps", DownloadCard.formatMbps(0.5))
         assertEquals("500K", DownloadCard.formatCompactMbps(0.5))
+    }
+
+    @Test
+    fun testOriginOSFormatSpeed() {
+        // OriginOS MB/s and KB/s unit formatting
+        val speedMbs1 = DownloadCard.formatSpeed(24.0, "mbs") // 24 Mbps = 3.0 MB/s
+        assertEquals("3.0 MB/s", speedMbs1)
+
+        val speedMbs2 = DownloadCard.formatSpeed(0.8, "mbs") // 0.8 Mbps = 100 KB/s
+        assertEquals("100 KB/s", speedMbs2)
+
+        // Standard Mbps unit formatting
+        val speedMbps = DownloadCard.formatSpeed(24.5, "mbps")
+        assertEquals("24.5 Mbps", speedMbps)
     }
 
     @Test

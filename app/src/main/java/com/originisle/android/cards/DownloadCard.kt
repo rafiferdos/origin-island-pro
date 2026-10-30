@@ -58,20 +58,25 @@ object DownloadCard {
         "ডাউনলোড", "আপডেট", "ট্রান্সফার",
     )
 
-    private val SPEED_REGEX = Regex("""(?i)(\d+(?:\.\d+)?)\s*(?:KB/s|MB/s|GB/s|kb/s|mb/s|gb/s|kB/s|mB/s|Mbps|mbps|Kbps|kbps|m/s|k/s)""")
+    private val SPEED_REGEX = Regex(
+        """(?i)(\d+(?:\.\d+)?)\s*(GB/s|GiB/s|MB/s|MiB/s|KB/s|KiB/s|B/s|Gbps|Mbps|Kbps|g/s|m/s|k/s|MBps|KBps)"""
+    )
     private val SIZE_REGEX = Regex("""(?i)(\d+(?:\.\d+)?\s*(?:MB|GB|KB|TB))\s*(?:/|of)\s*(\d+(?:\.\d+)?\s*(?:MB|GB|KB|TB))""")
     private val ETA_REGEX = Regex("""(?i)(\d+\s*(?:min|mins|minute|minutes|sec|secs|second|seconds|hr|hrs|hour|hours|s|m|h)\s*(?:remaining|left))|((?:about|approx\.?)\s*\d+\s*(?:min|mins|hour|hrs)\s*left)""")
 
-    private data class UidTrafficSample(
-        val rxBytes: Long,
-        val timestampMs: Long,
-        val lastComputedMbps: Double,
+    data class SpeedTrackerState(
+        var baselineBytes: Long = -1L,
+        var baselineTimeMs: Long = 0L,
+        var smoothedSpeedMbps: Double = 0.0,
+        var lastNonZeroSpeedMbps: Double = 0.0,
+        var lastNonZeroTimeMs: Long = 0L,
+        var isTrackingUid: Boolean = false,
     )
-    private val trafficSamples = ConcurrentHashMap<Int, UidTrafficSample>()
+    private val speedTrackers = ConcurrentHashMap<Int, SpeedTrackerState>()
 
     /** Drop dedupe state and traffic sample for [id]. */
     fun forget(id: Int) {
-        trafficSamples.remove(id)
+        speedTrackers.remove(id)
     }
 
     /**
@@ -88,7 +93,9 @@ object DownloadCard {
         val rawTitle = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString()?.trim().orEmpty()
         val rawText = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString()?.trim().orEmpty()
         val bigText = extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)?.toString()?.trim().orEmpty()
-        val combined = "$rawTitle $rawText $bigText".lowercase(Locale.ROOT)
+        val subText = extras.getCharSequence(NotificationCompat.EXTRA_SUB_TEXT)?.toString()?.trim().orEmpty()
+        val infoText = extras.getCharSequence(NotificationCompat.EXTRA_INFO_TEXT)?.toString()?.trim().orEmpty()
+        val combined = "$rawTitle $rawText $bigText $subText $infoText".lowercase(Locale.ROOT)
 
         val hasDownloadKeyword = DOWNLOAD_KEYWORDS.any { combined.contains(it) }
         val hasSpeed = SPEED_REGEX.containsMatchIn(combined)
@@ -122,49 +129,203 @@ object DownloadCard {
     }
 
     /**
-     * Converts raw speed strings (MB/s, KB/s, Mbps) to standard Megabits per second (Mbps).
-     * 1 MB/s = 8.0 Mbps, 1 KB/s = 0.008 Mbps.
+     * Parses a speed string from notification text into standard Megabits per second (Mbps).
+     * 1 MB/s = 8.0 Mbps, 1 KB/s = 0.008 Mbps, 1 GB/s = 8000.0 Mbps.
      */
-    fun convertToMbps(text: String): String? {
+    fun parseSpeedMbps(text: String): Double? {
         val match = SPEED_REGEX.find(text) ?: return null
         val num = match.groupValues[1].toDoubleOrNull() ?: return null
-        val raw = match.value.lowercase()
-        val mbps = when {
-            raw.contains("gb/s") -> num * 8000.0
-            raw.contains("mbps") -> num
-            raw.contains("kbps") -> num / 1000.0
-            raw.contains("mb/s") || raw.contains("m/s") -> num * 8.0
-            raw.contains("kb/s") || raw.contains("k/s") -> (num * 8.0) / 1000.0
+        if (num <= 0.0001) return 0.0
+        val unit = match.groupValues[2].lowercase(Locale.ROOT)
+        return when {
+            unit.startsWith("gb") || unit.startsWith("gib") || unit == "g/s" -> num * 8000.0
+            unit == "mbps" -> num
+            unit == "kbps" -> num / 1000.0
+            unit.startsWith("mb") || unit.startsWith("mib") || unit == "m/s" -> num * 8.0
+            unit.startsWith("kb") || unit.startsWith("kib") || unit == "k/s" -> (num * 8.0) / 1000.0
+            unit == "b/s" -> (num * 8.0) / 1_000_000.0
             else -> num * 8.0
         }
+    }
+
+    /**
+     * Extracts non-zero formatted raw speed string (e.g. "2.4 MB/s") directly from text if present.
+     */
+    fun extractRawSpeedText(text: String): String? {
+        val match = SPEED_REGEX.find(text) ?: return null
+        val num = match.groupValues[1].toDoubleOrNull() ?: return null
+        if (num <= 0.0001) return null // Filter out momentary 0.00 text speeds
+        return match.value.trim()
+    }
+
+    /**
+     * Converts raw speed strings (MB/s, KB/s, Mbps) to standard formatted Megabits per second (Mbps).
+     */
+    fun convertToMbps(text: String): String? {
+        val mbps = parseSpeedMbps(text) ?: return null
+        if (mbps <= 0.0001) return null
         return formatMbps(mbps)
     }
 
     fun extractCompactMbps(text: String): String? {
-        val match = SPEED_REGEX.find(text) ?: return null
-        val num = match.groupValues[1].toDoubleOrNull() ?: return null
-        val raw = match.value.lowercase()
-        val mbps = when {
-            raw.contains("gb/s") -> num * 8000.0
-            raw.contains("mbps") -> num
-            raw.contains("kbps") -> num / 1000.0
-            raw.contains("mb/s") || raw.contains("m/s") -> num * 8.0
-            raw.contains("kb/s") || raw.contains("k/s") -> (num * 8.0) / 1000.0
-            else -> num * 8.0
-        }
+        val mbps = parseSpeedMbps(text) ?: return null
+        if (mbps <= 0.0001) return null
         return formatCompactMbps(mbps)
     }
 
     fun formatMbps(mbps: Double): String = when {
         mbps >= 100.0 -> String.format(Locale.US, "%.0f Mbps", mbps)
         mbps >= 1.0 -> String.format(Locale.US, "%.1f Mbps", mbps)
-        else -> String.format(Locale.US, "%.0f Kbps", mbps * 1000.0)
+        mbps > 0.05 -> String.format(Locale.US, "%.0f Kbps", mbps * 1000.0)
+        else -> "0 Kbps"
     }
 
     fun formatCompactMbps(mbps: Double): String = when {
         mbps >= 100.0 -> "${mbps.toInt()}M"
         mbps >= 1.0 -> String.format(Locale.US, "%.1fM", mbps)
-        else -> "${(mbps * 1000.0).toInt()}K"
+        mbps > 0.05 -> "${(mbps * 1000.0).toInt()}K"
+        else -> "0K"
+    }
+
+    /**
+     * Formats speed respecting OriginOS 7 status-bar conventions:
+     * - "mbs": MB/s and KB/s format (OriginOS system standard).
+     * - "mbps": standard Mbps format.
+     */
+    fun formatSpeed(mbps: Double, unitMode: String = "auto"): String {
+        if (mbps <= 0.05) {
+            return if (unitMode == "mbs") "0 KB/s" else "0 Kbps"
+        }
+        return if (unitMode == "mbs") {
+            val mbPerSec = mbps / 8.0
+            val kbPerSec = (mbps * 1000.0) / 8.0
+            when {
+                mbPerSec >= 100.0 -> String.format(Locale.US, "%.0f MB/s", mbPerSec)
+                mbPerSec >= 1.0 -> String.format(Locale.US, "%.1f MB/s", mbPerSec)
+                kbPerSec >= 1.0 -> String.format(Locale.US, "%.0f KB/s", kbPerSec)
+                else -> String.format(Locale.US, "%.0f B/s", (mbps * 1_000_000.0) / 8.0)
+            }
+        } else {
+            when {
+                mbps >= 100.0 -> String.format(Locale.US, "%.0f Mbps", mbps)
+                mbps >= 1.0 -> String.format(Locale.US, "%.1f Mbps", mbps)
+                else -> String.format(Locale.US, "%.0f Kbps", mbps * 1000.0)
+            }
+        }
+    }
+
+    /**
+     * Measures and computes live download speed with exponential moving average and anti-jitter hold.
+     * Prevents false "0.00" dips during TCP window gaps and rapid notification bursts.
+     */
+    fun computeLiveSpeed(
+        context: Context,
+        sbn: StatusBarNotification,
+        id: Int,
+        combinedText: String,
+    ): String {
+        val now = System.currentTimeMillis()
+        val tracker = speedTrackers.computeIfAbsent(id) { SpeedTrackerState() }
+
+        // 1. Text-based speed extraction
+        val rawTextSpeed = extractRawSpeedText(combinedText)
+        val textSpeedMbps = parseSpeedMbps(combinedText)
+
+        // 2. Measure device/UID traffic stats
+        val appUid = runCatching { context.packageManager.getPackageUid(sbn.packageName, 0) }.getOrNull() ?: sbn.uid
+        val uidRx = if (appUid > 0) TrafficStats.getUidRxBytes(appUid) else -1L
+        val uidTx = if (appUid > 0) TrafficStats.getUidTxBytes(appUid).takeIf { it > 0 } ?: 0L else 0L
+
+        val totalRx = TrafficStats.getTotalRxBytes()
+        val totalTx = TrafficStats.getTotalTxBytes().takeIf { it > 0 } ?: 0L
+
+        val currentBytes = if (uidRx > 0) {
+            tracker.isTrackingUid = true
+            uidRx + uidTx
+        } else {
+            if (tracker.isTrackingUid && tracker.baselineBytes > 0) {
+                tracker.isTrackingUid = false
+                tracker.baselineBytes = totalRx + totalTx
+                tracker.baselineTimeMs = now
+            }
+            if (totalRx > 0) totalRx + totalTx else -1L
+        }
+
+        // Process TrafficStats throughput
+        if (currentBytes > 0) {
+            if (tracker.baselineBytes <= 0 || tracker.baselineTimeMs <= 0) {
+                tracker.baselineBytes = currentBytes
+                tracker.baselineTimeMs = now
+            } else {
+                val deltaMs = now - tracker.baselineTimeMs
+                // Crucial fix: Only compute when deltaMs >= 400ms.
+                // When deltaMs < 400ms, DO NOT overwrite baselineTimeMs or baselineBytes!
+                // Let time and bytes accumulate across frequent notification bursts.
+                if (deltaMs >= 400) {
+                    val deltaBytes = currentBytes - tracker.baselineBytes
+                    tracker.baselineBytes = currentBytes
+                    tracker.baselineTimeMs = now
+
+                    if (deltaBytes > 0 && deltaMs in 400..30000) {
+                        val bytesPerSec = (deltaBytes * 1000.0) / deltaMs
+                        val instantMbps = (bytesPerSec * 8.0) / 1_000_000.0
+
+                        if (instantMbps > 0.05) {
+                            tracker.lastNonZeroTimeMs = now
+                            tracker.lastNonZeroSpeedMbps = instantMbps
+                            tracker.smoothedSpeedMbps = if (tracker.smoothedSpeedMbps <= 0.05) {
+                                instantMbps
+                            } else {
+                                // Exponential Moving Average (EMA) to smooth out network bursts
+                                0.45 * instantMbps + 0.55 * tracker.smoothedSpeedMbps
+                            }
+                        }
+                    } else if (deltaBytes <= 0) {
+                        // Instantaneous zero in this sample slice
+                        val timeSinceActive = now - tracker.lastNonZeroTimeMs
+                        if (timeSinceActive < 3500L && tracker.lastNonZeroSpeedMbps > 0.05) {
+                            // Anti-flicker: gently decay instead of dropping straight to 0.00!
+                            tracker.smoothedSpeedMbps = (tracker.smoothedSpeedMbps * 0.90).coerceAtLeast(0.0)
+                        } else {
+                            tracker.smoothedSpeedMbps = 0.0
+                        }
+                    }
+                }
+            }
+        }
+
+        val prefs = context.getSharedPreferences(com.originisle.android.ui.PREFS_NAME, 0)
+        val unitPref = prefs.getString("download_speed_unit", "auto") ?: "auto"
+
+        // Decision matrix:
+        // Priority A: If text explicitly reports a non-zero speed (e.g. "3.5 MB/s" or "28 Mbps")
+        if (textSpeedMbps != null && textSpeedMbps > 0.05) {
+            tracker.lastNonZeroTimeMs = now
+            tracker.lastNonZeroSpeedMbps = textSpeedMbps
+            tracker.smoothedSpeedMbps = if (tracker.smoothedSpeedMbps <= 0.05) {
+                textSpeedMbps
+            } else {
+                0.5 * textSpeedMbps + 0.5 * tracker.smoothedSpeedMbps
+            }
+
+            if (unitPref == "auto" && rawTextSpeed != null) {
+                return rawTextSpeed
+            }
+            return formatSpeed(tracker.smoothedSpeedMbps, unitPref)
+        }
+
+        // Priority B: Measured TrafficStats throughput is available and active
+        if (tracker.smoothedSpeedMbps > 0.05) {
+            return formatSpeed(tracker.smoothedSpeedMbps, unitPref)
+        }
+
+        // Priority C: Active within the last 3.5 seconds (anti-flicker hold)
+        if (now - tracker.lastNonZeroTimeMs < 3500L && tracker.lastNonZeroSpeedMbps > 0.05) {
+            return formatSpeed(tracker.lastNonZeroSpeedMbps * 0.90, unitPref)
+        }
+
+        // Priority D: Connecting or idle
+        return if (unitPref == "mbs") "0 KB/s" else "0 Kbps"
     }
 
     fun post(
@@ -185,47 +346,11 @@ object DownloadCard {
         val rawText = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString()?.trim().orEmpty()
         val bigText = extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)?.toString()?.trim().orEmpty()
         val subText = extras.getCharSequence(NotificationCompat.EXTRA_SUB_TEXT)?.toString()?.trim().orEmpty()
-        val combined = "$rawTitle $rawText $bigText $subText"
+        val infoText = extras.getCharSequence(NotificationCompat.EXTRA_INFO_TEXT)?.toString()?.trim().orEmpty()
+        val combined = "$rawTitle $rawText $bigText $subText $infoText"
 
-        // 1. Text-based speed extraction
-        val textMbps = convertToMbps(combined)
-
-        // 2. Real-time network throughput measurement via TrafficStats (for ANY app without speed in text)
-        // Queries app-specific UID first, with seamless fallback to device-level total network throughput
-        val appUid = runCatching { context.packageManager.getPackageUid(sbn.packageName, 0) }.getOrNull() ?: sbn.uid
-        val now = System.currentTimeMillis()
-        val uidRx = if (appUid > 0) TrafficStats.getUidRxBytes(appUid) else -1L
-        // Android 10+ restricts getUidRxBytes for third-party apps, returning -1.
-        // Fall back to TrafficStats.getTotalRxBytes() which is 100% unrestricted and captures all download traffic.
-        val currentRxBytes = if (uidRx > 0) uidRx else TrafficStats.getTotalRxBytes()
-
-        val prevSample = trafficSamples[id]
-        val measuredMbps: Double? = if (currentRxBytes > 0) {
-            if (prevSample != null && prevSample.timestampMs > 0) {
-                val deltaBytes = currentRxBytes - prevSample.rxBytes
-                val deltaMs = now - prevSample.timestampMs
-                if (deltaBytes >= 0 && deltaMs in 400..15000) {
-                    val bytesPerSec = (deltaBytes * 1000.0) / deltaMs
-                    val mbps = (bytesPerSec * 8.0) / 1_000_000.0
-                    trafficSamples[id] = UidTrafficSample(currentRxBytes, now, mbps)
-                    mbps
-                } else {
-                    trafficSamples[id] = UidTrafficSample(currentRxBytes, now, prevSample.lastComputedMbps)
-                    prevSample.lastComputedMbps
-                }
-            } else {
-                trafficSamples[id] = UidTrafficSample(currentRxBytes, now, 0.0)
-                null
-            }
-        } else {
-            null
-        }
-
-        // Guaranteed live Mbps speed: text speed wins, followed by measured throughput, then last known sample, defaulting to "0.0 Mbps"
-        val liveMbpsSpeed: String = textMbps
-            ?: measuredMbps?.takeIf { it > 0.01 }?.let { formatMbps(it) }
-            ?: prevSample?.lastComputedMbps?.takeIf { it > 0.01 }?.let { formatMbps(it) }
-            ?: "0.0 Mbps"
+        // Compute intelligent live speed with anti-flicker smoothing
+        val liveSpeedText = computeLiveSpeed(context, sbn, id, combined)
 
         // Authentic Source App Launcher Icon (e.g. Genshin Impact, Chrome, Play Store, Telegram)
         val appIcon = runCatching {
@@ -245,7 +370,7 @@ object DownloadCard {
         val etaMatch = ETA_REGEX.find(combined)
 
         val sizePart = sizeMatch?.value ?: if (percent > 0) "$percent%" else ""
-        val speedPart = liveMbpsSpeed ?: ""
+        val speedPart = liveSpeedText
         val etaPart = etaMatch?.value ?: ""
 
         val detailParts = listOf(sizePart, speedPart, etaPart).filter { it.isNotBlank() }
@@ -264,7 +389,7 @@ object DownloadCard {
             percent = percent,
             indeterminate = indeterminate,
             progressMax = progressMax,
-            liveMbpsSpeed = liveMbpsSpeed,
+            liveMbpsSpeed = liveSpeedText,
         )
 
         n.smallIcon?.let { IconCache.activeSmallIcons[id] = it }
