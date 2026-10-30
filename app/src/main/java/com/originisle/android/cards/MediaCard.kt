@@ -100,6 +100,19 @@ object MediaCard {
             else -> false
         }
 
+        val showChrono = n.extras.getBoolean(NotificationCompat.EXTRA_SHOW_CHRONOMETER, false)
+        val chipBucket =
+            if (showChrono && n.`when` > 0) abs(System.currentTimeMillis() - n.`when`) / 10_000L else 0L
+
+        // Fast Dedupe Gate: if track, artist, playing state, and chrono bucket haven't changed,
+        // skip expensive bitmap loading, scaling and color extraction entirely!
+        val prev = lastPosted[id]
+        if (id in PlaygroundService.activeCardIds && prev != null &&
+            prev.track == track && prev.artist == artist && prev.playing == playing && prev.chipBucket == chipBucket
+        ) {
+            return
+        }
+
         n.smallIcon?.let { IconCache.activeSmallIcons[id] = it }
         val rawLargeIcon = n.extras.get(NotificationCompat.EXTRA_LARGE_ICON)
         val albumArt: Bitmap? = (md?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
@@ -110,7 +123,6 @@ object MediaCard {
         albumArt?.let { IconCache.activeLargeBitmaps[id] = it }
         val waveColors = waveColorsFrom(albumArt)
 
-        val showChrono = n.extras.getBoolean(NotificationCompat.EXTRA_SHOW_CHRONOMETER, false)
         val chip = if (showChrono && n.`when` > 0) {
             formatElapsed(abs(System.currentTimeMillis() - n.`when`) / 1000)
         } else if (playing) {
@@ -119,11 +131,7 @@ object MediaCard {
             " "
         }
 
-        // Dedupe gate: skip if unchanged and already active
-        val chipBucket =
-            if (showChrono && n.`when` > 0) abs(System.currentTimeMillis() - n.`when`) / 10_000L else 0L
         val state = PostedState(track, artist, playing, albumArt != null, chipBucket)
-        if (id in PlaygroundService.activeCardIds && lastPosted[id] == state) return
         lastPosted[id] = state
 
         fun mediaAction(action: String) = PendingIntent.getBroadcast(

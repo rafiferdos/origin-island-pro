@@ -55,6 +55,9 @@ object SportsCard {
     )
     private val lastPosts = ConcurrentHashMap<Int, PostArgs>()
 
+    /** Whether any sports card is currently active on the island. */
+    fun hasActiveMatches(): Boolean = lastPosts.isNotEmpty()
+
     /**
      * Handler.postDelayed/removeCallbacksAndMessages match a token by *reference*, not value — a
      * plain `id: Int` reboxes to a fresh Integer on every call (match ids are well outside Java's

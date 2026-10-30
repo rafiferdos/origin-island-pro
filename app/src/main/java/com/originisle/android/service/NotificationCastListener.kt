@@ -16,6 +16,7 @@ import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.service.notification.NotificationListenerService
 import android.service.notification.NotificationListenerService.Ranking
 import android.service.notification.StatusBarNotification
@@ -358,62 +359,142 @@ class NotificationCastListener : NotificationListenerService() {
      */
     private val lastCastPostTime = ConcurrentHashMap<String, Long>()
 
+    private var isScreenInteractive = true
+    private var isPollingActive = false
+
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_SCREEN_ON -> {
+                    isScreenInteractive = true
+                    // Screen turned on: resume high-frequency ticking if live cards exist
+                    ensureLivePolling()
+                }
+                Intent.ACTION_SCREEN_OFF -> {
+                    isScreenInteractive = false
+                    // Screen turned off: halt background polling completely so the SoC enters deep sleep (Doze)
+                    stopLivePolling()
+                }
+            }
+        }
+    }
+    private var screenReceiverRegistered = false
+
+    private fun registerScreenReceiver() {
+        if (screenReceiverRegistered) return
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
+        }
+        runCatching {
+            registerReceiver(screenReceiver, filter)
+            screenReceiverRegistered = true
+        }
+    }
+
+    private fun unregisterScreenReceiver() {
+        if (!screenReceiverRegistered) return
+        runCatching { unregisterReceiver(screenReceiver) }
+        screenReceiverRegistered = false
+    }
+
+    /**
+     * Start/ensure live 1s polling only if the screen is currently on and interactive.
+     * Prevents duplicate runnable scheduling.
+     */
+    fun ensureLivePolling() {
+        if (!isScreenInteractive) return
+        if (!isPollingActive) {
+            isPollingActive = true
+            pollHandler.removeCallbacks(pollRunnable)
+            pollHandler.post(pollRunnable)
+        }
+    }
+
+    fun stopLivePolling() {
+        isPollingActive = false
+        pollHandler.removeCallbacks(pollRunnable)
+    }
+
     private val pollRunnable = object : Runnable {
         override fun run() {
-            // Vivo-safe optimisation: only our own polling cadence changes — no SuperX
-            // template, scene, priority or bundle field changes. A live card (media,
-            // chronometer, download, score) still refreshes every 1s, so download Mbps
-            // and ticking timers stay smooth; with nothing live, 3s cuts the per-second
-            // activeNotifications sweep + binder calls to roughly a third.
+            // Power-efficiency check: if the screen is off, DO NOT poll!
+            // When the display is off, the dynamic island is not visible to the user.
+            // Halting polling here allows the SoC to enter deep sleep (Doze).
+            if (!isScreenInteractive) {
+                isPollingActive = false
+                return
+            }
+
             var foundLive = false
             try {
                 val prefs = getSharedPreferences(PREFS, 0)
                 val castNotifs = prefs.getBoolean("cast_notifications", false)
                 val castMedia = prefs.getBoolean("cast_media_sessions", false)
-                // Skip the sweep entirely when nothing can be cast — iterating every active
-                // notification each second with both switches off was pure waste.
+
                 if (castNotifs || castMedia) {
-                    activeNotifications?.forEach { sbn ->
-                        val extras = sbn.notification.extras
-                        val token = extras.getParcelable(
-                            NotificationCompat.EXTRA_MEDIA_SESSION, MediaSession.Token::class.java,
-                        )
-                        if (token != null) {
-                            if (castMedia && isAppEnabled(prefs, sbn.packageName)) {
+                    val notifs = activeNotifications
+                    if (notifs != null && notifs.isNotEmpty()) {
+                        for (sbn in notifs) {
+                            if (!isAppEnabled(prefs, sbn.packageName)) continue
+                            val extras = sbn.notification.extras
+                            val token = extras.getParcelable(
+                                NotificationCompat.EXTRA_MEDIA_SESSION, MediaSession.Token::class.java,
+                            )
+                            val isCall = CallCard.isCall(sbn)
+                            val isChrono = extras.getBoolean(NotificationCompat.EXTRA_SHOW_CHRONOMETER, false)
+                            val isMeeting = GenericCard.isVideoCallOrMeeting(sbn)
+                            val isDownload = DownloadCard.isDownload(sbn)
+                            val isTimer = isTimer(sbn)
+                            val isScore = sbn.packageName in SCORE_APPS && prefs.getBoolean("cast_sports", true)
+
+                            // Media cards are event-driven via MediaController.Callback and OnActiveSessionsChangedListener!
+                            // Only tick if the media card explicitly has an active ticking chronometer.
+                            if (token != null && castMedia) {
+                                if (isChrono && sbn.isOngoing) {
+                                    foundLive = true
+                                    MediaCard.post(
+                                        applicationContext, sbn,
+                                        MediaController(this@NotificationCastListener, token),
+                                    )
+                                }
+                            } else if (castNotifs && sbn.isOngoing && (isChrono || isMeeting || isCall || isTimer)) {
                                 foundLive = true
-                                MediaCard.post(
-                                    applicationContext, sbn,
-                                    MediaController(this@NotificationCastListener, token),
-                                )
+                                onNotificationPosted(sbn) // refresh ticking chronometer, active call timer & ongoing countdown
+                            } else if (castNotifs && sbn.isOngoing && isDownload) {
+                                foundLive = true
+                                onNotificationPosted(sbn) // refresh live download progress and speed
+                            } else if (castNotifs && isScore && lastScorePostTime.put(sbn.key, sbn.postTime) != sbn.postTime) {
+                                foundLive = true
+                                onNotificationPosted(sbn) // catch a score update
                             }
-                        } else if (castNotifs && sbn.isOngoing && (
-                            extras.getBoolean(NotificationCompat.EXTRA_SHOW_CHRONOMETER, false) ||
-                            GenericCard.isVideoCallOrMeeting(sbn) ||
-                            CallCard.isCall(sbn)
-                        )) {
-                            foundLive = true
-                            onNotificationPosted(sbn) // refresh ticking chronometer & active meeting/video calls
-                        } else if (castNotifs && sbn.isOngoing && DownloadCard.isDownload(sbn)) {
-                            foundLive = true
-                            onNotificationPosted(sbn) // refresh live download progress and Mbps speed
-                        } else if (castNotifs && sbn.packageName in SCORE_APPS &&
-                            prefs.getBoolean("cast_sports", true) &&
-                            isAppEnabled(prefs, sbn.packageName) &&
-                            lastScorePostTime.put(sbn.key, sbn.postTime) != sbn.postTime
-                        ) {
-                            foundLive = true
-                            onNotificationPosted(sbn) // catch a score update onNotificationPosted was slow to deliver
                         }
                     }
                 }
-                // refresh() makes a getActiveSessions() binder call per live card; 3s is plenty
-                // for a crowded-island re-layout and cuts the IPC to a third.
-                if (pollTicks % 3 == 0L) SportsCard.refresh(applicationContext)
+
+                if (SportsCard.hasActiveMatches()) {
+                    foundLive = true
+                    if (pollTicks % 3 == 0L) {
+                        SportsCard.refresh(applicationContext)
+                    }
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "poll error", e)
             }
             pollTicks++
-            pollHandler.postDelayed(this, if (foundLive) 1000L else 3000L)
+
+            // BATTERY OPTIMIZATION:
+            // Only re-schedule if live ongoing items (e.g. active call timer or active download)
+            // actually exist AND the screen is interactive.
+            // If NO live items were found, STOP polling completely! Do NOT schedule 3000ms idle poll!
+            // When a new notification arrives or a live card starts, onNotificationPosted()
+            // will immediately wake up ensureLivePolling().
+            if (foundLive && isScreenInteractive) {
+                isPollingActive = true
+                pollHandler.postDelayed(this, 1000L)
+            } else {
+                isPollingActive = false
+            }
         }
     }
     private var pollTicks = 0L
@@ -433,10 +514,28 @@ class NotificationCastListener : NotificationListenerService() {
             }
         }
 
+    private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+        when (key) {
+            "cast_charging", "cast_notifications" -> {
+                val enabled = prefs.getBoolean("cast_notifications", false) && prefs.getBoolean("cast_charging", true)
+                if (enabled) {
+                    registerBatteryReceiver()
+                } else {
+                    unregisterBatteryReceiver()
+                }
+            }
+        }
+    }
+
     override fun onListenerConnected() {
         super.onListenerConnected()
         instance = this
         connectedAt = System.currentTimeMillis()
+        val pm = getSystemService(PowerManager::class.java)
+        isScreenInteractive = pm?.isInteractive ?: true
+        registerScreenReceiver()
+        getSharedPreferences(PREFS, 0).registerOnSharedPreferenceChangeListener(prefsListener)
+
         if (getSharedPreferences(PREFS, 0).getBoolean("cast_notifications", false)) {
             runCatching { PlaygroundService.keepAlive(this) }
         }
@@ -446,7 +545,7 @@ class NotificationCastListener : NotificationListenerService() {
                 ?.addOnActiveSessionsChangedListener(sessionsChangedListener, component)
         }
         reload()
-        pollHandler.post(pollRunnable)
+        ensureLivePolling()
         registerBatteryReceiver()
     }
 
@@ -461,6 +560,9 @@ class NotificationCastListener : NotificationListenerService() {
 
     private fun registerBatteryReceiver() {
         if (batteryReceiverRegistered) return
+        val prefs = getSharedPreferences(PREFS, 0)
+        val enabled = prefs.getBoolean("cast_notifications", false) && prefs.getBoolean("cast_charging", true)
+        if (!enabled) return
         runCatching {
             registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED), RECEIVER_NOT_EXPORTED)
             batteryReceiverRegistered = true
@@ -479,10 +581,12 @@ class NotificationCastListener : NotificationListenerService() {
             getSystemService(MediaSessionManager::class.java)
                 ?.removeOnActiveSessionsChangedListener(sessionsChangedListener)
         }
+        runCatching { getSharedPreferences(PREFS, 0).unregisterOnSharedPreferenceChangeListener(prefsListener) }
+        unregisterScreenReceiver()
         unregisterBatteryReceiver()
         if (instance === this) instance = null
         connectedAt = 0L
-        pollHandler.removeCallbacks(pollRunnable)
+        stopLivePolling()
         // A system-initiated unbind DOES snooze the component, so unlike the process-kill case a
         // plain requestRebind works here (see [forceRebind]). Self-heals transient disconnects.
         runCatching { requestRebind(ComponentName(this, NotificationCastListener::class.java)) }
@@ -574,6 +678,7 @@ class NotificationCastListener : NotificationListenerService() {
         if (isCall && castNotifs) {
             log(sbn, "cast — incoming call", true)
             CallCard.post(applicationContext, sbn, appLabel(sbn.packageName))
+            ensureLivePolling()
             return
         }
 
@@ -591,6 +696,9 @@ class NotificationCastListener : NotificationListenerService() {
                 if (!castMedia) { log(sbn, "skipped — media, media casting off", false); return }
                 log(sbn, "cast — media player", true)
                 MediaCard.post(applicationContext, sbn, controller)
+                if (extras.getBoolean(NotificationCompat.EXTRA_SHOW_CHRONOMETER, false) && sbn.isOngoing) {
+                    ensureLivePolling()
+                }
                 return
             }
         }
@@ -672,6 +780,7 @@ class NotificationCastListener : NotificationListenerService() {
                 sourcePkg = sbn.packageName,
             )
             log(sbn, "cast — timer", true)
+            if (sbn.isOngoing) ensureLivePolling()
             return
         }
 
@@ -696,7 +805,11 @@ class NotificationCastListener : NotificationListenerService() {
             // generic message-cast setting is off), so it displays nothing rather than falling
             // through to a plain-message card.
             if (isRecapOrHighlights(sbn)) { log(sbn, "skipped — recap/highlights, not live", false); return }
-            if (handleScore(sbn)) { log(sbn, "cast — live score", true); return }
+            if (handleScore(sbn)) {
+                log(sbn, "cast — live score", true)
+                ensureLivePolling()
+                return
+            }
         }
 
         // Payments (Wallet, Revolut, PayPal, banks, …) -> Apple-Pay-style success card. This runs
@@ -851,6 +964,7 @@ class NotificationCastListener : NotificationListenerService() {
         if (isNavigation(sbn, isOngoing)) {
             log(sbn, "cast — navigation", true)
             NavigationCard.post(applicationContext, sbn)
+            ensureLivePolling()
             return
         }
 
@@ -858,6 +972,7 @@ class NotificationCastListener : NotificationListenerService() {
         if (DownloadCard.isDownload(sbn)) {
             log(sbn, "cast — download", true)
             DownloadCard.post(applicationContext, sbn, appLabel(sbn.packageName))
+            ensureLivePolling()
             return
         }
 
@@ -922,6 +1037,9 @@ class NotificationCastListener : NotificationListenerService() {
             else -> {
                 GenericCard.post(applicationContext, sbn, isLive)
             }
+        }
+        if (isLive || extras.getBoolean(NotificationCompat.EXTRA_SHOW_CHRONOMETER, false)) {
+            ensureLivePolling()
         }
     }
 
@@ -1013,6 +1131,8 @@ class NotificationCastListener : NotificationListenerService() {
         // onListenerDisconnected removes it too, but a direct destroy (service shut down while
         // still bound) skips that path — without this the poll would keep firing on a dead service.
         pollHandler.removeCallbacks(pollRunnable)
+        runCatching { getSharedPreferences(PREFS, 0).unregisterOnSharedPreferenceChangeListener(prefsListener) }
+        unregisterScreenReceiver()
         unregisterBatteryReceiver()
         if (instance === this) instance = null
         scope.cancel()
