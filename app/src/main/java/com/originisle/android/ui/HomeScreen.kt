@@ -130,7 +130,43 @@ fun HomeScreen(
     var permissionsOpen by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var updateStatus by remember { mutableStateOf<String?>(null) }
+    var activeUpdateInfo by remember { mutableStateOf<UpdateChecker.AppUpdateInfo?>(null) }
+    var startDownloadOnOpen by remember { mutableStateOf(false) }
+    var autoUpdateCheck by remember { mutableStateOf(prefs.getBoolean("auto_check_updates_daily", true)) }
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        val activity = context as? androidx.activity.ComponentActivity
+        val actIntent = activity?.intent
+        if (actIntent?.getBooleanExtra(UpdateChecker.EXTRA_OPEN_UPDATE_DIALOG, false) == true) {
+            val startDl = actIntent.getBooleanExtra(UpdateChecker.EXTRA_START_DOWNLOAD, false)
+            val cachedVersion = prefs.getString("cached_update_version", null)
+            if (cachedVersion != null) {
+                activeUpdateInfo = UpdateChecker.AppUpdateInfo(
+                    latestVersion = cachedVersion,
+                    releaseTitle = prefs.getString("cached_update_title", "Origin Island Pro v$cachedVersion") ?: "",
+                    releaseNotes = prefs.getString("cached_update_notes", "") ?: "",
+                    apkUrl = prefs.getString("cached_update_apk_url", "") ?: "",
+                    apkSize = prefs.getLong("cached_update_apk_size", 0L),
+                    apkName = prefs.getString("cached_update_apk_name", "origin-island-pro-$cachedVersion.apk") ?: "",
+                    releaseUrl = prefs.getString("cached_update_release_url", "") ?: "",
+                )
+                startDownloadOnOpen = startDl
+            } else {
+                coroutineScope.launch {
+                    when (val res = UpdateChecker.check(context)) {
+                        is UpdateChecker.Result.UpdateAvailable -> {
+                            activeUpdateInfo = res.info
+                            startDownloadOnOpen = startDl
+                        }
+                        else -> Unit
+                    }
+                }
+            }
+            actIntent.removeExtra(UpdateChecker.EXTRA_OPEN_UPDATE_DIALOG)
+            actIntent.removeExtra(UpdateChecker.EXTRA_START_DOWNLOAD)
+        }
+    }
 
     // Poll the listener once a second so the status pill stays live.
     var connected by remember { mutableStateOf(NotificationCastListener.instance != null) }
@@ -188,15 +224,19 @@ fun HomeScreen(
                         MenuItem("Check for updates") {
                             menuOpen = false
                             coroutineScope.launch {
-                                updateStatus = "Checking…"
-                                updateStatus = when (val result = UpdateChecker.check(context)) {
-                                    is UpdateChecker.Result.UpToDate ->
-                                        "You're on the latest version (v${result.current})."
-                                    is UpdateChecker.Result.UpdateAvailable -> {
-                                        UpdateChecker.openRelease(context, result.url)
-                                        "Update available: v${result.latest} — opening GitHub…"
+                                updateStatus = "Checking for updates…"
+                                when (val result = UpdateChecker.check(context)) {
+                                    is UpdateChecker.Result.UpToDate -> {
+                                        updateStatus = "You're on the latest version (v${result.current})."
                                     }
-                                    is UpdateChecker.Result.Error -> result.message
+                                    is UpdateChecker.Result.UpdateAvailable -> {
+                                        updateStatus = null
+                                        activeUpdateInfo = result.info
+                                        startDownloadOnOpen = false
+                                    }
+                                    is UpdateChecker.Result.Error -> {
+                                        updateStatus = result.message
+                                    }
                                 }
                             }
                         }
@@ -811,6 +851,55 @@ fun HomeScreen(
                 NavRow(IsleIcons.Pulse, IsleColors.TileGray, "Activity", onClick = onOpenActivity)
             }
         }
+
+        item {
+            SectionLabel("Updates & Maintenance")
+            GroupCard {
+                ToggleRow(
+                    IsleIcons.Download, IsleColors.TileBlue, "Daily update check", autoUpdateCheck,
+                    subtitle = "Check daily in background & notify when an update is available",
+                ) {
+                    autoUpdateCheck = it
+                    prefs.edit().putBoolean("auto_check_updates_daily", it).apply()
+                    if (it) UpdateChecker.scheduleDailyCheck(context)
+                }
+                GroupDivider()
+                NavRow(
+                    IsleIcons.Sparkles, IsleColors.TilePurple, "Check for updates",
+                    value = if (activeUpdateInfo != null) "Update available!" else "Check now",
+                    onClick = {
+                        coroutineScope.launch {
+                            updateStatus = "Checking for updates…"
+                            when (val result = UpdateChecker.check(context)) {
+                                is UpdateChecker.Result.UpToDate -> {
+                                    updateStatus = "You're on the latest version (v${result.current})."
+                                }
+                                is UpdateChecker.Result.UpdateAvailable -> {
+                                    updateStatus = null
+                                    activeUpdateInfo = result.info
+                                    startDownloadOnOpen = false
+                                }
+                                is UpdateChecker.Result.Error -> {
+                                    updateStatus = result.message
+                                }
+                            }
+                        }
+                    },
+                )
+            }
+        }
+    }
+
+    activeUpdateInfo?.let { info ->
+        UpdateDialog(
+            context = context,
+            info = info,
+            startDownloadImmediately = startDownloadOnOpen,
+            onDismiss = {
+                activeUpdateInfo = null
+                startDownloadOnOpen = false
+            },
+        )
     }
 }
 

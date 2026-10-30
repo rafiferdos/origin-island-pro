@@ -28,7 +28,11 @@ import com.originisle.android.ui.IsleColors
 import com.originisle.android.ui.OnboardingScreen
 import com.originisle.android.ui.OriginIsleTheme
 import com.originisle.android.ui.PREFS_NAME
+import com.originisle.android.ui.UpdateChecker
 import com.originisle.android.ui.samples.IslandSamples
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Driver UI: onboard the required permissions, grant access, toggle casting, fire sample cards, and
@@ -57,6 +61,9 @@ class MainActivity : ComponentActivity() {
         if (getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean("cast_notifications", false)) {
             PlaygroundService.keepAlive(this)
             NotificationCastListener.forceRebind(this)
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            UpdateChecker.checkDailyIfNeeded(this@MainActivity)
         }
     }
 }
