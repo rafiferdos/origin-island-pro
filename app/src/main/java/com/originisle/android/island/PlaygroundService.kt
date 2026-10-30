@@ -18,8 +18,10 @@ import androidx.core.app.NotificationCompat
 import com.originisle.android.R
 import com.originisle.android.cards.RaidenCard
 import com.originisle.android.cards.fallbackClickIntent
+import com.originisle.android.log.CastLog
 import com.originisle.android.service.IconCache
 import com.originisle.android.ui.PREFS_NAME
+import com.originisle.android.util.PriorityArbitrator
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -57,6 +59,14 @@ class PlaygroundService : Service() {
 
         /** Priorities of active cards on the island. */
         val activeCardPriorities = ConcurrentHashMap<Int, Int>()
+
+        /** Queued Raiden card waiting for higher priority cards (Call, Nav, Timer) to finish. */
+        @Volatile
+        var queuedRaidenIntent: Intent? = null
+
+        /** Stored latest Raiden intent so that if Raiden is active and displaced by Call/Nav/Timer, it can be queued. */
+        @Volatile
+        var lastRaidenIntent: Intent? = null
 
         const val ORIGIN_CHANNEL_ID = "originisle_island_hi"
         const val FGS_ID = 9999
@@ -398,6 +408,44 @@ class PlaygroundService : Service() {
             sceneCurrentId[scene] = id
         }
 
+        // Priority arbitration & Raiden queue management:
+        // Live calls (100), navigation (95), and timers (90) take precedence over Raiden (85/40),
+        // unless the user enabled "raiden_always_on_top" (which forces Raiden to 100).
+        val isAlwaysOnTop = getSharedPreferences(PREFS_NAME, 0).getBoolean("raiden_always_on_top", false)
+        val hasHigherActiveCard = !isAlwaysOnTop && activeCardPriorities.any { (cardId, p) ->
+            cardId != RaidenCard.RAIDEN_CAST_ID && p >= PriorityArbitrator.PRIORITY_TIMER
+        }
+
+        if (id == RaidenCard.RAIDEN_CAST_ID) {
+            val stateText = intent.getStringExtra("status_chip_text").orEmpty()
+            if (hasHigherActiveCard) {
+                if (stateText.contains("Done", ignoreCase = true) || !isOngoing) {
+                    queuedRaidenIntent = null
+                    lastRaidenIntent = null
+                    CastLog.add("Raiden", "Done", "Raiden done while higher card active — cleared queue", false)
+                } else {
+                    queuedRaidenIntent = Intent(intent)
+                    lastRaidenIntent = Intent(intent)
+                    CastLog.add("Raiden", stateText, "queued behind higher live card (Call/Nav/Timer)", false)
+                }
+                return
+            } else {
+                lastRaidenIntent = Intent(intent)
+            }
+        } else if (priority >= PriorityArbitrator.PRIORITY_TIMER && !isAlwaysOnTop) {
+            if (RaidenCard.RAIDEN_CAST_ID in activeIds) {
+                CastLog.add("Raiden", "Displaced", "queued behind incoming higher card (priority $priority)", false)
+                queuedRaidenIntent = lastRaidenIntent
+                endOrigin(RaidenCard.RAIDEN_CAST_ID, "NAVIGATION")
+                notificationManager.cancel(OriginIslandConstants.SUPERX_TAG, RaidenCard.RAIDEN_CAST_ID)
+                activeIds.remove(RaidenCard.RAIDEN_CAST_ID)
+                activeCardPriorities.remove(RaidenCard.RAIDEN_CAST_ID)
+                originScenes.remove(RaidenCard.RAIDEN_CAST_ID)
+                originChangeRecord.remove(RaidenCard.RAIDEN_CAST_ID)
+                activeCardIds = activeIds.toSet()
+            }
+        }
+
         activeIds.add(id)
         originScenes[id] = scene
         activeCardIds = activeIds.toSet()
@@ -504,6 +552,10 @@ class PlaygroundService : Service() {
     private fun cancelNotification(intent: Intent) {
         val id = intent.getIntExtra("id", -1)
         if (id == -1) return
+        if (id == RaidenCard.RAIDEN_CAST_ID) {
+            queuedRaidenIntent = null
+            lastRaidenIntent = null
+        }
         autoDismissTasks.remove(id)?.let { mainHandler.removeCallbacks(it) }
         val scene = originScenes.remove(id) ?: intent.getStringExtra("oi_scene")
         if (scene != null) {
@@ -518,6 +570,20 @@ class PlaygroundService : Service() {
         originChangeRecord.remove(id)
         activeCardPriorities.remove(id)
         activeCardIds = activeIds.toSet()
+
+        // If a higher priority card (Call, Nav, Timer) ended and no other higher card remains,
+        // restore any queued Raiden card.
+        val stillHasHigher = activeCardPriorities.any { (cardId, p) ->
+            cardId != RaidenCard.RAIDEN_CAST_ID && p >= PriorityArbitrator.PRIORITY_TIMER
+        }
+        if (!stillHasHigher) {
+            val queued = queuedRaidenIntent
+            if (queued != null) {
+                queuedRaidenIntent = null
+                CastLog.add("Raiden", queued.getStringExtra("title") ?: "Raiden", "restored to island after higher card ended", true)
+                mainHandler.postDelayed({ readAndPost(queued) }, 400L)
+            }
+        }
         // Keep the sceneCurrentId entry (now stale) so the NEXT different card clears this scene's
         // leftovers via the staleness-aware replace in readAndPost.
         // NOTE: we deliberately do NOT stopSelf() when idle. The notification listener runs in the
@@ -530,6 +596,8 @@ class PlaygroundService : Service() {
     private fun stopEverything() {
         // An explicit stop must not be undone by an alarm a previous swipe left armed.
         cancelRestartAlarm()
+        queuedRaidenIntent = null
+        lastRaidenIntent = null
         autoDismissTasks.values.forEach { mainHandler.removeCallbacks(it) }
         autoDismissTasks.clear()
         val hadScenes = originScenes.isNotEmpty()

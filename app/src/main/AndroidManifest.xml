@@ -10,6 +10,29 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Custom permission to secure Route B Raiden state broadcasts -->
+    <permission
+        android:name="com.originisle.android.permission.RAIDEN_STATE"
+        android:protectionLevel="normal" />
+    <uses-permission android:name="com.originisle.android.permission.RAIDEN_STATE" />
+
+    <!-- Explicit package queries for Muse companion discovery on Android 11+ -->
+    <queries>
+        <package android:name="ai.muse" />
+        <package android:name="ai.muse.app" />
+        <package android:name="com.muse" />
+        <package android:name="com.muse.app" />
+        <package android:name="com.hermes.muse" />
+        <package android:name="com.raiden.app" />
+        <package android:name="ai.raiden" />
+        <package android:name="com.muse.mobile" />
+        <package android:name="io.muse.app" />
+        <package android:name="com.xiaohei.muse" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+        </intent>
+    </queries>
+
     <application
         android:name=".OriginIsleApp"
         android:allowBackup="false"
@@ -86,10 +109,11 @@
             android:name=".service.CopyCodeReceiver"
             android:exported="false" />
 
-        <!-- Direct broadcast receiver for Raiden AI companion states (Route B). -->
+        <!-- Direct broadcast receiver for Raiden AI companion states (Route B). Protected by custom permission. -->
         <receiver
             android:name=".service.RaidenStateReceiver"
-            android:exported="true">
+            android:exported="true"
+            android:permission="com.originisle.android.permission.RAIDEN_STATE">
             <intent-filter>
                 <action android:name="com.originisle.android.action.RAIDEN_STATE" />
             </intent-filter>

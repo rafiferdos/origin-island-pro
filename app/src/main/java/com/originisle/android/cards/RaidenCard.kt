@@ -69,65 +69,61 @@ object RaidenCard {
     )
 
     @Volatile
-    private var cachedConfirmedPackage: String? = null
+    private var cachedDiscoveredPackage: String? = null
+
+    fun resetPackageCache() {
+        cachedDiscoveredPackage = null
+    }
 
     /**
-     * Confirms the package name of the Muse / Raiden companion app on the device.
+     * Confirms the exact package name of the Muse companion app on the device.
      * 1. Checks user preference "raiden_muse_pkg" if explicitly configured.
-     * 2. Checks cached confirmed package.
-     * 3. Probes the device's PackageManager dynamically for installed apps matching "muse" or "raiden".
-     * 4. Checks candidate package list.
+     * 2. Checks cached discovered package.
+     * 3. Probes the device's PackageManager for installed candidate packages in [CANDIDATE_MUSE_APPS].
+     * Substring matching on package names or labels is strictly removed!
      */
     fun confirmMusePackage(context: Context): String? {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val userPkg = prefs.getString("raiden_muse_pkg", null)?.trim()?.ifBlank { null }
-        if (userPkg != null) return userPkg
+        if (userPkg != null) {
+            return userPkg
+        }
 
-        cachedConfirmedPackage?.let { return it }
+        cachedDiscoveredPackage?.let { return it }
 
         val pm = context.packageManager
-        return runCatching {
-            val installed = pm.getInstalledPackages(0)
-            for (pkgInfo in installed) {
-                val pkgName = pkgInfo.packageName
-                if (pkgName in SYSTEM_PKGS) continue
-                val appInfo = pkgInfo.applicationInfo ?: continue
-                val label = runCatching { pm.getApplicationLabel(appInfo).toString() }.getOrDefault("")
-                val matchesLabel = label.equals("Muse", ignoreCase = true) ||
-                    label.equals("Raiden", ignoreCase = true) ||
-                    label.contains("Muse App", ignoreCase = true) ||
-                    label.contains("Raiden App", ignoreCase = true)
-                val matchesPkg = pkgName in CANDIDATE_MUSE_APPS ||
-                    pkgName.contains(".muse.", ignoreCase = true) ||
-                    pkgName.endsWith(".muse", ignoreCase = true) ||
-                    pkgName.contains(".raiden.", ignoreCase = true) ||
-                    pkgName.endsWith(".raiden", ignoreCase = true)
-                if (matchesLabel || matchesPkg) {
-                    Log.i(TAG, "Confirmed Muse/Raiden companion package on device: $pkgName (label: '$label')")
-                    cachedConfirmedPackage = pkgName
-                    return pkgName
-                }
+        for (cand in CANDIDATE_MUSE_APPS) {
+            val installed = runCatching { pm.getPackageInfo(cand, 0) != null }.getOrDefault(false)
+            if (installed) {
+                cachedDiscoveredPackage = cand
+                Log.i(TAG, "Confirmed installed Muse companion package on device: $cand")
+                CastLog.add("Raiden", cand, "confirmed discovered Muse package", false)
+                return cand
             }
-            null
-        }.getOrNull()
+        }
+        return null
     }
 
     /**
-     * Verifies if [packageName] is confirmed or recognized as the Muse / Raiden companion app.
-     * System packages are unconditionally stripped.
+     * Verifies if [packageName] is the exact Muse / Raiden companion app.
+     * Casts ONLY for the exact user set package or an exact confirmed Muse package.
+     * Substring matching is strictly removed. System packages are unconditionally stripped.
      */
     fun isMuseApp(context: Context, packageName: String): Boolean {
         if (packageName in SYSTEM_PKGS) return false
-        val confirmed = confirmMusePackage(context)
-        if (confirmed != null && packageName.equals(confirmed, ignoreCase = true)) return true
-        if (packageName in CANDIDATE_MUSE_APPS) return true
-        if (packageName.contains("muse", ignoreCase = true) || packageName.contains("raiden", ignoreCase = true)) return true
 
-        val label = runCatching {
-            val info = context.packageManager.getApplicationInfo(packageName, 0)
-            context.packageManager.getApplicationLabel(info).toString()
-        }.getOrDefault("")
-        return label.contains("Muse", ignoreCase = true) || label.contains("Raiden", ignoreCase = true)
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val userPkg = prefs.getString("raiden_muse_pkg", null)?.trim()?.ifBlank { null }
+        if (userPkg != null) {
+            return packageName == userPkg
+        }
+
+        val confirmed = confirmMusePackage(context)
+        if (confirmed != null) {
+            return packageName == confirmed
+        }
+
+        return packageName in CANDIDATE_MUSE_APPS
     }
 
     /**

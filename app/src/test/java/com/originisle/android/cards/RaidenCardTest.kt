@@ -17,11 +17,13 @@ class RaidenCardTest {
         assertTrue("ai.raiden" in RaidenCard.CANDIDATE_MUSE_APPS)
         assertTrue("com.raiden.app" in RaidenCard.CANDIDATE_MUSE_APPS)
 
-        // Substring matching
-        assertTrue("com.example.muse.client".contains("muse", ignoreCase = true))
-        assertTrue("org.raiden.agent".contains("raiden", ignoreCase = true))
+        // Strict non-substring matching: random apps containing "muse" or "raiden" MUST NOT be in candidate set
+        assertFalse("org.musescore.player" in RaidenCard.CANDIDATE_MUSE_APPS)
+        assertFalse("com.example.muse.client" in RaidenCard.CANDIDATE_MUSE_APPS)
+        assertFalse("org.raiden.agent" in RaidenCard.CANDIDATE_MUSE_APPS)
+        assertFalse("com.musemusic" in RaidenCard.CANDIDATE_MUSE_APPS)
 
-        // System packages are not in candidate set
+        // System packages are not in candidate set and unconditionally stripped
         assertFalse("android" in RaidenCard.CANDIDATE_MUSE_APPS)
         assertFalse("com.android.systemui" in RaidenCard.CANDIDATE_MUSE_APPS)
         assertFalse("com.vivo.upslide" in RaidenCard.CANDIDATE_MUSE_APPS)
@@ -137,5 +139,49 @@ class RaidenCardTest {
         assertFalse(RaidenCard.RaidenState.DONE.isLive)
         assertFalse(RaidenCard.RaidenState.ERROR.isLive)
         assertFalse(RaidenCard.RaidenState.MESSAGE.isLive)
+    }
+
+    @Test
+    fun testPriorityQueueingDecisionLogic() {
+        // Active priorities map simulation
+        val activePriorities = mutableMapOf<Int, Int>()
+
+        // 1. When no higher card is active, Raiden should post immediately
+        val hasHigherInitial = activePriorities.any { (id, p) ->
+            id != RaidenCard.RAIDEN_CAST_ID && p >= PriorityArbitrator.PRIORITY_TIMER
+        }
+        assertFalse(hasHigherInitial)
+
+        // 2. When a Call (100) is active, Raiden should queue
+        activePriorities[20000] = PriorityArbitrator.PRIORITY_CALL
+        val hasHigherWithCall = activePriorities.any { (id, p) ->
+            id != RaidenCard.RAIDEN_CAST_ID && p >= PriorityArbitrator.PRIORITY_TIMER
+        }
+        assertTrue(hasHigherWithCall)
+
+        // 3. When a Navigation (95) is active, Raiden should queue
+        activePriorities.clear()
+        activePriorities[20001] = PriorityArbitrator.PRIORITY_NAVIGATION
+        val hasHigherWithNav = activePriorities.any { (id, p) ->
+            id != RaidenCard.RAIDEN_CAST_ID && p >= PriorityArbitrator.PRIORITY_TIMER
+        }
+        assertTrue(hasHigherWithNav)
+
+        // 4. When a Timer (90) is active, Raiden should queue
+        activePriorities.clear()
+        activePriorities[20002] = PriorityArbitrator.PRIORITY_TIMER
+        val hasHigherWithTimer = activePriorities.any { (id, p) ->
+            id != RaidenCard.RAIDEN_CAST_ID && p >= PriorityArbitrator.PRIORITY_TIMER
+        }
+        assertTrue(hasHigherWithTimer)
+
+        // 5. When Media (50) or Message (40) is active, Raiden (85) should NOT queue
+        activePriorities.clear()
+        activePriorities[20003] = PriorityArbitrator.PRIORITY_MEDIA
+        activePriorities[20004] = PriorityArbitrator.PRIORITY_MESSAGE
+        val hasHigherWithMedia = activePriorities.any { (id, p) ->
+            id != RaidenCard.RAIDEN_CAST_ID && p >= PriorityArbitrator.PRIORITY_TIMER
+        }
+        assertFalse(hasHigherWithMedia)
     }
 }

@@ -58,6 +58,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import com.originisle.android.cards.RaidenCard
 import com.originisle.android.MainActivity
 import com.originisle.android.R
 import com.originisle.android.cards.ChargingCard
@@ -105,6 +109,7 @@ fun HomeScreen(
     var raidenMessagesOn by remember { mutableStateOf(prefs.getBoolean("cast_raiden_messages", true)) }
     var raidenDoneOn by remember { mutableStateOf(prefs.getBoolean("cast_raiden_done", true)) }
     var raidenAlwaysOnTop by remember { mutableStateOf(prefs.getBoolean("raiden_always_on_top", false)) }
+    var raidenMusePkg by remember { mutableStateOf(prefs.getString("raiden_muse_pkg", "") ?: "") }
     var privacyOn by remember { mutableStateOf(prefs.getBoolean("cast_privacy_mode", false)) }
     var chargingOn by remember { mutableStateOf(prefs.getBoolean("cast_charging", true)) }
     var chargingKeep by remember { mutableStateOf(prefs.getBoolean("cast_charging_keep", false)) }
@@ -473,6 +478,120 @@ fun HomeScreen(
                             ) {
                                 raidenAlwaysOnTop = it
                                 prefs.edit().putBoolean("raiden_always_on_top", it).apply()
+                            }
+                            // Package Configuration for Muse / Raiden
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(IsleColors.SurfaceHigh)
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        "Muse App Package",
+                                        fontFamily = JakartaSans,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 13.sp,
+                                        color = IsleColors.Text,
+                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        if (raidenMusePkg.isNotBlank()) {
+                                            Text(
+                                                text = "Clear",
+                                                fontFamily = JakartaSans,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = IsleColors.BadText,
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(IsleColors.SurfaceHigher)
+                                                    .clickable {
+                                                        raidenMusePkg = ""
+                                                        prefs.edit().remove("raiden_muse_pkg").apply()
+                                                        RaidenCard.resetPackageCache()
+                                                    }
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                            )
+                                        }
+                                        Text(
+                                            text = "Auto-detect",
+                                            fontFamily = JakartaSans,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = IsleColors.AccentText,
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(IsleColors.Accent.copy(alpha = 0.15f))
+                                                .clickable {
+                                                    val detected = RaidenCard.confirmMusePackage(context)
+                                                    if (detected != null) {
+                                                        raidenMusePkg = detected
+                                                        prefs.edit().putString("raiden_muse_pkg", detected).apply()
+                                                    }
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        )
+                                    }
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(IsleColors.Surface)
+                                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                                    contentAlignment = Alignment.CenterStart,
+                                ) {
+                                    if (raidenMusePkg.isEmpty()) {
+                                        Text(
+                                            "e.g. ai.muse or com.muse.app",
+                                            fontFamily = JakartaSans,
+                                            fontSize = 13.sp,
+                                            color = IsleColors.TextSecondary,
+                                        )
+                                    }
+                                    BasicTextField(
+                                        value = raidenMusePkg,
+                                        onValueChange = { newVal ->
+                                            val trimmed = newVal.trim()
+                                            raidenMusePkg = trimmed
+                                            if (trimmed.isEmpty()) {
+                                                prefs.edit().remove("raiden_muse_pkg").apply()
+                                            } else {
+                                                prefs.edit().putString("raiden_muse_pkg", trimmed).apply()
+                                            }
+                                            RaidenCard.resetPackageCache()
+                                        },
+                                        singleLine = true,
+                                        textStyle = TextStyle(
+                                            fontFamily = JakartaSans,
+                                            fontSize = 13.sp,
+                                            color = IsleColors.Text,
+                                        ),
+                                        cursorBrush = SolidColor(IsleColors.Accent),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                                val confirmedInfo = remember(raidenMusePkg) {
+                                    RaidenCard.confirmMusePackage(context)
+                                }
+                                Text(
+                                    text = if (raidenMusePkg.isNotBlank()) {
+                                        "Exact package configured: $raidenMusePkg"
+                                    } else if (confirmedInfo != null) {
+                                        "Auto-discovered package: $confirmedInfo"
+                                    } else {
+                                        "Set exact package name of Muse app. Substring matching is disabled."
+                                    },
+                                    fontFamily = JakartaSans,
+                                    fontSize = 11.sp,
+                                    color = if (raidenMusePkg.isNotBlank() || confirmedInfo != null) IsleColors.GoodSubtle else IsleColors.TextTertiary,
+                                )
                             }
                         }
                     }
