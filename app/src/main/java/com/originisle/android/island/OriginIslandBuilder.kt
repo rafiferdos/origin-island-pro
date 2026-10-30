@@ -267,15 +267,11 @@ object OriginIslandBuilder {
         if (!isDefaultColor(cardBgColor)) bundle.putInt(C.BUNDLE_KEY_CARD_BG_COLOR, cardBgColor)
         if (keepScreenOn) bundle.putBoolean(C.BUNDLE_KEY_KEEP_SCREEN_ON, true)
         if (disableInvertColor) bundle.putBoolean(C.BUNDLE_KEY_DISABLE_INVERT_COLOR, true)
-        val isGeminiView = (rightContent.trim().equals("View", ignoreCase = true) ||
-            rightContent.trim().equals("✦ View", ignoreCase = true)) && isGeminiGlowEnabled(context)
-        val effectiveLightColor = if (isGeminiView && isDefaultColor(lightColor)) 0xFFA855F7.toInt() else lightColor
-        val effectiveLightMode = if (isGeminiView && isDefaultColor(lightColor)) 1 else lightMode
-        if (!isDefaultColor(effectiveLightColor)) {
+        if (!isDefaultColor(lightColor)) {
             bundle.putBoolean(C.BUNDLE_KEY_EFFECT_IS_LIGHT, true)
             bundle.putBundle(C.BUNDLE_KEY_EFFECT_LIGHT_INFO, Bundle().apply {
-                putInt(C.BUNDLE_KEY_EFFECT_LIGHT_MODE, effectiveLightMode)
-                putInt(C.BUNDLE_KEY_EFFECT_LIGHT_MAIN_COLOR, effectiveLightColor)
+                putInt(C.BUNDLE_KEY_EFFECT_LIGHT_MODE, lightMode)
+                putInt(C.BUNDLE_KEY_EFFECT_LIGHT_MAIN_COLOR, lightColor)
             })
         }
         if (clickResp != null) {
@@ -572,20 +568,8 @@ object OriginIslandBuilder {
                 if (clickResp != null) right.putParcelable(C.BUNDLE_KEY_ISLAND_RIGHT_CLICK_RESP, clickResp)
             }
             6 -> {
-                val cleanText = rightContent.trim().removePrefix("✦").removePrefix("✨").trim()
-                val isGeminiView = cleanText.equals("View", ignoreCase = true) && isGeminiGlowEnabled(context)
-                if (isGeminiView) {
-                    val span = runCatching { buildGeminiTextSpan(rightContent.trim()) }
-                        .getOrDefault(SpannableString(rightContent))
-                    right.putCharSequence(C.BUNDLE_KEY_ISLAND_RIGHT_CAPSULE_CONTENT, span)
-                    val geminiBg = if (isDefaultColor(bgColor) || bgColor == 0xFF2C2C2E.toInt() || bgColor == 0xFF1E1730.toInt()) {
-                        0xFFA855F7.toInt() // Radiant Glowing Gemini Purple
-                    } else bgColor
-                    right.putInt(C.BUNDLE_KEY_ISLAND_RIGHT_BG_COLOR, geminiBg)
-                } else {
-                    right.putCharSequence(C.BUNDLE_KEY_ISLAND_RIGHT_CAPSULE_CONTENT, colorSpan(rightContent, fgColor))
-                    if (!isDefaultColor(bgColor)) right.putInt(C.BUNDLE_KEY_ISLAND_RIGHT_BG_COLOR, bgColor)
-                }
+                right.putCharSequence(C.BUNDLE_KEY_ISLAND_RIGHT_CAPSULE_CONTENT, colorSpan(rightContent, fgColor))
+                if (!isDefaultColor(bgColor)) right.putInt(C.BUNDLE_KEY_ISLAND_RIGHT_BG_COLOR, bgColor)
                 if (clickResp != null) right.putParcelable(C.BUNDLE_KEY_ISLAND_RIGHT_CLICK_RESP, clickResp)
             }
         }
@@ -599,18 +583,9 @@ object OriginIslandBuilder {
         val capsule = Bundle()
         capsule.putInt(C.BUNDLE_KEY_CAPSULE_STATE, 1)
         capsule.putParcelable(C.BUNDLE_KEY_CAPSULE_ICON, rightIcon)
-        val cleanChipText = rightContent.trim().removePrefix("✦").removePrefix("✨").trim()
-        val isGeminiViewChip = cleanChipText.equals("View", ignoreCase = true) && isGeminiGlowEnabled(context)
-        if (isGeminiViewChip) {
-            val plainChip = "✦ View"
-            capsule.putString(C.BUNDLE_KEY_CAPSULE_CONTENT, plainChip)
-            capsule.putInt(C.BUNDLE_KEY_CAPSULE_BG_COLOR, 0xFFA855F7.toInt())
-            capsule.putInt(C.BUNDLE_KEY_CAPSULE_CONTENT_COLOR, 0xFFFFFFFF.toInt())
-        } else {
-            capsule.putString(C.BUNDLE_KEY_CAPSULE_CONTENT, rightContent)
-            if (!isDefaultColor(fgColor)) capsule.putInt(C.BUNDLE_KEY_CAPSULE_CONTENT_COLOR, fgColor)
-            if (!isDefaultColor(bgColor)) capsule.putInt(C.BUNDLE_KEY_CAPSULE_BG_COLOR, bgColor)
-        }
+        capsule.putString(C.BUNDLE_KEY_CAPSULE_CONTENT, rightContent)
+        if (!isDefaultColor(fgColor)) capsule.putInt(C.BUNDLE_KEY_CAPSULE_CONTENT_COLOR, fgColor)
+        if (!isDefaultColor(bgColor)) capsule.putInt(C.BUNDLE_KEY_CAPSULE_BG_COLOR, bgColor)
         if (capsuleShowTime > 0) capsule.putInt(C.BUNDLE_KEY_CAPSULE_SHOW_TIME, capsuleShowTime)
         if (newNode > 0) capsule.putInt(C.BUNDLE_KEY_CAPSULE_NEW_NODE, newNode)
         if (clickResp != null) capsule.putParcelable(C.BUNDLE_KEY_CAPSULE_CLICK_RESP, clickResp)

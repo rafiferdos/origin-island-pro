@@ -131,15 +131,9 @@ object DiscordCard {
                 val chipText = if (discord.isMention) "@Mention" else "View"
                 putExtra("oi_right_content", chipText)
                 putExtra("status_chip_text", chipText)
-                if (chipText == "View") {
-                    putExtra("oi_bg_color", "#FFA855F7")
-                    putExtra("oi_fg_color", "#FFFFFFFF")
-                    putExtra("oi_light_color", "#FFA855F7") // Gemini Radiant Purple Glow
-                } else {
-                    putExtra("oi_bg_color", discordColor)
-                    putExtra("oi_fg_color", "#FFFFFFFF")
-                    putExtra("oi_light_color", discordColor)
-                }
+                putExtra("oi_bg_color", discordColor)
+                putExtra("oi_fg_color", "#FFFFFFFF")
+                putExtra("oi_light_color", discordColor)
                 putExtra("oi_light_mode", 1)
             } else {
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_TEXT_ICON) // 4

@@ -42,13 +42,24 @@ object CallCard {
         "com.samsung.android.incallui",
         "com.android.dialer",
         "com.android.incallui",
+        "com.vivo.upslide",
+        "com.bbk.launcher2",
         "com.whatsapp",
+        "com.whatsapp.w4b",
         "com.facebook.orca",
         "org.telegram.messenger",
+        "org.telegram.messenger.web",
+        "org.thunderdog.chopin",
         "com.google.android.apps.tachyon", // Google Meet
+        "com.google.android.apps.meetings",
+        "us.zoom.videomeetings",
+        "com.microsoft.teams",
         "com.viber.voip",
         "com.skype.raider",
         "com.truecaller",
+        "org.thoughtcrime.securesms", // Signal
+        "com.imo.android.imoim",
+        "com.discord",
     )
 
     private val DURATION_REGEX = Regex("""\b(\d{1,2}:\d{2}(?::\d{2})?)\b""")
@@ -165,20 +176,20 @@ object CallCard {
             return n.fullScreenIntent
         }
 
-        // 2. contentIntent - only if it is an actual Activity (avoids Android 14/15 background broadcast drops)
-        if (n.contentIntent != null && n.contentIntent != declinePi && n.contentIntent.isActivity) {
+        // 2. contentIntent - The primary notification tap intent which opens the active call screen
+        if (n.contentIntent != null && n.contentIntent != declinePi) {
             return n.contentIntent
         }
 
         // 3. Conversation / bubble intent
-        n.bubbleMetadata?.intent?.takeIf { it.isActivity }?.let { return it }
+        n.bubbleMetadata?.intent?.let { return it }
 
-        // 4. Non-destructive call action intent with Activity
+        // 4. Return to call / open call action intent if exposed
         n.actions?.firstOrNull { action ->
             val title = action.title?.toString()?.lowercase().orEmpty()
-            val isDestructive = listOf("decline", "reject", "hang up", "hangup", "end", "cancel", "deny", "drop", "stop", "dismiss").any { title.contains(it) }
-            val isCallOpen = listOf("return", "open", "show", "view", "call", "speaker", "video", "back").any { title.contains(it) }
-            action.actionIntent != null && isCallOpen && !isDestructive && action.actionIntent != declinePi && action.actionIntent.isActivity
+            val isDestructive = isDeclineAction(action)
+            val isCallOpen = listOf("return", "open", "show", "view", "call", "back", "screen").any { title.contains(it) }
+            action.actionIntent != null && isCallOpen && !isDestructive && action.actionIntent != declinePi
         }?.actionIntent?.let { return it }
 
         // 5. Fallback: Launch the app's task with REORDER_TO_FRONT to bring the call activity directly to the foreground
@@ -249,38 +260,27 @@ object CallCard {
         val buttonTextColors = ArrayList<Int>()
 
         if (isOngoing) {
-            // For ongoing calls:
-            // Native single-button UI: only the clean Red "Hang Up" button is shown.
+            // Ongoing calls:
+            // STRICTLY single-button UI: only the clean Red "End Call" button is shown.
+            // DO NOT show "Call Screen" or "Back to call screen" button.
             // Tapping anywhere else on the expanded card (avatar, caller name, duration, card body)
             // directly launches the active call screen via clickIntent!
-            val showCallScreenBtn = context.getSharedPreferences(PREFS_NAME, 0)
-                .getBoolean("call_show_screen_btn", false)
-            if (showCallScreenBtn) {
-                val callScreenAction = Notification.Action.Builder(
-                    Icon.createWithResource(context, R.drawable.ic_call),
-                    "Call Screen",
-                    clickIntent,
-                ).build()
-                buttonTriples.add(callScreenAction)
-                buttonBgColors.add(COLOR_ANSWER)
-                buttonTextColors.add(Color.WHITE)
-            }
-
-            // Decline/Hang-up button (Red)
             val hangUpAction = if (declineAction != null) {
                 Notification.Action.Builder(
                     declineAction.getIcon() ?: Icon.createWithResource(context, R.drawable.ic_call_end),
-                    declineAction.title?.takeIf { it.isNotBlank() } ?: "Hang Up",
+                    "End Call",
                     declineAction.actionIntent,
                 ).build()
             } else {
-                actions.firstOrNull { a -> a.actionIntent != null && !a.title.isNullOrBlank() }?.let { a ->
+                val candidate = actions.firstOrNull { isDeclineAction(it) }
+                    ?: actions.firstOrNull { !isAnswerAction(it) }
+                if (candidate != null) {
                     Notification.Action.Builder(
-                        a.getIcon() ?: Icon.createWithResource(context, R.drawable.ic_call_end),
-                        a.title,
-                        a.actionIntent,
+                        candidate.getIcon() ?: Icon.createWithResource(context, R.drawable.ic_call_end),
+                        "End Call",
+                        candidate.actionIntent,
                     ).build()
-                }
+                } else null
             }
             if (hangUpAction != null) {
                 buttonTriples.add(hangUpAction)
@@ -329,8 +329,10 @@ object CallCard {
             putExtra("oi_landing_info", sbn.packageName)
             putExtra("oi_template", if (hasButtons) OriginIslandConstants.TEMPLATE_BUTTONS else OriginIslandConstants.TEMPLATE_BASE)
 
-            // Pill left: Intelligent first-name trimming (Md./Dr./Prof. skipped)
-            putExtra("oi_left_content", smartCaller.take(12))
+            // Pill left: for ongoing calls, show ONLY the caller avatar / app icon (no text!)
+            // For incoming ringing calls, show the smart caller name
+            val pillLeft = if (isOngoing) "" else smartCaller.take(12)
+            putExtra("oi_left_content", pillLeft)
             pillIcon?.let {
                 putExtra("oi_left_icon", it)
                 putExtra("oi_large_icon", it)
@@ -380,19 +382,28 @@ object CallCard {
 
     private fun isDeclineAction(action: Notification.Action): Boolean {
         val t = action.title?.toString()?.lowercase().orEmpty()
-        return listOf("decline", "reject", "hang up", "hangup", "end call", "end", "dismiss", "cancel", "drop", "disconnect").any { t.contains(it) }
+        return listOf(
+            "decline", "reject", "hang up", "hangup", "end call", "end",
+            "dismiss", "cancel", "drop", "disconnect", "finish", "leave", "stop call",
+        ).any { t.contains(it) }
     }
 
     private fun isAnswerAction(action: Notification.Action): Boolean {
         val t = action.title?.toString()?.lowercase().orEmpty()
-        return listOf("answer", "accept", "pickup", "join").any { t.contains(it) }
+        return listOf("answer", "accept", "pickup", "join", "return to call", "call screen", "return", "back to call").any { t.contains(it) }
     }
 
     private fun extractCallerAvatar(context: Context, sbn: StatusBarNotification): Icon? {
-        when (val large = sbn.notification.extras.get(NotificationCompat.EXTRA_LARGE_ICON)) {
+        val extras = sbn.notification.extras
+        when (val large = extras.get(NotificationCompat.EXTRA_LARGE_ICON)) {
             is Icon -> return large
             is Bitmap -> return Icon.createWithBitmap(shrinkForIcon(large))
         }
+        when (val largeBig = extras.get(NotificationCompat.EXTRA_LARGE_ICON_BIG)) {
+            is Icon -> return largeBig
+            is Bitmap -> return Icon.createWithBitmap(shrinkForIcon(largeBig))
+        }
+        sbn.notification.getLargeIcon()?.let { return it }
         return null
     }
 

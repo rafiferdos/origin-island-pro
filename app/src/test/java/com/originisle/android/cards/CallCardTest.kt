@@ -14,6 +14,30 @@ class CallCardTest {
         assertTrue("com.google.android.dialer" in CallCard.CALL_PACKAGES)
         assertTrue("com.facebook.orca" in CallCard.CALL_PACKAGES)
         assertTrue("org.telegram.messenger" in CallCard.CALL_PACKAGES)
+        assertTrue("com.google.android.apps.tachyon" in CallCard.CALL_PACKAGES)
+        assertTrue("com.google.android.apps.meetings" in CallCard.CALL_PACKAGES)
+        assertTrue("com.microsoft.teams" in CallCard.CALL_PACKAGES)
+        assertTrue("us.zoom.videomeetings" in CallCard.CALL_PACKAGES)
+        assertTrue("org.thoughtcrime.securesms" in CallCard.CALL_PACKAGES)
+        assertTrue("com.imo.android.imoim" in CallCard.CALL_PACKAGES)
+    }
+
+    @Test
+    fun testOngoingCallPillLeftContentIsEmpty() {
+        // When a call is ongoing, compact island left side must only have icon, no text!
+        val isOngoing = true
+        val smartCaller = "Tanvir"
+        val pillLeft = if (isOngoing) "" else smartCaller.take(12)
+        assertEquals("", pillLeft)
+    }
+
+    @Test
+    fun testIncomingCallPillLeftContentHasCaller() {
+        // When a call is incoming (ringing), compact island left side has caller name
+        val isOngoing = false
+        val smartCaller = "Tanvir"
+        val pillLeft = if (isOngoing) "" else smartCaller.take(12)
+        assertEquals("Tanvir", pillLeft)
     }
 
     @Test

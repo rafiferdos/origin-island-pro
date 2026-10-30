@@ -375,7 +375,7 @@ object IslandSamples {
             }
         },
         OriginSample(
-            "Message", "Chat · Tanvir + Gemini Glow [✦ View] badge",
+            "Message", "Chat · Tanvir + minimal [View] badge",
             IslandPreview(R.drawable.ic_chat, "Tanvir", IslandPreview.Right.Capsule("View")),
         ) { ctx ->
             // The same extras MessageCard sends for a real chat notification:
@@ -393,14 +393,42 @@ object IslandSamples {
                 putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
                 putExtra("oi_right_content", "View")
                 putExtra("status_chip_text", "View")
-                putExtra("oi_bg_color", "#FFA855F7")
+                putExtra("oi_bg_color", "#FF25D366")
                 putExtra("oi_fg_color", "#FFFFFFFF")
-                putExtra("oi_light_color", "#FFA855F7")
+                putExtra("oi_light_color", "#FF25D366")
                 putExtra("oi_light_mode", 1)
                 putExtra("icon_res", R.drawable.ic_chat)
                 putStringArrayListExtra("oi_button_titles", arrayListOf("Reply", "Mark Read"))
                 putIntegerArrayListExtra("oi_button_bg_colors", arrayListOf(0xFF25D366.toInt(), 0xFF1E2D52.toInt()))
                 putIntegerArrayListExtra("oi_button_text_colors", arrayListOf(0xFFFFFFFF.toInt(), 0xFF4D88FF.toInt()))
+            }
+        },
+        OriginSample(
+            "Ongoing call", "Active call · Avatar left, timer right · End Call button",
+            IslandPreview(R.drawable.ic_call, "", IslandPreview.Right.Capsule("02:45")),
+        ) { ctx ->
+            start(ctx, 40008) {
+                putExtra("oi_scene", "NAVIGATION")
+                putExtra("oi_priority", 100)
+                putExtra("is_ongoing", true)
+                putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
+                putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
+                putExtra("title", "John Doe")
+                putExtra("text", "02:45 • Ongoing call • WhatsApp")
+                putExtra("subtext", "WhatsApp")
+                putExtra("source_app", "WhatsApp")
+                putExtra("oi_left_content", "")
+                putExtra("oi_left_icon", Icon.createWithResource(ctx, R.drawable.ic_avatar))
+                putExtra("oi_large_icon", Icon.createWithResource(ctx, R.drawable.ic_avatar))
+                putExtra("oi_right_content", "02:45")
+                putExtra("status_chip_text", "02:45")
+                putExtra("oi_bg_color", "#FF34C759")
+                putExtra("oi_fg_color", "#FFFFFFFF")
+                putStringArrayListExtra("oi_button_titles", arrayListOf("End Call"))
+                putIntegerArrayListExtra("oi_button_bg_colors", arrayListOf(0xFFFF3B30.toInt()))
+                putIntegerArrayListExtra("oi_button_text_colors", arrayListOf(0xFFFFFFFF.toInt()))
+                putExtra("click_resp", openApp(ctx))
+                putExtra("icon_res", R.drawable.ic_call)
             }
         },
         OriginSample(
