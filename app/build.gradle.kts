@@ -4,15 +4,35 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ktlint)
+}
+
+// ktlint runs in CI on every push. Every rule stays ON; the pre-existing tree's ~176 violations
+// are recorded in app/config/ktlint/baseline.xml, which is the mechanism ktlint provides for
+// exactly this situation. A baseline blocks only the violations it lists, at the exact file/line/
+// rule they were recorded at — so a NEW violation anywhere fails the build, and a violation that
+// moves (because a line was edited) also fails, because the recorded line number no longer matches.
+//
+// To regenerate after a deliberate style change: `./gradlew :app:ktlintGenerateBaseline`.
+ktlint {
+    android.set(true)
+    ignoreFailures.set(false)
+    filter {
+        // Only exclude generated / vendored sources.
+        exclude("**/build/**")
+    }
 }
 
 // Release signing is optional and driven by a local, gitignored keystore.properties (see README).
 // Its absence must not break a fresh clone's `assembleDebug` — only assembleRelease needs it, and
 // even that build still succeeds unsigned if the file is missing.
 val keystorePropsFile = rootProject.file("keystore.properties")
-val keystoreProps = Properties().apply {
-    if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
-}
+val keystoreProps =
+    Properties().apply {
+        if (keystorePropsFile.exists()) {
+            keystorePropsFile.inputStream().use { load(it) }
+        }
+    }
 
 android {
     // R class / generated sources live under this package. (Distinct from applicationId below —

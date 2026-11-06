@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
@@ -16,6 +15,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.FileProvider
 import com.originisle.android.MainActivity
 import com.originisle.android.R
+import com.originisle.android.security.ApkVerifier
 import com.originisle.android.service.UpdateCheckReceiver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -60,6 +60,8 @@ object UpdateChecker {
         val apkSize: Long,
         val apkName: String,
         val releaseUrl: String,
+        /** The release's published `.sha256` asset contents, when the API returned one. */
+        val expectedSha256: String? = null,
     )
 
     sealed class Result {
@@ -110,16 +112,23 @@ object UpdateChecker {
             var apkUrl = ""
             var apkSize = 0L
             var apkName = "origin-island-pro-$tag.apk"
+            var expectedSha256: String? = null
 
             if (assets != null) {
                 for (i in 0 until assets.length()) {
                     val asset = assets.getJSONObject(i)
                     val name = asset.optString("name", "")
+                    // The release publishes "<apk>.sha256" next to the APK; read its contents so the
+                    // download can be checked against it, not just against the signature.
+                    if (name.equals("$apkName.sha256", ignoreCase = true) && expectedSha256 == null) {
+                        expectedSha256 = downloadChecksumAsset(
+                            asset.optString("browser_download_url", ""),
+                        )
+                    }
                     if (name.endsWith(".apk", ignoreCase = true)) {
                         apkUrl = asset.optString("browser_download_url", "")
                         apkSize = asset.optLong("size", 0L)
                         apkName = name
-                        break
                     }
                 }
             }
@@ -136,6 +145,7 @@ object UpdateChecker {
                 apkSize = apkSize,
                 apkName = apkName,
                 releaseUrl = htmlUrl,
+                expectedSha256 = expectedSha256,
             )
 
             if (isNewer(tag, current)) {
@@ -162,8 +172,30 @@ object UpdateChecker {
     }
 
     /**
+     * Fetches the release's published `.sha256` asset body (the plain hex string, or
+     * "<hex>  filename"). Returns null if it can't be fetched — the signature check still runs, so
+     * a missing checksum asset is not a security regression, only a weaker one.
+     */
+    private fun downloadChecksumAsset(url: String): String? = runCatching {
+        if (url.isBlank()) return null
+        if (!ApkVerifier.isAllowedRedirectHost(url)) return null
+        val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+            instanceFollowRedirects = false
+            connectTimeout = 10000
+            readTimeout = 10000
+            setRequestProperty("User-Agent", "OriginIslandPro-Updater")
+        }
+        try {
+            if (conn.responseCode !in 200..299) return null
+            conn.inputStream.bufferedReader().use { it.readText().trim() }
+        } finally {
+            conn.disconnect()
+        }
+    }.getOrNull()
+
+    /**
      * Downloads the APK file directly in the app, streaming data with real-time progress callbacks.
-     * Follows HTTP 302/301 redirects from GitHub to Azure Blob storage.
+     * Follows GitHub's 302/301 redirects to the storage that hosts release assets.
      */
     suspend fun downloadApk(
         context: Context,
@@ -174,11 +206,24 @@ object UpdateChecker {
         val updatesDir = File(context.cacheDir, "updates").apply { mkdirs() }
         val targetFile = File(updatesDir, info.apkName)
 
-        // Check if an identical completed APK already exists
+        // A cached copy is only trusted once it has been VERIFIED, not because its byte length
+        // happens to match. Length is not identity: a truncated or substituted file of the same
+        // size used to sail straight to the install prompt. See ApkVerifier.
         if (targetFile.exists() && info.apkSize > 0 && targetFile.length() == info.apkSize) {
-            onProgress(DownloadState.Completed(targetFile))
-            postDownloadCompleteNotification(context, targetFile, info.latestVersion)
-            return@withContext targetFile
+            when (val v = ApkVerifier.verify(context, targetFile, info.expectedSha256)) {
+                is ApkVerifier.Result.Ok -> {
+                    onProgress(DownloadState.Completed(targetFile))
+                    postDownloadCompleteNotification(context, targetFile, info.latestVersion)
+                    return@withContext targetFile
+                }
+                is ApkVerifier.Result.Rejected -> {
+                    // A cached file that fails verification is a real problem: delete it rather than
+                    // let a later install path pick it up again.
+                    targetFile.delete()
+                    onProgress(DownloadState.Error(v.reason))
+                    return@withContext null
+                }
+            }
         }
 
         try {
@@ -188,8 +233,12 @@ object UpdateChecker {
 
             while (redirects < 5) {
                 val u = URL(currentUrl)
+                // Manual redirect following only, and only to hosts we allow. Both
+                // instanceFollowRedirects and a manual loop used to run at once, and neither
+                // checked the destination host — so any 3xx Location was followed, including one
+                // pointing off GitHub.
                 conn = (u.openConnection() as HttpURLConnection).apply {
-                    instanceFollowRedirects = true
+                    instanceFollowRedirects = false
                     connectTimeout = 15000
                     readTimeout = 25000
                     setRequestProperty("User-Agent", "OriginIslandPro-Updater")
@@ -199,11 +248,15 @@ object UpdateChecker {
                 if (code in 300..399) {
                     val loc = conn.getHeaderField("Location")
                     conn.disconnect()
-                    if (loc != null) {
+                    if (loc != null && ApkVerifier.isAllowedRedirectHost(loc)) {
                         currentUrl = loc
                         redirects++
                         continue
                     }
+                    // A redirect off the allowlist is refused, not silently dropped: the caller
+                    // needs to know the download failed rather than install a partial file.
+                    onProgress(DownloadState.Error("Download redirected to an untrusted host."))
+                    return@withContext null
                 }
                 break
             }
@@ -303,11 +356,30 @@ object UpdateChecker {
     }
 
     /**
-     * Launches the native Android Package Installer for the downloaded APK file.
+     * Verifies and launches the native Android Package Installer for the downloaded APK file.
+     *
+     * Every install path goes through here, and every one of them is gated on [ApkVerifier]:
+     * the dialog button, the download-complete notification, and the cached-update replay. The
+     * signature check is the real control (the checksum is secondary — a release may not publish
+     * one), so a missing `.sha256` asset still installs when the signature matches.
      */
     fun installApk(context: Context, apkFile: File) {
         if (!apkFile.exists()) {
             Toast.makeText(context, "APK file not found on disk", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val verification = ApkVerifier.verify(context, apkFile)
+        if (verification is ApkVerifier.Result.Rejected) {
+            // Refuse, delete the untrusted artifact, and say why. Never fall through to the
+            // installer: an unverified APK that reads notifications is the worst outcome available.
+            runCatching { apkFile.delete() }
+            Log.e(TAG, "Refusing to install unverified APK: ${verification.reason}")
+            Toast.makeText(
+                context,
+                "Update refused — ${verification.reason}",
+                Toast.LENGTH_LONG,
+            ).show()
             return
         }
 
@@ -369,6 +441,7 @@ object UpdateChecker {
                     .putLong("cached_update_apk_size", res.info.apkSize)
                     .putString("cached_update_apk_name", res.info.apkName)
                     .putString("cached_update_release_url", res.info.releaseUrl)
+                    .putString("cached_update_sha256", res.info.expectedSha256)
                     .apply()
 
                 postUpdateAvailableNotification(context, res.info)

@@ -1,0 +1,33 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# ktlint reads this file directly. Every rule stays ON; the pre-existing tree's ~176 violations
+# are recorded in app/config/ktlint/baseline.xml instead of being switched off here. That is the
+# better mechanism: a baseline blocks only the exact file/line/rule it recorded, so a NEW violation
+# anywhere still fails CI, and a violation that moves because a line was edited also fails.
+#
+# New files are written to the FULL standard — see
+# app/src/main/java/com/originisle/android/security/ApkVerifier.kt, which passes every rule.
+
+# The Kotlin sources are CRLF on disk (Windows checkout, no .gitattributes). ktlint reads the
+# decoded text, so the line-ending rule is not what enforces LF here — this file documents intent.
+[*.{kt,kts}]
+indent_size = 4
+max_line_length = 140
+
+[*.{xml,yml,yaml,json,toml,pro}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+# Gradle's generated files and the version catalogue are not ours to reformat.
+[gradle/libs.versions.toml]
+indent_size = 4

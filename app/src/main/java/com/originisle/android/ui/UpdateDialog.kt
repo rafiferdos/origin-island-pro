@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
+import com.originisle.android.security.ApkVerifier
 import java.io.File
 
 /**
@@ -69,12 +70,20 @@ fun UpdateDialog(
     val coroutineScope = rememberCoroutineScope()
     var downloadState by remember { mutableStateOf<UpdateChecker.DownloadState>(UpdateChecker.DownloadState.Idle) }
 
-    // Pre-check if APK is already downloaded
+    // Pre-check if APK is already downloaded. Byte length alone used to be enough to go straight
+    // to the install prompt; it now has to pass ApkVerifier first (see UpdateChecker.installApk,
+    // which re-verifies on the way in regardless).
     LaunchedEffect(info) {
         val updatesDir = File(context.cacheDir, "updates")
         val localFile = File(updatesDir, info.apkName)
         if (localFile.exists() && info.apkSize > 0 && localFile.length() == info.apkSize) {
-            downloadState = UpdateChecker.DownloadState.Completed(localFile)
+            when (val v = ApkVerifier.verify(context, localFile, info.expectedSha256)) {
+                is ApkVerifier.Result.Ok -> downloadState = UpdateChecker.DownloadState.Completed(localFile)
+                is ApkVerifier.Result.Rejected -> {
+                    runCatching { localFile.delete() }
+                    downloadState = UpdateChecker.DownloadState.Error(v.reason)
+                }
+            }
         } else if (startDownloadImmediately) {
             coroutineScope.launch {
                 UpdateChecker.downloadApk(context, info) { state ->

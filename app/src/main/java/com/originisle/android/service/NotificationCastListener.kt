@@ -603,7 +603,15 @@ class NotificationCastListener : NotificationListenerService() {
         val ignored = prefs.getStringSet("cast_ignored_apps", emptySet()).orEmpty()
         if (pkg in ignored) return false
         val enabledApps = prefs.getStringSet("cast_enabled_apps", null)
-        return enabledApps == null || pkg in enabledApps
+        // The allow set is only authoritative when the user explicitly turned opt-in mode on. An
+        // empty or absent set means "no restriction" — the historical default — which is what makes
+        // the mode an opt-in rather than a footgun that silently blocks every app.
+        if (enabledApps == null || enabledApps.isEmpty()) return true
+        return if (prefs.getBoolean("cast_app_opt_in_mode", false)) {
+            pkg in enabledApps
+        } else {
+            true
+        }
     }
 
     /** Record a decision for the in-app Log screen (deduped: only when the outcome changes). */
@@ -1180,7 +1188,7 @@ class NotificationCastListener : NotificationListenerService() {
             NotificationCompat.EXTRA_TITLE, NotificationCompat.EXTRA_TEXT,
             NotificationCompat.EXTRA_BIG_TEXT, NotificationCompat.EXTRA_SUB_TEXT,
         ).joinToString(" ") { extras.getCharSequence(it)?.toString().orEmpty() }.lowercase()
-        return hay.contains("recap") || hay.contains("highlight") || hay.contains("position")
+        return hay.contains("recap") || hay.contains("highlight")
     }
 
     /**

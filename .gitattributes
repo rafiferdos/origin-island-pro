@@ -1,0 +1,38 @@
+# The repository's Kotlin sources were committed with CRLF line endings. Gradle, ktlint and the
+# Android build all read the decoded text and do not care, but Git's autocrlf handling does — and
+# without this file a single `./gradlew ktlintFormat` silently rewrites 78 files from CRLF to LF,
+# producing a diff of ~5000 lines of pure noise that buries the real change.
+#
+# Pin the working tree to CRLF for the text formats the project actually uses, so a formatter run
+# is reviewable. Files that must stay LF (sh, bat) are pinned explicitly.
+* text=auto eol=crlf
+
+*.kt    text eol=crlf
+*.kts   text eol=crlf
+*.java  text eol=crlf
+*.xml   text eol=crlf
+*.json  text eol=crlf
+*.toml  text eol=crlf
+*.yml   text eol=crlf
+*.yaml  text eol=crlf
+*.md    text eol=crlf
+*.pro   text eol=crlf
+*.properties text eol=crlf
+
+*.sh    text eol=lf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Binary formats: never normalize.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ttf   binary
+*.otf   binary
+*.apk   binary
+*.jks   binary
+*.keystore binary
+*.zip   binary
+*.jar   binary

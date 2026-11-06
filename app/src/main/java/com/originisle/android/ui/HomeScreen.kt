@@ -151,6 +151,7 @@ fun HomeScreen(
                     apkSize = prefs.getLong("cached_update_apk_size", 0L),
                     apkName = prefs.getString("cached_update_apk_name", "origin-island-pro-$cachedVersion.apk") ?: "",
                     releaseUrl = prefs.getString("cached_update_release_url", "") ?: "",
+                    expectedSha256 = prefs.getString("cached_update_sha256", null),
                 )
                 startDownloadOnOpen = startDl
             } else {

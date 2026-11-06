@@ -58,10 +58,33 @@ fun AppsScreen(context: Context, prefs: SharedPreferences, onBack: () -> Unit) {
     val ignored = remember {
         mutableStateListOf<String>().apply { addAll(prefs.getStringSet("cast_ignored_apps", emptySet()).orEmpty()) }
     }
+    val enabled = remember {
+        mutableStateListOf<String>().apply { addAll(prefs.getStringSet("cast_enabled_apps", emptySet()).orEmpty()) }
+    }
+
+    /**
+     * Whether the per-app switch is an opt-out or an opt-in list.
+     *
+     * `cast_enabled_apps` used to be read by the listener but never written anywhere, so the
+     * allow-list branch was dead and the switch silently behaved as opt-out only. This makes the
+     * opt-in mode real: when on, the switch writes the ALLOW set (packages that may cast) and every
+     * app not in it is blocked; when off, it writes the IGNORE set (the historical behaviour).
+     *
+     * The mode is persisted so a user who opted into the stricter mode keeps it across restarts.
+     */
+    var optInMode by remember { mutableStateOf(prefs.getBoolean("cast_app_opt_in_mode", false)) }
 
     LaunchedEffect(Unit) {
         apps = withContext(Dispatchers.IO) { loadApps(context) }
         loading = false
+    }
+
+    /** Persist both sets. The mode decides which one is authoritative in the listener. */
+    fun persist(newIgnored: Set<String>, newEnabled: Set<String>) {
+        prefs.edit()
+            .putStringSet("cast_ignored_apps", newIgnored)
+            .putStringSet("cast_enabled_apps", newEnabled)
+            .apply()
     }
 
     val filtered = apps.filter { app ->
@@ -100,13 +123,36 @@ fun AppsScreen(context: Context, prefs: SharedPreferences, onBack: () -> Unit) {
                     track = IsleColors.Surface, height = 40.dp,
                 )
                 Text(
-                    "Turn OFF the apps you don't want cast. Plain chat texts are already filtered out, " +
-                        "so a messenger's calls still show even while its messages don't.",
+                    if (optInMode) {
+                        "Opt-in mode: ONLY the apps switched ON below may cast. Everything else is blocked."
+                    } else {
+                        "Turn OFF the apps you don't want cast. Plain chat texts are already filtered out, " +
+                            "so a messenger's calls still show even while its messages don't."
+                    },
                     modifier = Modifier.padding(horizontal = 4.dp),
                     fontSize = 13.sp,
                     lineHeight = 18.sp,
                     color = IsleColors.TextSecondary,
                 )
+                ToggleRow(
+                    IsleIcons.Shield,
+                    IsleColors.TileAuth,
+                    "Opt-in mode",
+                    checked = optInMode,
+                    subtitle = "Only allow the apps you switch ON (blocks everything else)",
+                ) { on ->
+                    optInMode = on
+                    prefs.edit().putBoolean("cast_app_opt_in_mode", on).apply()
+                    // Enabling opt-in changes which set is authoritative, so the allow set has to
+                    // exist for it to mean anything. Seed it with the apps currently NOT ignored —
+                    // otherwise switching the mode on would block every app at once.
+                    if (on && enabled.isEmpty()) {
+                        val seed = apps.filter { it.pkg !in ignored }.map { it.pkg }.toSet()
+                        enabled.clear()
+                        enabled.addAll(seed)
+                    }
+                    persist(ignored.toSet(), enabled.toSet())
+                }
             }
         }
 
@@ -127,15 +173,26 @@ fun AppsScreen(context: Context, prefs: SharedPreferences, onBack: () -> Unit) {
                 SectionLabel(letter.toString(), Modifier.padding(top = 12.dp, bottom = 8.dp))
             }
             itemsIndexed(items, key = { _, app -> app.pkg }) { i, app ->
-                val on = app.pkg !in ignored
+                // In opt-in mode "on" means "in the allow set"; in opt-out mode it means "not in the
+                // ignore set". Same switch, two persisted sets.
+                val on = if (optInMode) app.pkg in enabled else app.pkg !in ignored
                 Column(Modifier.clip(groupItemShape(i, items.size)).background(IsleColors.Surface)) {
                     if (i > 0) GroupDivider(inset = 66.dp)
                     Row(
                         Modifier
                             .fillMaxWidth()
                             .toggleable(value = on, role = Role.Switch) { allowed ->
-                                if (allowed) ignored.remove(app.pkg) else if (app.pkg !in ignored) ignored.add(app.pkg)
-                                prefs.edit().putStringSet("cast_ignored_apps", ignored.toSet()).apply()
+                                if (optInMode) {
+                                    if (allowed) enabled.add(app.pkg) else enabled.remove(app.pkg)
+                                    persist(ignored.toSet(), enabled.toSet())
+                                } else {
+                                    if (allowed) {
+                                        ignored.remove(app.pkg)
+                                    } else if (app.pkg !in ignored) {
+                                        ignored.add(app.pkg)
+                                    }
+                                    persist(ignored.toSet(), enabled.toSet())
+                                }
                             }
                             .heightIn(min = 60.dp)
                             .padding(start = 16.dp, end = 14.dp),
