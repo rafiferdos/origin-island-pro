@@ -33,12 +33,20 @@ object ApkVerifier {
     /**
      * SHA-256 of the release signing certificate, hex, upper-case, no separators.
      *
-     * This is the same value `docs/DEV.md` publishes and `scripts/release.sh` prints. It is a
-     * *pin*, not a secret — it is safe to ship in the APK, and it is what makes a download from
+     * VERIFIED against the real published v2.33.0 APK via
+     * `apksigner verify --print-certs`: `458c4785fe6dcdf12930aaaf9dad5bad912519b1aae97c68ccf9ed8490919ae8`
+     * (Signer #1 certificate DN: `CN=Origin Island Pro, OU=Personal, O=rafiferdos, C=DE`).
+     *
+     * Note the discrepancy this corrects: `docs/DEV.md` publishes a DIFFERENT fingerprint
+     * (`5D2DFA7E…`) than the README and the actual APK. The README and the signed artifact agree
+     * with each other, so they are authoritative and docs/DEV.md is stale — see the note in
+     * docs/DEV.md. Do not "fix" this back to the docs value.
+     *
+     * It is a *pin*, not a secret — safe to ship in the APK, and it is what makes a download from
      * anywhere other than the maintainer's key un-installable.
      */
     const val EXPECTED_CERT_SHA256 =
-        "5D2DFA7EF6A96B954AC24361A330BA9B2CEA4518C5B86358C9F4FFB11D79E600"
+        "458C4785FE6DCDF12930AAAF9DAD5BAD912519B1AAE97C68CCF9ED8490919AE8"
 
     /** Hosts a GitHub release APK download is allowed to redirect through. */
     private val ALLOWED_REDIRECT_HOSTS =

@@ -94,8 +94,16 @@ apksigner verify --print-certs origin-isle-<version>.apk
 Official signing certificate SHA-256:
 
 ```
-5D:2D:FA:7E:F6:A9:6B:95:4A:C2:43:61:A3:30:BA:9B:2C:EA:45:18:C5:B8:63:58:C9:F4:FF:B1:1D:79:E6:00
+45:8C:47:85:FE:6D:CD:F1:29:30:AA:AF:9D:AD:5B:AD:91:25:19:B1:AA:E9:7C:68:CC:F9:ED:84:90:91:9A:E8
 ```
+
+> **Correction:** this page previously listed `5D:2D:FA:7E…`, which does not match the README or
+> any published APK. It was verified against the real v2.33.0 release with
+> `apksigner verify --print-certs`, which reports
+> `458c4785fe6dcdf12930aaaf9dad5bad912519b1aae97c68ccf9ed8490919ae8`
+> (Signer #1 certificate DN: `CN=Origin Island Pro, OU=Personal, O=rafiferdos, C=DE`). The README
+> and the signed artifacts agree; the old value on this page was stale. The same fingerprint is
+> pinned in `app/src/main/java/com/originisle/android/security/ApkVerifier.kt`.
 
 A build whose checksum or certificate fingerprint doesn't match is **not** an official build — do not
 install it. Never install an "Origin Isle" APK from anywhere other than this repo's Releases page.

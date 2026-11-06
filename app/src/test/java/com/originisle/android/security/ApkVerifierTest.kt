@@ -88,12 +88,27 @@ class ApkVerifierTest {
     // --- pinned certificate ---------------------------------------------------------------
 
     @Test
-    fun `pinned certificate is the documented fingerprint`() {
-        // Keeps the pin in this file and the one in docs/DEV.md from drifting apart silently.
+    fun `pinned certificate matches the published v2_33_0 APK, not docs_DEV_md`() {
+        // The pin was originally copied from docs/DEV.md and was WRONG: it disagreed with both the
+        // README and the actual signed artifact. Verified against the real v2.33.0 release with
+        // `apksigner verify --print-certs`, which reports the lowercase digest
+        // 458c4785fe6dcdf12930aaaf9dad5bad912519b1aae97c68ccf9ed8490919ae8.
+        // If this test ever fails after a key rotation, update the pin AND docs/DEV.md together.
         assertEquals(
-            "5D2DFA7EF6A96B954AC24361A330BA9B2CEA4518C5B86358C9F4FFB11D79E600",
+            "458C4785FE6DCDF12930AAAF9DAD5BAD912519B1AAE97C68CCF9ED8490919AE8",
             ApkVerifier.EXPECTED_CERT_SHA256,
         )
         assertEquals(64, ApkVerifier.EXPECTED_CERT_SHA256.length)
+    }
+
+    @Test
+    fun `pinned certificate agrees with the README fingerprint`() {
+        // README.md publishes the same value colon-separated. This guards the two published copies
+        // drifting apart again.
+        val colonSeparated = ApkVerifier.EXPECTED_CERT_SHA256.chunked(2).joinToString(":")
+        assertEquals(
+            "45:8C:47:85:FE:6D:CD:F1:29:30:AA:AF:9D:AD:5B:AD:91:25:19:B1:AA:E9:7C:68:CC:F9:ED:84:90:91:9A:E8",
+            colonSeparated,
+        )
     }
 }
