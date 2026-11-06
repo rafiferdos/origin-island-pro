@@ -8,6 +8,7 @@ import android.net.TrafficStats
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
 import com.originisle.android.R
+import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.IconCache
@@ -395,9 +396,10 @@ object DownloadCard {
         n.smallIcon?.let { IconCache.activeSmallIcons[id] = it }
         IconCache.activeLargeIcons[id] = appIcon
 
-        val actions = n.actions.orEmpty().filter { a ->
-            a.actionIntent != null && !a.title.isNullOrBlank()
-        }.take(2)
+        // Reuse the canonical filter instead of a weaker local copy. The old filter kept
+        // RemoteInput ("Reply") actions, which the island renders as a button that fires with an
+        // empty input — a button that does nothing when tapped.
+        val actions = GenericCard.usableActions(n).take(2)
 
         val clickIntent = extractDeepLinkIntent(context, sbn)
         val downloadColor = "#FF007AFF" // Electric Download Blue
@@ -410,12 +412,11 @@ object DownloadCard {
             val title = a.title?.toString()?.trim().orEmpty()
             btnTitles.add(title)
             val lower = title.lowercase()
-            val (bg, fg) = when {
-                lower.contains("pause") -> 0xFFFF9500.toInt() to 0xFFFFFFFF.toInt() // Radiant Amber
-                lower.contains("cancel") || lower.contains("stop") || lower.contains("delete") -> 0xFFFF3B30.toInt() to 0xFFFFFFFF.toInt() // Crimson Red
-                lower.contains("resume") || lower.contains("start") -> 0xFF34C759.toInt() to 0xFFFFFFFF.toInt() // Emerald Green
-                else -> 0xFF2C2C2E.toInt() to 0xFFFFFFFF.toInt()
-            }
+            // The same mapping every other card uses, so the action palette has one definition.
+            // `resolveSemanticButtonBgColor` returns the frosted-slate default for an unmatched
+            // title, which is exactly what the old `else` branch produced.
+            val bg = OriginIslandBuilder.resolveSemanticButtonBgColor(lower)
+            val fg = 0xFFFFFFFF.toInt()
             btnBgColors.add(bg)
             btnTxtColors.add(fg)
         }

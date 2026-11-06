@@ -28,14 +28,20 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * Follows the Origin Island Pro SuperX architecture:
  * - Priority: 85 (live) and 40 (message). Subordinated to Call (100), Navigation (95), and Timer (90).
- * - Fixed ID: 29500 (updates in place without disturbing higher priority cards).
+ * - Fixed ID: 35002 (updates in place without disturbing higher priority cards). This sits OUTSIDE
+ *   the 20000-29999 notification band that [com.originisle.android.service.IconCache] allocates
+ *   from — it used to be 29500, inside that band, so a notification whose key hashed to the same
+ *   slot would collide with Raiden and steal its card.
  * - Scene: NAVIGATION.
  * - Sanitized glanceable capsule text: no tokens, passwords, or secrets leaked on the island.
  */
 object RaidenCard {
 
     const val TAG = "RaidenCard"
-    const val RAIDEN_CAST_ID = 29500
+    const val RAIDEN_CAST_ID = 35002
+
+    /** Request code for Raiden's dismiss PendingIntent; also outside the notification band. */
+    const val RAIDEN_REQUEST_CODE = 35003
     private const val PREFS = "experimental_prefs"
 
     private val handler by lazy { Handler(Looper.getMainLooper()) }
@@ -374,7 +380,7 @@ object RaidenCard {
         // Dismiss Action
         val dismissIntent = PendingIntent.getService(
             context,
-            RAIDEN_CAST_ID + 1,
+            RAIDEN_REQUEST_CODE,
             Intent(context, PlaygroundService::class.java)
                 .setAction(PlaygroundService.ACTION_CANCEL)
                 .putExtra("id", RAIDEN_CAST_ID)

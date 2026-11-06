@@ -1,6 +1,5 @@
 package com.originisle.android.island
 
-import android.app.NotificationManager
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
@@ -9,7 +8,6 @@ import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
-import android.util.Log
 import com.originisle.android.R
 
 /**
@@ -27,51 +25,26 @@ import com.originisle.android.R
  */
 object OriginIslandBuilder {
 
-    private const val TAG = "OriginIslandBuilder"
-
     /**
-     * [grantScenes] runs on every process start AND every card post, so the reflective method
-     * lookup is cached. Once the lookup has failed (non-vivo build), don't retry OR re-log —
-     * previously every single post threw + caught NoSuchMethodException, which is a stack trace
-     * per card for nothing.
+     * Whitelists this package for the SuperX scenes vivo will actually grant.
+     *
+     * Delegates to [SceneCapability], which probes each scene, caches the answers, and applies a
+     * retry policy to the reflective lookup. Previously a single early failure was cached as
+     * permanent for the life of the process, so island access could die silently until a restart.
      */
-    @Volatile
-    private var scenesMethod: java.lang.reflect.Method? = null
-    @Volatile
-    private var scenesUnavailable = false
+    fun grantScenes(context: Context) = SceneCapability.grant(context)
 
-    fun grantScenes(context: Context) {
-        if (scenesUnavailable) return
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
-        val method = scenesMethod ?: runCatching {
-            NotificationManager::class.java.getMethod(
-                "setSuperXInfosSceneList",
-                List::class.java, List::class.java, List::class.java, List::class.java,
-            )
-        }.getOrElse {
-            scenesUnavailable = true
-            Log.w(TAG, "setSuperXInfosSceneList unavailable: ${it.message}")
-            return
-        }
-        scenesMethod = method
-        try {
-            val scenes = ArrayList(OriginIslandConstants.SUPERX_SCENES)
-            val enabled = ArrayList<String>()
-            val pkgs = ArrayList<String>()
-            val allowed = ArrayList<String>()
-            repeat(scenes.size) {
-                enabled.add("true")
-                pkgs.add(context.packageName)
-                allowed.add("true")
-            }
-            method.invoke(nm, scenes, enabled, pkgs, allowed)
-            Log.d(TAG, "setSuperXInfosSceneList granted for ${context.packageName}")
-        } catch (e: Exception) {
-            // The method exists but the call was refused (not vivo, permission revoked, …). Don't
-            // cache this as permanent — a refusal can be transient, unlike a missing method.
-            Log.w(TAG, "setSuperXInfosSceneList call failed: ${e.message}")
-        }
-    }
+    /** @see SceneCapability.isAvailable */
+    fun isSceneAvailable(context: Context, scene: String): Boolean = SceneCapability.isAvailable(context, scene)
+
+    /** @see SceneCapability.bestScene */
+    fun bestScene(context: Context, vararg candidates: String): String = SceneCapability.bestScene(context, *candidates)
+
+    /** @see SceneCapability.sceneFor */
+    fun sceneFor(cardType: String, context: Context): String = SceneCapability.sceneFor(cardType, context)
+
+    /** @see SceneCapability.reset */
+    fun resetSceneCapability() = SceneCapability.reset()
 
     fun parseColor(colorStr: String?, defaultColor: Int): Int = try {
         Color.parseColor(colorStr)

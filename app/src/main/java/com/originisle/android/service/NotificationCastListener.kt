@@ -44,6 +44,7 @@ import com.originisle.android.cards.TimerCard
 import com.originisle.android.cards.WeatherCard
 import com.originisle.android.cards.extractDeepLinkIntent
 import com.originisle.android.cards.fallbackClickIntent
+import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.log.CastLog
 import com.originisle.android.otp.OtpDetector
@@ -533,6 +534,11 @@ class NotificationCastListener : NotificationListenerService() {
         super.onListenerConnected()
         instance = this
         connectedAt = System.currentTimeMillis()
+        // Re-probe the SuperX scenes. A listener reconnect is the strongest available signal that
+        // the environment changed (notification access re-granted, the app updated), and a cached
+        // "unavailable" from before that moment would otherwise suppress the island for the rest
+        // of the process lifetime.
+        OriginIslandBuilder.resetSceneCapability()
         val pm = getSystemService(PowerManager::class.java)
         isScreenInteractive = pm?.isInteractive ?: true
         registerScreenReceiver()
@@ -1005,7 +1011,10 @@ class NotificationCastListener : NotificationListenerService() {
         // for this id, this update must still go through even though it now looks like "just a plain
         // message", or the card is stuck showing its last progress forever with nothing to ever tell
         // it otherwise. Only apply the message/silent filters to notifications we haven't already cast.
-        val wasLive = IconCache.castIdFor(sbn) in PlaygroundService.activeCardIds
+        // Look up rather than allocate: this is a read, and a key that was evicted by the LRU bound
+        // still has a deterministic slot under which its card may be up.
+        val wasLiveId = IconCache.idForKey(sbn.key) ?: IconCache.preferredCastId(sbn.key)
+        val wasLive = wasLiveId in PlaygroundService.activeCardIds
         val isMail = MailCard.isMail(sbn)
         val isDiscord = DiscordCard.isDiscord(sbn)
         val isMsg = isMail || isDiscord || isMessageNotification(sbn)
@@ -1288,9 +1297,16 @@ class NotificationCastListener : NotificationListenerService() {
         lastOutcome.remove(sbn.key)
         lastScorePostTime.remove(sbn.key)
         lastCastPostTime.remove(sbn.key)
-        MediaCard.forget(IconCache.castIdFor(sbn))
-        DownloadCard.forget(IconCache.castIdFor(sbn))
-        CallCard.forget(IconCache.castIdFor(sbn))
+        // Look the id up rather than allocate one: this is a removal, and a key that was evicted by
+        // the LRU bound must not be handed a fresh id — the forget calls below would then target a
+        // card that was never posted. (Score and Raiden cards use their own id spaces and are
+        // handled by their own branches, which return before reaching here.)
+        val removedId = IconCache.idForKey(sbn.key)
+        if (removedId != null) {
+            MediaCard.forget(removedId)
+            DownloadCard.forget(removedId)
+            CallCard.forget(removedId)
+        }
 
         if (RaidenCard.isMuseApp(applicationContext, sbn.packageName)) {
             RaidenCard.forget(sbn)
@@ -1317,13 +1333,19 @@ class NotificationCastListener : NotificationListenerService() {
             }
         }
 
-        val id = IconCache.castIdFor(sbn)
-        IconCache.clear(id)
-        lastMatchIcons.remove(id)
+        if (removedId != null) {
+            // forgetKey also clears the icon/controller state for that id.
+            IconCache.forgetKey(sbn.key)
+            lastMatchIcons.remove(removedId)
+        }
+        // Cancel by the id the card was posted under. When the key was evicted by the LRU bound the
+        // card can still be up, so fall back to its deterministic slot rather than dropping the
+        // cancel — this reproduces the old stateless behaviour exactly for untracked keys.
+        val cancelId = removedId ?: IconCache.preferredCastId(sbn.key)
         startService(
             Intent(this, PlaygroundService::class.java)
                 .setAction(PlaygroundService.ACTION_CANCEL)
-                .putExtra("id", id),
+                .putExtra("id", cancelId),
         )
     }
 }

@@ -45,11 +45,30 @@ object MediaCard {
     private val lastPosted = ConcurrentHashMap<Int, PostedState>()
     private val activeCallbacks = ConcurrentHashMap<Int, Pair<MediaController, MediaController.Callback>>()
 
+    /**
+     * Upper bound on tracked media sessions. Both maps are process-global and were previously
+     * unbounded; a session destroyed without [forget] (process death, a player that never calls
+     * onSessionDestroyed) leaked its callback forever. Matches [IconCache.MAX_TRACKED_CARDS].
+     */
+    private const val MAX_TRACKED_SESSIONS = 40
+
     /** Drop dedupe state and unregister callback for [id]. */
     fun forget(id: Int) {
         lastPosted.remove(id)
         activeCallbacks.remove(id)?.let { (ctrl, cb) ->
             runCatching { ctrl.unregisterCallback(cb) }
+        }
+    }
+
+    /** Evicts sessions beyond [MAX_TRACKED_SESSIONS], unregistering their callbacks. */
+    private fun trim() {
+        while (activeCallbacks.size > MAX_TRACKED_SESSIONS) {
+            val eldest = activeCallbacks.keys.firstOrNull() ?: break
+            forget(eldest)
+        }
+        while (lastPosted.size > MAX_TRACKED_SESSIONS) {
+            val eldest = lastPosted.keys.firstOrNull() ?: break
+            lastPosted.remove(eldest)
         }
     }
 
@@ -76,6 +95,7 @@ object MediaCard {
             runCatching { controller.registerCallback(callback) }
             activeCallbacks[id] = Pair(controller, callback)
         }
+        trim()
 
         val md = controller.metadata
         val rawTrack = md?.getString(MediaMetadata.METADATA_KEY_TITLE)?.trim().orEmpty()

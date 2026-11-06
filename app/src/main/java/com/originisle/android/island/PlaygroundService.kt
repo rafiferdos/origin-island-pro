@@ -411,7 +411,7 @@ class PlaygroundService : Service() {
         // Priority arbitration & Raiden queue management:
         // Live calls (100), navigation (95), and timers (90) take precedence over Raiden (85/40),
         // unless the user enabled "raiden_always_on_top" (which forces Raiden to 100).
-        val isAlwaysOnTop = getSharedPreferences(PREFS_NAME, 0).getBoolean("raiden_always_on_top", false)
+        val isAlwaysOnTop = PriorityArbitrator.isRaidenAlwaysOnTop(this)
         val hasHigherActiveCard = !isAlwaysOnTop && activeCardPriorities.any { (cardId, p) ->
             cardId != RaidenCard.RAIDEN_CAST_ID && p >= PriorityArbitrator.PRIORITY_TIMER
         }

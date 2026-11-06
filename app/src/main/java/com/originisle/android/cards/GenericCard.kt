@@ -174,7 +174,7 @@ object GenericCard {
             val priority = when {
                 isCall -> PriorityArbitrator.PRIORITY_CALL
                 hasProgress -> PriorityArbitrator.PRIORITY_DELIVERY
-                isLive -> 65
+                isLive -> PriorityArbitrator.PRIORITY_ONGOING
                 else -> PriorityArbitrator.PRIORITY_GENERIC
             }
             putExtra("oi_priority", priority)

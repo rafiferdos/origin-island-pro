@@ -121,8 +121,26 @@ class RaidenCardTest {
 
         // Raiden message (40) sits at Message level
         assertEquals(PriorityArbitrator.PRIORITY_MESSAGE, PriorityArbitrator.PRIORITY_RAIDEN_MESSAGE)
-        assertEquals(PriorityArbitrator.PRIORITY_RAIDEN_LIVE, PriorityArbitrator.priorityForKind("raiden_live"))
-        assertEquals(PriorityArbitrator.PRIORITY_RAIDEN_MESSAGE, PriorityArbitrator.priorityForKind("raiden_message"))
+        // The policy itself, asserted without a Context. `priorityForKind` used to exist for this
+        // and was dead in production — every card names its own constant — so it was deleted and
+        // the behaviour it documented is now covered here.
+        assertEquals(
+            PriorityArbitrator.PRIORITY_RAIDEN_LIVE,
+            PriorityArbitrator.getRaidenPriority(isLive = true, alwaysOnTop = false),
+        )
+        assertEquals(
+            PriorityArbitrator.PRIORITY_RAIDEN_MESSAGE,
+            PriorityArbitrator.getRaidenPriority(isLive = false, alwaysOnTop = false),
+        )
+        // "Always on top" promotes Raiden above calls, regardless of live/message.
+        assertEquals(
+            PriorityArbitrator.PRIORITY_CALL,
+            PriorityArbitrator.getRaidenPriority(isLive = false, alwaysOnTop = true),
+        )
+        assertEquals(
+            PriorityArbitrator.PRIORITY_CALL,
+            PriorityArbitrator.getRaidenPriority(isLive = true, alwaysOnTop = true),
+        )
     }
 
     @Test
