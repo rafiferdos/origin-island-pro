@@ -44,6 +44,7 @@ jobs:
           unzip -q -o cmdline-tools.zip
           mv cmdline-tools latest
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager --install "platform-tools" "platforms;android-${API_LEVEL}" "build-tools;${BUILD_TOOLS}"
 
@@ -92,6 +93,7 @@ jobs:
           unzip -q -o cmdline-tools.zip
           mv cmdline-tools latest
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager --install "platform-tools" "platforms;android-${API_LEVEL}" "build-tools;${BUILD_TOOLS}"
 
@@ -131,6 +133,7 @@ jobs:
           unzip -q -o cmdline-tools.zip
           mv cmdline-tools latest
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager --install "platform-tools" "platforms;android-${API_LEVEL}" "build-tools;${BUILD_TOOLS}"
 
