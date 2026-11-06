@@ -23,6 +23,10 @@
 *.bat   text eol=crlf
 *.cmd   text eol=crlf
 
+# The Gradle wrapper has no extension and its shebang must be LF: with CRLF the kernel looks for
+# "/bin/sh<CR>" and every Linux/macOS/CI invocation dies with exit 127 ("required file not found").
+gradlew  text eol=lf
+
 # Binary formats: never normalize.
 *.png   binary
 *.jpg   binary
