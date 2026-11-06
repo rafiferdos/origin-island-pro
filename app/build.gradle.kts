@@ -89,6 +89,14 @@ android {
     buildFeatures {
         compose = true
     }
+
+    testOptions {
+        unitTests {
+            // BundleCodec emits android.os.Bundle and android.graphics.drawable.Icon; Robolectric
+            // supplies real implementations, and it needs the merged resources to do so.
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 dependencies {
@@ -106,5 +114,6 @@ dependencies {
     implementation(libs.google.material)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
     debugImplementation(libs.androidx.ui.tooling)
 }

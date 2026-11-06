@@ -1,0 +1,473 @@
+package com.originisle.android.island
+
+import android.graphics.Bitmap
+import android.graphics.Color
+import android.graphics.drawable.Icon
+import android.os.Bundle
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
+
+/**
+ * Resolves the theme colours the SuperX bundle needs.
+ *
+ * The two progress-bar colours live in `res/values/colors.xml`, so they can only be read through a
+ * `Context`. Hoisting them into a value type is what makes [buildBundlePure] a pure function —
+ * and therefore JVM-testable.
+ */
+data class ColorDefaults(
+    val progressBarColor: Int,
+    val progressBarBackgroundColor: Int,
+)
+
+/**
+ * The SuperX wire-format encoder.
+ *
+ * Every key written here is one of the constants in [OriginIslandConstants]; the shapes and
+ * fallbacks are the reverse-engineered vivo protocol. This object is deliberately free of
+ * `Context`, `SharedPreferences` and any other process state so that the emitted bundle can be
+ * asserted exactly, on the JVM, without Robolectric.
+ *
+ * Nothing here is new behaviour: this is the body of the former
+ * `OriginIslandBuilder.buildBundle`, moved verbatim and parameterised by [SuperXRequest].
+ */
+object BundleCodec {
+
+    /** Colour has no alpha byte set -> treat as "unspecified / use default". */
+    private fun isDefaultColor(color: Int): Boolean = (color ushr 24) == 0
+
+    private fun transparentIcon(): Icon =
+        Icon.createWithBitmap(Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888))
+
+    private fun colorSpan(text: String, color: Int): CharSequence {
+        if (text.isEmpty() || isDefaultColor(color)) return text
+        return SpannableString(text).apply {
+            setSpan(ForegroundColorSpan(color), 0, text.length, 33)
+        }
+    }
+
+    /** Bundle that removes/ends a previously-posted card for [scene]. */
+    fun buildEndBundle(scene: String): Bundle = Bundle().apply {
+        putInt(OriginIslandConstants.BUNDLE_KEY_OPERATION, 2)
+        putBoolean(OriginIslandConstants.BUNDLE_KEY_SHOW_NOTIFY, false)
+        putString(OriginIslandConstants.BUNDLE_KEY_SCENE, scene)
+        putInt(OriginIslandConstants.BUNDLE_KEY_CHANGE_RECORD, Int.MAX_VALUE)
+    }
+
+    /**
+     * Build the full SuperX extras bundle for [request].
+     *
+     * See [OriginIslandConstants] for the semantics of each template. [defaults] supplies the two
+     * theme colours that the old `buildBundle` read from resources.
+     */
+    fun buildBundlePure(request: SuperXRequest, defaults: ColorDefaults): Bundle {
+        val C = OriginIslandConstants
+        val template = request.template
+        val title = request.title
+        val content = request.content
+        val leftContent = request.leftContent
+        val rightContent = request.rightContent
+        val extra1 = request.extra1
+        val extra2 = request.extra2
+        val extra3 = request.extra3
+        val extra4 = request.extra4
+        val subText = request.subText
+        val navMsg = request.navMsg
+        val navAssistText = request.navAssistText
+        val bgColor = request.bgColor
+        val fgColor = request.fgColor
+        val cardBgColor = request.cardBgColor
+        val lightColor = request.lightColor
+        val lightMode = request.lightMode
+        val defaultIcon = request.defaultIcon
+        val leftIcon = request.leftIcon
+        val rightIcon = request.rightIcon
+        val largeIcon = request.largeIcon
+        val progress = request.progress
+        val progressState = request.progressState
+        val progressColor = request.progressColor
+        val clickResp = request.clickResp
+        val actions = request.actions
+        val keepDuration = request.keepDuration
+        val displays = request.displays
+        val sound = request.sound
+        val dismissWhenKill = request.dismissWhenKill
+        val newNode = request.newNode
+        val islandShowTime = request.islandShowTime
+        val capsuleShowTime = request.capsuleShowTime
+        val forceShow = request.forceShow
+        val showRightIcon = request.showRightIcon
+        val showLeftIcon = request.showLeftIcon
+        val keepScreenOn = request.keepScreenOn
+        val disableInvertColor = request.disableInvertColor
+        val generatingStatus = request.generatingStatus
+        val iconStatusType = request.iconStatusType
+        val leftDoubleLine = request.leftDoubleLine
+        val rightDoubleLine = request.rightDoubleLine
+        val buttonTitles = request.buttonTitles
+        val buttonBgColors = request.buttonBgColors
+        val buttonTextColors = request.buttonTextColors
+        val customTemplate = request.customTemplate
+        val waveState = request.waveState
+        val waveColorList = request.waveColorList
+        val landingPkg = request.landingPkg
+        val landingInfo = request.landingInfo
+
+        val bundle = Bundle()
+        bundle.putInt(C.BUNDLE_KEY_OPERATION, request.operation)
+        bundle.putBoolean(C.BUNDLE_KEY_SHOW_NOTIFY, request.showNotify)
+        if (request.islandNotify) bundle.putBoolean(C.BUNDLE_KEY_ISLAND_NOTIFY, true)
+        bundle.putInt(C.BUNDLE_KEY_TEMPLATE, template)
+        bundle.putString(C.BUNDLE_KEY_SCENE, request.scene)
+        bundle.putInt(C.BUNDLE_KEY_CHANGE_RECORD, request.changeRecord)
+        bundle.putBoolean(C.BUNDLE_KEY_SOUND, sound)
+        bundle.putBoolean(C.BUNDLE_KEY_DISMISS_WHEN_KILL, dismissWhenKill)
+        if (keepDuration > 0) bundle.putInt(C.BUNDLE_KEY_KEEP_DURATION, keepDuration)
+        if (displays != 0) bundle.putInt(C.BUNDLE_KEY_DISPLAYS, displays)
+        if (newNode > 0) bundle.putInt(C.BUNDLE_KEY_NEW_NODE, newNode)
+        if (!isDefaultColor(cardBgColor)) bundle.putInt(C.BUNDLE_KEY_CARD_BG_COLOR, cardBgColor)
+        if (keepScreenOn) bundle.putBoolean(C.BUNDLE_KEY_KEEP_SCREEN_ON, true)
+        if (disableInvertColor) bundle.putBoolean(C.BUNDLE_KEY_DISABLE_INVERT_COLOR, true)
+        if (!isDefaultColor(lightColor)) {
+            bundle.putBoolean(C.BUNDLE_KEY_EFFECT_IS_LIGHT, true)
+            bundle.putBundle(C.BUNDLE_KEY_EFFECT_LIGHT_INFO, Bundle().apply {
+                putInt(C.BUNDLE_KEY_EFFECT_LIGHT_MODE, lightMode)
+                putInt(C.BUNDLE_KEY_EFFECT_LIGHT_MAIN_COLOR, lightColor)
+            })
+        }
+        if (clickResp != null) {
+            bundle.putParcelable(C.BUNDLE_KEY_CLICK_RESP, clickResp)
+            bundle.putParcelable("clickResp", clickResp)
+        }
+        if (!landingPkg.isNullOrBlank()) {
+            bundle.putString(C.BUNDLE_KEY_ISLAND_LANDING_PKG, landingPkg)
+            bundle.putString(C.BUNDLE_KEY_ISLAND_LANDING_INFO, landingInfo ?: landingPkg)
+            bundle.putString("notification.superx.landingPkg", landingPkg)
+            bundle.putString("notification.superx.landingInfo", landingInfo ?: landingPkg)
+            bundle.putString("landingPkg", landingPkg)
+            bundle.putString("landingInfo", landingInfo ?: landingPkg)
+        }
+
+        // First action that has a pending intent becomes the capsule sub-info button.
+        val firstActionable = actions.firstOrNull { it.pendingIntent != null }
+        val actionPi = firstActionable?.pendingIntent
+        val actionTitle = firstActionable?.title?.takeIf { it.isNotBlank() }
+
+        val baseIcon = largeIcon ?: defaultIcon
+
+        // --- baseInfos ---
+        val base = Bundle()
+        base.putParcelable(C.BUNDLE_KEY_BASE_ICON, baseIcon)
+        base.putCharSequence(C.BUNDLE_KEY_BASE_TITLE, title)
+        base.putCharSequence(C.BUNDLE_KEY_BASE_CONTENT, content)
+        when {
+            actionPi != null && actionTitle != null && template != 8 -> {
+                base.putInt(C.BUNDLE_KEY_BASE_SUB_INFO, 2)
+                base.putString(C.BUNDLE_KEY_BASE_SUB_TEXT, actionTitle)
+                base.putParcelable(C.BUNDLE_KEY_BASE_SUB_INFO_CLICK_RESP, actionPi)
+                val semanticBg = OriginIslandBuilder.resolveSemanticButtonBgColor(actionTitle, bgColor)
+                val semanticFg = OriginIslandBuilder.resolveSemanticButtonTextColor(actionTitle, fgColor)
+                base.putInt(C.BUNDLE_KEY_BASE_SUB_TEXT_COLOR, semanticFg)
+                base.putInt(C.BUNDLE_KEY_BASE_SUB_CAPSULE_BG_COLOR, semanticBg)
+            }
+            template == 2 -> base.putInt(C.BUNDLE_KEY_BASE_SUB_INFO, 0)
+            !subText.isNullOrBlank() -> {
+                base.putInt(C.BUNDLE_KEY_BASE_SUB_INFO, 1)
+                base.putString(C.BUNDLE_KEY_BASE_SUB_TEXT, subText)
+            }
+            template == 4 -> {
+                base.putInt(C.BUNDLE_KEY_BASE_SUB_INFO, 1)
+                var str = subText?.takeIf { it.isNotBlank() } ?: extra1
+                if (str.isBlank()) str = " "
+                base.putString(C.BUNDLE_KEY_BASE_SUB_TEXT, str)
+            }
+            else -> base.putInt(C.BUNDLE_KEY_BASE_SUB_INFO, 0)
+        }
+        if (generatingStatus > 0) base.putInt(C.BUNDLE_KEY_BASE_GENERATING_STATUS, generatingStatus)
+        if (iconStatusType >= 0) base.putInt(C.BUNDLE_KEY_BASE_ICON_STATUS_TYPE, iconStatusType)
+        if (clickResp != null) {
+            base.putParcelable(C.BUNDLE_KEY_CLICK_RESP, clickResp)
+            base.putParcelable(C.BUNDLE_KEY_BASE_SUB_INFO_CLICK_RESP, clickResp)
+            base.putParcelable("notification.superx.baseInfos.clickResp", clickResp)
+            base.putParcelable("subInfoClickResp", clickResp)
+            base.putParcelable("clickResp", clickResp)
+        }
+        if (!landingPkg.isNullOrBlank()) {
+            base.putString(C.BUNDLE_KEY_ISLAND_LANDING_PKG, landingPkg)
+            base.putString(C.BUNDLE_KEY_ISLAND_LANDING_INFO, landingInfo ?: landingPkg)
+            base.putString("landingPkg", landingPkg)
+            base.putString("landingInfo", landingInfo ?: landingPkg)
+        }
+        bundle.putBundle(C.BUNDLE_KEY_BASE_INFOS, base)
+
+        // --- infos (expanded card body) ---
+        val infos = Bundle()
+        when (template) {
+            1 -> {
+                infos.putString(C.BUNDLE_KEY_INFO_DESCRIBE, extra1)
+                infos.putString(C.BUNDLE_KEY_INFO_CORE_INFO, extra2)
+                infos.putParcelable(C.BUNDLE_KEY_INFO_IMAGE, largeIcon ?: defaultIcon)
+                if (clickResp != null) infos.putParcelable(C.BUNDLE_KEY_INFO_IMAGE_CLICK_RESP, clickResp)
+            }
+            2 -> {
+                val nodeIcons = ArrayList<Icon>()
+                if (request.progressNodeIcons.isNotEmpty()) {
+                    // The source's own milestones (an Android 16 Live Update's start/end icons),
+                    // with its tracker icon riding the bar.
+                    nodeIcons.addAll(request.progressNodeIcons)
+                    request.progressIndicatorIcon?.let {
+                        infos.putParcelable(C.BUNDLE_KEY_INFO_INDICATOR_ICON, it)
+                        infos.putInt(C.BUNDLE_KEY_INFO_INDICATOR_LOC, 2)
+                    }
+                } else {
+                    // Clean, modern, uninterrupted progress line (eliminates the 4 repeating
+                    // cluttered icons).
+                    val t = transparentIcon()
+                    nodeIcons.add(t)
+                    nodeIcons.add(t)
+                }
+                infos.putParcelableArrayList(C.BUNDLE_KEY_INFO_NODE_ICON, nodeIcons)
+                infos.putInt(C.BUNDLE_KEY_INFO_PROGRESS, progress.coerceIn(0, 100))
+                infos.putInt(
+                    C.BUNDLE_KEY_INFO_PROGRESS_COLOR,
+                    if (!isDefaultColor(progressColor)) progressColor else defaults.progressBarColor,
+                )
+                infos.putInt(C.BUNDLE_KEY_INFO_BG_COLOR, defaults.progressBarBackgroundColor)
+
+                // Inject interactive action buttons (Pause/Cancel) into Template 2 (Progress)
+                val triples: List<Triple<String, Icon?, android.app.PendingIntent>> = when {
+                    actions.any { it.pendingIntent != null } ->
+                        actions.filter { it.pendingIntent != null }
+                            .map { Triple(it.title, it.icon, it.pendingIntent!!) }
+                    buttonTitles.isNotEmpty() && clickResp != null ->
+                        buttonTitles.map { Triple(it, null as Icon?, clickResp) }
+                    else -> emptyList()
+                }.take(3)
+                if (triples.isNotEmpty()) {
+                    val textColors = triples.mapIndexed { idx, item ->
+                        buttonTextColors.getOrNull(idx)
+                            ?: OriginIslandBuilder.resolveSemanticButtonTextColor(item.first, fgColor)
+                    }
+                    val btnColors = triples.mapIndexed { idx, item ->
+                        buttonBgColors.getOrNull(idx)
+                            ?: OriginIslandBuilder.resolveSemanticButtonBgColor(item.first, bgColor)
+                    }
+                    infos.putInt(C.BUNDLE_KEY_INFO_BTN_TYPE, 1)
+                    infos.putStringArrayList(C.BUNDLE_KEY_INFO_BTN_TEXT_LIST, ArrayList(triples.map { it.first }))
+                    infos.putParcelableArrayList(C.BUNDLE_KEY_INFO_BTN_ICON_LIST, ArrayList(triples.map { it.second }))
+                    infos.putIntegerArrayList(C.BUNDLE_KEY_INFO_BTN_TEXT_COLOR_LIST, ArrayList(textColors))
+                    infos.putIntegerArrayList(C.BUNDLE_KEY_INFO_BTN_COLOR_LIST, ArrayList(btnColors))
+                    infos.putParcelableArrayList(C.BUNDLE_KEY_INFO_BTN_CLICK_RESP_LIST, ArrayList(triples.map { it.third }))
+                }
+            }
+            4 -> {
+                // BASE had no case here at all — the expanded-card `infos` bundle stayed completely
+                // empty. That looks to be exactly why OriginOS auto-generates a companion "compat"
+                // notification for BASE-template cards (Maps navigation, media, payments): with no
+                // expanded content of its own to show, it falls back to a classic notification.
+                // Template-3 (scoreboard) cards populate `infos` fully and never get this duplicate.
+                infos.putString(C.BUNDLE_KEY_INFO_DESCRIBE, title)
+                infos.putString(C.BUNDLE_KEY_INFO_CORE_INFO, content)
+                infos.putParcelable(C.BUNDLE_KEY_INFO_IMAGE, largeIcon ?: defaultIcon)
+                if (clickResp != null) infos.putParcelable(C.BUNDLE_KEY_INFO_IMAGE_CLICK_RESP, clickResp)
+            }
+            3 -> {
+                infos.putString(C.BUNDLE_KEY_INFO_LEFT_MAIN, extra1)
+                infos.putString(C.BUNDLE_KEY_INFO_LEFT_SUB, extra2)
+                infos.putInt(C.BUNDLE_KEY_INFO_MID_MAIN_TYPE, 1)
+                infos.putParcelable(C.BUNDLE_KEY_INFO_MID_MAIN_ICON, largeIcon ?: defaultIcon)
+                infos.putInt(C.BUNDLE_KEY_INFO_MID_SUB_TYPE, 2)
+                infos.putString(C.BUNDLE_KEY_INFO_MID_SUB_MSG, content)
+                infos.putString(C.BUNDLE_KEY_INFO_RIGHT_MAIN, extra3)
+                infos.putString(C.BUNDLE_KEY_INFO_RIGHT_SUB, extra4)
+            }
+            5 -> {
+                infos.putParcelable(C.BUNDLE_KEY_INFO_NAV_ICON, largeIcon ?: defaultIcon)
+                val joined = listOf(title, content).filter { it.isNotBlank() }.joinToString(" • ")
+                infos.putString(C.BUNDLE_KEY_INFO_NAV_MSG, navMsg ?: joined)
+            }
+            7 -> if (customTemplate != null) {
+                bundle.putParcelable(C.BUNDLE_KEY_CUSTOM_TEMPLATE, customTemplate)
+            }
+            8 -> {
+                infos.putString(C.BUNDLE_KEY_INFO_DESCRIBE, title)
+                infos.putString(C.BUNDLE_KEY_INFO_CORE_INFO, content)
+                infos.putParcelable(C.BUNDLE_KEY_INFO_IMAGE, largeIcon ?: defaultIcon)
+                if (clickResp != null) infos.putParcelable(C.BUNDLE_KEY_INFO_IMAGE_CLICK_RESP, clickResp)
+
+                // Build up to 3 filled buttons from actions (preferred) or buttonTitles+clickResp.
+                val triples: List<Triple<String, Icon?, android.app.PendingIntent>> = when {
+                    actions.any { it.pendingIntent != null } ->
+                        actions.filter { it.pendingIntent != null }
+                            .map { Triple(it.title, it.icon, it.pendingIntent!!) }
+                    buttonTitles.isNotEmpty() && clickResp != null ->
+                        buttonTitles.map { Triple(it, null as Icon?, clickResp) }
+                    else -> emptyList()
+                }.take(3)
+                if (triples.isNotEmpty()) {
+                    val textColors = triples.mapIndexed { idx, item ->
+                        buttonTextColors.getOrNull(idx)
+                            ?: OriginIslandBuilder.resolveSemanticButtonTextColor(item.first, fgColor)
+                    }
+                    val btnColors = triples.mapIndexed { idx, item ->
+                        buttonBgColors.getOrNull(idx)
+                            ?: OriginIslandBuilder.resolveSemanticButtonBgColor(item.first, bgColor)
+                    }
+                    infos.putInt(C.BUNDLE_KEY_INFO_BTN_TYPE, 1)
+                    infos.putStringArrayList(C.BUNDLE_KEY_INFO_BTN_TEXT_LIST, ArrayList(triples.map { it.first }))
+                    infos.putParcelableArrayList(C.BUNDLE_KEY_INFO_BTN_ICON_LIST, ArrayList(triples.map { it.second }))
+                    infos.putIntegerArrayList(C.BUNDLE_KEY_INFO_BTN_TEXT_COLOR_LIST, ArrayList(textColors))
+                    infos.putIntegerArrayList(C.BUNDLE_KEY_INFO_BTN_COLOR_LIST, ArrayList(btnColors))
+                    infos.putParcelableArrayList(C.BUNDLE_KEY_INFO_BTN_CLICK_RESP_LIST, ArrayList(triples.map { it.third }))
+                }
+            }
+            9 -> {
+                infos.putParcelable(C.BUNDLE_KEY_INFO_DIR_ICON, largeIcon ?: defaultIcon)
+                infos.putString(C.BUNDLE_KEY_INFO_MAIN_HIGHLIGHT_TEXT, title)
+                infos.putString(C.BUNDLE_KEY_INFO_MAIN_NORMAL_TEXT, content)
+                infos.putCharSequence(C.BUNDLE_KEY_INFO_DIR_SUB_TEXT, navMsg ?: content)
+                // Assist line: the secondary hint a driving card can carry under the maneuver
+                // ("Keep left", "Then turn right"). Type 1 = plain text.
+                navAssistText?.takeIf { it.isNotBlank() }?.let {
+                    infos.putInt(C.BUNDLE_KEY_INFO_DIR_ASSIST_TYPE, 1)
+                    infos.putString(C.BUNDLE_KEY_INFO_DIR_ASSIST_TEXT, it)
+                    if (!isDefaultColor(fgColor)) {
+                        infos.putInt(C.BUNDLE_KEY_INFO_DIR_ASSIST_TEXT_COLOR, fgColor)
+                    }
+                }
+                // BUNDLE_KEY_INFO_LANE_LIST (lane guidance) is deliberately NOT written: the
+                // protocol catalogues the key but not its element type, and handing vivo a wrongly
+                // typed list would throw inside the system's own unparcel, on a live nav card.
+            }
+        }
+        if (clickResp != null) {
+            infos.putParcelable(C.BUNDLE_KEY_INFO_IMAGE_CLICK_RESP, clickResp)
+            infos.putParcelable(C.BUNDLE_KEY_CLICK_RESP, clickResp)
+            infos.putParcelable("notification.superx.infos.clickResp", clickResp)
+            infos.putParcelable("imageClickResp", clickResp)
+            infos.putParcelable("clickResp", clickResp)
+        }
+        bundle.putBundle(C.BUNDLE_KEY_INFOS, infos)
+
+        // --- shortInfos (collapsed) ---
+        val shortImage = largeIcon ?: defaultIcon
+        val shortInfos = Bundle()
+        shortInfos.putParcelable(C.BUNDLE_KEY_SHORT_INFO_IMAGE, shortImage)
+        shortInfos.putString(C.BUNDLE_KEY_SHORT_INFO_CORE_INFO_SHORT, content)
+        shortInfos.putString(C.BUNDLE_KEY_SHORT_INFO_DESCRIBE_SHORT, title)
+        if (clickResp != null) {
+            shortInfos.putParcelable(C.BUNDLE_KEY_SHORT_INFO_IMAGE_CLICK_RESP, clickResp)
+            shortInfos.putParcelable(C.BUNDLE_KEY_CLICK_RESP, clickResp)
+            shortInfos.putParcelable("clickResp", clickResp)
+        }
+        bundle.putBundle(C.BUNDLE_KEY_SHORT_INFOS, shortInfos)
+
+        // --- island (the pill) ---
+        val island = Bundle()
+        // Left template 3 = icon + two stacked lines; vivo only honours it with exactly two lines
+        // (anything else falls back to icon-only), so pick it from the data rather than trusting
+        // callers.
+        island.putInt(C.BUNDLE_KEY_ISLAND_LEFT_TEMPLATE, if (leftDoubleLine.size == 2) 3 else 1)
+        island.putInt(C.BUNDLE_KEY_ISLAND_RIGHT_TEMPLATE, request.rightTemplate)
+        if (islandShowTime > 0) island.putInt(C.BUNDLE_KEY_ISLAND_SHOW_TIME, islandShowTime)
+        if (forceShow) island.putBoolean(C.BUNDLE_KEY_ISLAND_FORCE_SHOW, true)
+        if (request.priority > 0) island.putInt(C.BUNDLE_KEY_ISLAND_PRIORITY, request.priority)
+        // Explicitly opt out of vivo's own "companion bar" — without this, a NAVIGATION-scene card
+        // gets a second, untagged, stripped-down copy of the notification auto-generated as a
+        // separate promoted chip in the shade, on top of the island itself.
+        island.putBoolean(C.BUNDLE_KEY_ISLAND_SHOW_BAR_WHEN_CARD, false)
+        island.putInt(C.BUNDLE_KEY_ISLAND_STATE, 1)
+        island.putInt("state", 1)
+        island.putInt(C.BUNDLE_KEY_ISLAND_CLICK, 0)
+        if (clickResp != null) island.putParcelable(C.BUNDLE_KEY_ISLAND_CLICK_RESP, clickResp)
+        if (!landingPkg.isNullOrBlank()) {
+            island.putString(C.BUNDLE_KEY_ISLAND_LANDING_PKG, landingPkg)
+            island.putString(C.BUNDLE_KEY_ISLAND_LANDING_INFO, landingInfo ?: landingPkg)
+            island.putString("landingPkg", landingPkg)
+            island.putString("landingInfo", landingInfo ?: landingPkg)
+            island.putBoolean(C.BUNDLE_KEY_ISLAND_PERMANENT, true)
+            island.putBoolean("permanent", true)
+        }
+        island.putBundle(C.BUNDLE_KEY_ISLAND_BASE_INFOS, base)
+        island.putBundle(C.BUNDLE_KEY_ISLAND_CARD_INFOS, infos)
+
+        val left = Bundle()
+        if (showLeftIcon) left.putParcelable(C.BUNDLE_KEY_ISLAND_LEFT_ICON, leftIcon)
+        left.putString(C.BUNDLE_KEY_ISLAND_LEFT_CONTENT, leftContent)
+        if (leftDoubleLine.isNotEmpty()) {
+            left.putCharSequenceArrayList(C.BUNDLE_KEY_ISLAND_LEFT_DOUBLELINE, ArrayList(leftDoubleLine))
+        }
+        island.putBundle(C.BUNDLE_KEY_ISLAND_LEFT_INFO, left)
+
+        val right = Bundle()
+        when (request.rightTemplate) {
+            1 -> {
+                val colors = waveColorList?.takeIf { it.isNotEmpty() }
+                    ?: if (!isDefaultColor(fgColor)) listOf(String.format("#%06X", 0xFFFFFF and fgColor)) else null
+                if (colors != null) {
+                    right.putStringArrayList(C.BUNDLE_KEY_ISLAND_RIGHT_WAVE_COLOR, ArrayList(colors))
+                }
+                right.putInt(C.BUNDLE_KEY_ISLAND_RIGHT_WAVE_STATE, waveState)
+            }
+            2 -> {
+                right.putInt(C.BUNDLE_KEY_ISLAND_RIGHT_PROGRESS, progress.coerceIn(0, 100))
+                right.putInt(
+                    C.BUNDLE_KEY_ISLAND_RIGHT_PROGRESS_COLOR,
+                    if (!isDefaultColor(fgColor)) fgColor else defaults.progressBarColor,
+                )
+                if (!isDefaultColor(bgColor)) right.putInt(C.BUNDLE_KEY_ISLAND_RIGHT_PROGRESS_BG_COLOR, bgColor)
+                right.putInt(C.BUNDLE_KEY_ISLAND_RIGHT_PROGRESS_STATE, progressState)
+            }
+            3 -> if (!isDefaultColor(fgColor)) right.putInt(C.BUNDLE_KEY_ISLAND_RIGHT_LOADING_COLOR, fgColor)
+            4, 5 -> {
+                if (showRightIcon) right.putParcelable(C.BUNDLE_KEY_ISLAND_RIGHT_ICON, rightIcon)
+                // No content at all (not even " ") = vivo's icon-only variant (103): just the icon.
+                if (rightContent.isNotEmpty()) {
+                    right.putCharSequence(C.BUNDLE_KEY_ISLAND_RIGHT_CONTENT, colorSpan(rightContent, fgColor))
+                }
+                if (clickResp != null) right.putParcelable(C.BUNDLE_KEY_ISLAND_RIGHT_CLICK_RESP, clickResp)
+            }
+            6 -> {
+                right.putCharSequence(C.BUNDLE_KEY_ISLAND_RIGHT_CAPSULE_CONTENT, colorSpan(rightContent, fgColor))
+                if (!isDefaultColor(bgColor)) right.putInt(C.BUNDLE_KEY_ISLAND_RIGHT_BG_COLOR, bgColor)
+                if (clickResp != null) right.putParcelable(C.BUNDLE_KEY_ISLAND_RIGHT_CLICK_RESP, clickResp)
+            }
+        }
+        if (rightDoubleLine.isNotEmpty()) {
+            right.putCharSequenceArrayList(C.BUNDLE_KEY_ISLAND_RIGHT_DOUBLELINE, ArrayList(rightDoubleLine))
+        }
+        island.putBundle(C.BUNDLE_KEY_ISLAND_RIGHT_INFO, right)
+        bundle.putBundle(C.BUNDLE_KEY_ISLAND_INFOS, island)
+
+        // --- capsule (tiny right chip) ---
+        val capsule = Bundle()
+        capsule.putInt(C.BUNDLE_KEY_CAPSULE_STATE, 1)
+        capsule.putParcelable(C.BUNDLE_KEY_CAPSULE_ICON, rightIcon)
+        capsule.putString(C.BUNDLE_KEY_CAPSULE_CONTENT, rightContent)
+        if (!isDefaultColor(fgColor)) capsule.putInt(C.BUNDLE_KEY_CAPSULE_CONTENT_COLOR, fgColor)
+        if (!isDefaultColor(bgColor)) capsule.putInt(C.BUNDLE_KEY_CAPSULE_BG_COLOR, bgColor)
+        if (capsuleShowTime > 0) capsule.putInt(C.BUNDLE_KEY_CAPSULE_SHOW_TIME, capsuleShowTime)
+        if (newNode > 0) capsule.putInt(C.BUNDLE_KEY_CAPSULE_NEW_NODE, newNode)
+        if (clickResp != null) capsule.putParcelable(C.BUNDLE_KEY_CAPSULE_CLICK_RESP, clickResp)
+        if (!landingPkg.isNullOrBlank()) {
+            capsule.putBoolean(C.BUNDLE_KEY_CAPSULE_LANDING_AUTO_HIDE, false)
+            capsule.putBoolean("landingAutoHide", false)
+            capsule.putString(C.BUNDLE_KEY_ISLAND_LANDING_PKG, landingPkg)
+            capsule.putString("island.superx.landingPkg", landingPkg)
+            capsule.putString("landingPkg", landingPkg)
+            capsule.putString(C.BUNDLE_KEY_ISLAND_LANDING_INFO, landingInfo ?: landingPkg)
+            capsule.putString("landingInfo", landingInfo ?: landingPkg)
+        }
+        bundle.putBundle(C.BUNDLE_KEY_CAPSULE, capsule)
+
+        return bundle
+    }
+
+    /**
+     * Convenience for the two theme colours, so the pure function can be called from a unit test
+     * without resolving resources.
+     */
+    @Suppress("unused")
+    fun defaultColors(progressBar: Int, progressBarBackground: Int): ColorDefaults =
+        ColorDefaults(progressBar, progressBarBackground)
+}

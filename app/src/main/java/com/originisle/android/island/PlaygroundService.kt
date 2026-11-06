@@ -297,7 +297,7 @@ class PlaygroundService : Service() {
         // Actions -> OriginActions.
         val actions = intent.getParcelableArrayListExtra("actions", Notification.Action::class.java)
             ?.map { a ->
-                OriginIslandBuilder.OriginAction(
+                CardAction(
                     title = a.title?.toString().orEmpty(),
                     icon = a.getIcon(), // getIcon() = the Icon; the bare `icon` field is a legacy int res
                     pendingIntent = a.actionIntent,
