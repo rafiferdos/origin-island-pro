@@ -16,6 +16,11 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  ANDROID_HOME: /home/runner/android-sdk
+  API_LEVEL: 36
+  BUILD_TOOLS: 35.0.0
+
 jobs:
   test:
     name: Unit tests
@@ -29,13 +34,21 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Create local.properties
+      - name: Install Android SDK
         run: |
-          echo "sdk.dir=${ANDROID_HOME}/sdk" > local.properties
-          cat local.properties
+          set -e
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          cd "$ANDROID_HOME/cmdline-tools"
+          curl -sL -o cmdline-tools.zip \
+            "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          unzip -q -o cmdline-tools.zip
+          mv cmdline-tools latest
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager --install "platform-tools" "platforms;android-${API_LEVEL}" "build-tools;${BUILD_TOOLS}"
+
+      - name: Point Gradle at the SDK
+        run: echo "sdk.dir=${ANDROID_HOME}" > local.properties
 
       - name: Gradle cache
         uses: actions/cache@v4
@@ -69,11 +82,21 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: |
+          set -e
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          cd "$ANDROID_HOME/cmdline-tools"
+          curl -sL -o cmdline-tools.zip \
+            "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          unzip -q -o cmdline-tools.zip
+          mv cmdline-tools latest
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager --install "platform-tools" "platforms;android-${API_LEVEL}" "build-tools;${BUILD_TOOLS}"
 
-      - name: Create local.properties
-        run: echo "sdk.dir=${ANDROID_HOME}/sdk" > local.properties
+      - name: Point Gradle at the SDK
+        run: echo "sdk.dir=${ANDROID_HOME}" > local.properties
 
       - name: Run ktlint
         run: ./gradlew --no-daemon --console=plain :app:ktlintCheck
@@ -98,11 +121,21 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: |
+          set -e
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          cd "$ANDROID_HOME/cmdline-tools"
+          curl -sL -o cmdline-tools.zip \
+            "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          unzip -q -o cmdline-tools.zip
+          mv cmdline-tools latest
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager --install "platform-tools" "platforms;android-${API_LEVEL}" "build-tools;${BUILD_TOOLS}"
 
-      - name: Create local.properties
-        run: echo "sdk.dir=${ANDROID_HOME}/sdk" > local.properties
+      - name: Point Gradle at the SDK
+        run: echo "sdk.dir=${ANDROID_HOME}" > local.properties
 
       - name: Assemble debug APK
         run: ./gradlew --no-daemon --console=plain :app:assembleDebug
