@@ -29,7 +29,7 @@ export JAVA_HOME="${JAVA_HOME:-C:\\dev\\tools\\jdk17\\jdk}"
 export ANDROID_HOME="${ANDROID_HOME:-C:/dev/tools/android-sdk}"
 
 # The fingerprint published in README.md and pinned in ApkVerifier.kt.
-EXPECTED_CERT="458C4785FE6DCDF12930AAAF9DAD5BAD912519B1AAE97C68CCF9ED8490919AE8"
+EXPECTED_CERT="D8521180FEAAEE303721DD1F7EE28839603542660C07A745399C843A9920145F"
 
 fail() { echo "ERROR: $*" >&2; exit 1; }
 
@@ -58,7 +58,7 @@ APK_IN="app/build/outputs/apk/release/app-release.apk"
 [[ -f "$APK_IN" ]] || fail "expected APK not found at ${APK_IN}"
 
 # --- verify the certificate BEFORE publishing ---------------------------------------------
-APKSIGNER="$(ls -1 "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -n1 || true)"
+APKSIGNER="$(ls -1 "$ANDROID_HOME"/build-tools/*/apksigner "$ANDROID_HOME"/build-tools/*/apksigner.bat 2>/dev/null | sort -V | tail -n1 || true)"
 [[ -n "$APKSIGNER" ]] || fail "apksigner not found in ${ANDROID_HOME}/build-tools"
 
 echo "==> Verifying signing certificate ..."

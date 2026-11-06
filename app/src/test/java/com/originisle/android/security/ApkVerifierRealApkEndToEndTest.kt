@@ -8,7 +8,8 @@ import java.security.MessageDigest
 import java.security.cert.CertificateFactory
 
 /**
- * End-to-end proof that [ApkVerifier]'s certificate logic accepts a GENUINE release APK.
+ * End-to-end proof that [ApkVerifier]'s certificate logic can extract the signing certificate
+ * from a GENUINE release APK.
  *
  * [ApkVerifier.signingCertificateSha256] needs android.content.pm, which is not on the JVM, so this
  * test reproduces the same computation with the JDK only: it pulls the signing certificate out of
@@ -17,8 +18,16 @@ import java.security.cert.CertificateFactory
  *
  * Expected artifact: `official-2.33.0.apk` in the repo root (the downloaded GitHub release).
  * The test skips when it is absent, so CI is green without the artifact.
+ *
+ * Note the artifact is signed with the RETIRED v2.33.0 key, not the current pin — the key was
+ * rotated in v2.34.0 and the old `.jks` is no longer available. The test therefore asserts the
+ * artifact's known fingerprint (proving the extraction works on a real APK with a known answer)
+ * and separately asserts that the live pin is a *different* key, so the rotation cannot silently
+ * revert.
  */
 class ApkVerifierRealApkEndToEndTest {
+    /** Fingerprint of the retired v2.33.0 release key, verified with `apksigner verify --print-certs`. */
+    private val v2330Cert = "458C4785FE6DCDF12930AAAF9DAD5BAD912519B1AAE97C68CCF9ED8490919AE8"
 
     private fun findReleaseApk(): File? {
         var dir: File? = File(System.getProperty("user.dir")).absoluteFile
@@ -32,7 +41,7 @@ class ApkVerifierRealApkEndToEndTest {
     }
 
     @Test
-    fun `genuine v2_33_0 release APK matches the pinned certificate`() {
+    fun `genuine v2_33_0 release APK certificate extracts to its known fingerprint`() {
         val apk = findReleaseApk()
         if (apk == null) {
             println("SKIP: official-2.33.0.apk not found in the repo root; nothing to verify.")
@@ -48,17 +57,21 @@ class ApkVerifierRealApkEndToEndTest {
 
         println("APK:         ${apk.name}")
         println("cert SHA256: $digest")
-        println("pinned:      ${ApkVerifier.EXPECTED_CERT_SHA256}")
+        println("known v2.33: $v2330Cert")
+        println("live pin:    ${ApkVerifier.EXPECTED_CERT_SHA256}")
 
-        assertEquals(ApkVerifier.EXPECTED_CERT_SHA256, digest)
+        assertEquals(v2330Cert, digest)
     }
 
     @Test
-    fun `pinned certificate is not the stale docs value`() {
-        // Guards the specific regression: the pin must not be the wrong fingerprint that
-        // docs/DEV.md used to publish.
+    fun `live pin is not the retired v2_33_0 key`() {
+        // Guards the key rotation: the pin must be the new key, not the old one, and must not
+        // silently revert to it.
         assertTrue(ApkVerifier.EXPECTED_CERT_SHA256.isNotBlank())
-        assertTrue(!ApkVerifier.EXPECTED_CERT_SHA256.startsWith("5D2DFA"))
+        assertTrue(
+            "the pin is the retired v2.33.0 key — the rotation was reverted",
+            !ApkVerifier.EXPECTED_CERT_SHA256.equals(v2330Cert, ignoreCase = true),
+        )
     }
 
     // --- APK signature extraction (JDK only) ----------------------------------------------

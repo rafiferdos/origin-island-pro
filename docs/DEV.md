@@ -91,19 +91,27 @@ shasum -a 256 origin-isle-<version>.apk
 apksigner verify --print-certs origin-isle-<version>.apk
 ```
 
-Official signing certificate SHA-256:
+Official signing certificate SHA-256 (current, v2.34.0 and later):
 
 ```
-45:8C:47:85:FE:6D:CD:F1:29:30:AA:AF:9D:AD:5B:AD:91:25:19:B1:AA:E9:7C:68:CC:F9:ED:84:90:91:9A:E8
+D8:52:11:80:FE:AA:EE:30:37:21:DD:1F:7E:E2:88:39:60:35:42:66:0C:07:A7:45:39:9C:84:3A:99:20:14:5F
 ```
 
-> **Correction:** this page previously listed `5D:2D:FA:7E…`, which does not match the README or
-> any published APK. It was verified against the real v2.33.0 release with
-> `apksigner verify --print-certs`, which reports
+> **Correction (this page).** This page previously listed `5D:2D:FA:7E…`, which does not match the
+> README or any published APK. It was verified against the real v2.33.0 release with
+> `apksigner verify --print-certs`, which reported
 > `458c4785fe6dcdf12930aaaf9dad5bad912519b1aae97c68ccf9ed8490919ae8`
-> (Signer #1 certificate DN: `CN=Origin Island Pro, OU=Personal, O=rafiferdos, C=DE`). The README
-> and the signed artifacts agree; the old value on this page was stale. The same fingerprint is
-> pinned in `app/src/main/java/com/originisle/android/security/ApkVerifier.kt`.
+> (Signer #1 certificate DN: `CN=Origin Island Pro, OU=Personal, O=rafiferdos, C=DE`).
+>
+> **Key rotation (v2.34.0).** That v2.33.0 key is no longer available on the maintainer's machine,
+> so a new release key was generated and every artifact from v2.34.0 on is signed with it. The
+> fingerprint above is verified against the signed v2.34.0 release APK; the DN is unchanged
+> (`CN=Origin Island Pro, OU=Personal, O=rafiferdos, C=DE`), so only the key changed.
+>
+> Consequence: a v2.34.0 APK cannot install over an existing v2.33.0 install — Android rejects a
+> signature change — so users must uninstall first. The pin in
+> `app/src/main/java/com/originisle/android/security/ApkVerifier.kt` matches this value, and
+> `ApkVerifierTest` fails if the pin, this page, or the README ever disagree.
 
 A build whose checksum or certificate fingerprint doesn't match is **not** an official build — do not
 install it. Never install an "Origin Isle" APK from anywhere other than this repo's Releases page.

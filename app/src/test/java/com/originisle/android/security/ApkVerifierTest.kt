@@ -88,27 +88,45 @@ class ApkVerifierTest {
     // --- pinned certificate ---------------------------------------------------------------
 
     @Test
-    fun `pinned certificate matches the published v2_33_0 APK, not docs_DEV_md`() {
+    fun `pinned certificate matches the signed v2_34_0 release APK`() {
         // The pin was originally copied from docs/DEV.md and was WRONG: it disagreed with both the
-        // README and the actual signed artifact. Verified against the real v2.33.0 release with
-        // `apksigner verify --print-certs`, which reports the lowercase digest
-        // 458c4785fe6dcdf12930aaaf9dad5bad912519b1aae97c68ccf9ed8490919ae8.
+        // README and the actual signed artifact. It was corrected to the v2.33.0 key
+        // (458c4785…) and then ROTATED in v2.34.0 to a new key, verified with
+        // `apksigner verify --print-certs` against the signed v2.34.0 release:
+        //   d8521180feaaee303721dd1f7ee28839603542660c07a745399c843a9920145f
         // If this test ever fails after a key rotation, update the pin AND docs/DEV.md together.
         assertEquals(
-            "458C4785FE6DCDF12930AAAF9DAD5BAD912519B1AAE97C68CCF9ED8490919AE8",
+            "D8521180FEAAEE303721DD1F7EE28839603542660C07A745399C843A9920145F",
             ApkVerifier.EXPECTED_CERT_SHA256,
         )
         assertEquals(64, ApkVerifier.EXPECTED_CERT_SHA256.length)
+        // The retired v2.33.0 key must not silently come back.
+        assertTrue(!ApkVerifier.EXPECTED_CERT_SHA256.startsWith("458C4785"))
     }
 
     @Test
     fun `pinned certificate agrees with the README fingerprint`() {
         // README.md publishes the same value colon-separated. This guards the two published copies
-        // drifting apart again.
+        // drifting apart again — it reads the file rather than repeating the literal, so the test
+        // fails the moment one side changes.
         val colonSeparated = ApkVerifier.EXPECTED_CERT_SHA256.chunked(2).joinToString(":")
-        assertEquals(
-            "45:8C:47:85:FE:6D:CD:F1:29:30:AA:AF:9D:AD:5B:AD:91:25:19:B1:AA:E9:7C:68:CC:F9:ED:84:90:91:9A:E8",
-            colonSeparated,
+        val readme = findReadme()
+        assertTrue("README.md not found above ${System.getProperty("user.dir")}", readme != null)
+        val text = readme!!.readText()
+        assertTrue(
+            "README.md does not publish $colonSeparated — update the pin and the README together",
+            text.contains(colonSeparated),
         )
+    }
+
+    private fun findReadme(): File? {
+        var dir: File? = File(System.getProperty("user.dir")).absoluteFile
+        repeat(8) {
+            if (dir == null) return@repeat
+            val candidate = File(dir, "README.md")
+            if (candidate.exists()) return candidate
+            dir = dir?.parentFile
+        }
+        return null
     }
 }

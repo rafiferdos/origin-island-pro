@@ -1,5 +1,13 @@
 v2.34.0 — Security & Correctness
 
+⚠️ SIGNING KEY ROTATED — READ THIS BEFORE INSTALLING
+- The original release key is no longer available, so v2.34.0 is signed with a new one.
+- Android refuses to install an APK signed by a different key over an existing install.
+- **Uninstall v2.33.0 first.** This clears the app's data and its notification-access grant,
+  so you will need to re-enable notification access and re-set your preferences.
+- Nothing else about the app changes; only the signature does.
+- The old key was `45:8C:47:85…`. The new key is below.
+
 Update pipeline (the important one)
 - An update can no longer be installed without verification. Origin Island Pro reads every
   notification on your device, so a tampered update was the worst available compromise.
@@ -35,4 +43,4 @@ Verify a download
   apksigner verify --print-certs origin-island-pro-2.34.0.apk
 
 Expected certificate SHA-256:
-  45:8C:47:85:FE:6D:CD:F1:29:30:AA:AF:9D:AD:5B:AD:91:25:19:B1:AA:E9:7C:68:CC:F9:ED:84:90:91:9A:E8
+  D8:52:11:80:FE:AA:EE:30:37:21:DD:1F:7E:E2:88:39:60:35:42:66:0C:07:A7:45:39:9C:84:3A:99:20:14:5F

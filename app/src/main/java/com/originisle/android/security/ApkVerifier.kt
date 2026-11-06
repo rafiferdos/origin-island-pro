@@ -33,20 +33,25 @@ object ApkVerifier {
     /**
      * SHA-256 of the release signing certificate, hex, upper-case, no separators.
      *
-     * VERIFIED against the real published v2.33.0 APK via
-     * `apksigner verify --print-certs`: `458c4785fe6dcdf12930aaaf9dad5bad912519b1aae97c68ccf9ed8490919ae8`
-     * (Signer #1 certificate DN: `CN=Origin Island Pro, OU=Personal, O=rafiferdos, C=DE`).
+     * This pin was ROTATED in v2.34.0. The original key (`458c4785…`, used for v2.33.0 and
+     * earlier) is no longer available, so a new release key was generated on the maintainer's
+     * machine and every artifact from v2.34.0 on is signed with it.
      *
-     * Note the discrepancy this corrects: `docs/DEV.md` publishes a DIFFERENT fingerprint
-     * (`5D2DFA7E…`) than the README and the actual APK. The README and the signed artifact agree
-     * with each other, so they are authoritative and docs/DEV.md is stale — see the note in
-     * docs/DEV.md. Do not "fix" this back to the docs value.
+     * VERIFIED with `apksigner verify --print-certs` against the signed v2.34.0 release APK:
+     * `d8521180feaaee303721dd1f7ee28839603542660c07a745399c843a9920145f`
+     * (Signer #1 certificate DN: `CN=Origin Island Pro, OU=Personal, O=rafiferdos, C=DE` — the
+     * same DN as before, so only the key changed, not the identity).
+     *
+     * Consequence of the rotation: a v2.34.0 (or later) APK CANNOT be installed over an existing
+     * v2.33.0 install. Android rejects a signature change. Users must uninstall first, which
+     * clears the app's data and its notification-access grant. That is unavoidable when the
+     * original key is lost; the alternative was never being able to publish an update at all.
      *
      * It is a *pin*, not a secret — safe to ship in the APK, and it is what makes a download from
      * anywhere other than the maintainer's key un-installable.
      */
     const val EXPECTED_CERT_SHA256 =
-        "458C4785FE6DCDF12930AAAF9DAD5BAD912519B1AAE97C68CCF9ED8490919AE8"
+        "D8521180FEAAEE303721DD1F7EE28839603542660C07A745399C843A9920145F"
 
     /** Hosts a GitHub release APK download is allowed to redirect through. */
     private val ALLOWED_REDIRECT_HOSTS =

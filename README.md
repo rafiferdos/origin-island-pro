@@ -91,9 +91,14 @@ apksigner verify --print-certs origin-island-pro-<version>.apk
 ```
 Expected certificate:
 ```
-45:8C:47:85:FE:6D:CD:F1:29:30:AA:AF:9D:AD:5B:AD:91:25:19:B1:AA:E9:7C:68:CC:F9:ED:84:90:91:9A:E8
+D8:52:11:80:FE:AA:EE:30:37:21:DD:1F:7E:E2:88:39:60:35:42:66:0C:07:A7:45:39:9C:84:3A:99:20:14:5F
 ```
 Doesn't match? **Don't install.**
+
+> **Key rotation (v2.34.0):** releases from v2.34.0 onward are signed with a new key
+> (`D8:52:11:80…`). v2.33.0 and earlier were signed with `45:8C:47:85…`. A v2.34.0 APK will
+> **not** install over an existing v2.33.0 install — Android rejects a signature change — so
+> uninstall first. This also clears the app's data and its notification-access grant.
 </details>
 
 <details>
