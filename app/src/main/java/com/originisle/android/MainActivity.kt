@@ -6,9 +6,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import com.originisle.android.cards.SportsCard
 import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.PlaygroundService
@@ -30,6 +36,7 @@ import com.originisle.android.ui.OriginIsleTheme
 import com.originisle.android.ui.PREFS_NAME
 import com.originisle.android.ui.UpdateChecker
 import com.originisle.android.ui.samples.IslandSamples
+import com.originisle.android.util.DeviceCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -39,7 +46,6 @@ import kotlinx.coroutines.launch
  * pick which installed apps are allowed on the island.
  */
 class MainActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         when (intent?.getStringExtra("autofire")) {
@@ -83,20 +89,48 @@ private fun Screen() {
 
     Scaffold(containerColor = IsleColors.Background) { inner ->
         Box(Modifier.fillMaxSize().padding(inner)) {
-            if (!onboardingDone) {
-                OnboardingScreen(context, prefs) { onboardingDone = true }
-                return@Box
-            }
-            when (page) {
-                Page.HOME -> HomeScreen(
-                    context, prefs,
-                    onRedoSetup = { onboardingDone = false },
-                    onOpenApps = { page = Page.APPS },
-                    onOpenActivity = { page = Page.ACTIVITY },
-                )
-                Page.APPS -> AppsScreen(context, prefs, onBack = { page = Page.HOME })
-                Page.ACTIVITY -> ActivityScreen(context, onBack = { page = Page.HOME })
+            Column(Modifier.fillMaxSize()) {
+                // SuperX is a vivo vendor feature. Say so on hardware that cannot show it, rather
+                // than letting the user hunt for a permission that is not the problem.
+                if (!DeviceCompat.isVivoPlatform) {
+                    PlatformUnsupportedBanner()
+                }
+                Box(Modifier.weight(1f)) {
+                    if (!onboardingDone) {
+                        OnboardingScreen(context, prefs) { onboardingDone = true }
+                        return@Box
+                    }
+                    when (page) {
+                        Page.HOME -> HomeScreen(
+                            context, prefs,
+                            onRedoSetup = { onboardingDone = false },
+                            onOpenApps = { page = Page.APPS },
+                            onOpenActivity = { page = Page.ACTIVITY },
+                        )
+                        Page.APPS -> AppsScreen(context, prefs, onBack = { page = Page.HOME })
+                        Page.ACTIVITY -> ActivityScreen(context, onBack = { page = Page.HOME })
+                    }
+                }
             }
         }
+    }
+}
+
+/**
+ * Shown on devices that cannot render the island. Kept deliberately quiet (a single line, no
+ * dialog, no blocking) because the app is still usable as a notification mirror on those devices.
+ */
+@Composable
+private fun PlatformUnsupportedBanner() {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = DeviceCompat.unsupportedMessage(),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(12.dp),
+        )
     }
 }

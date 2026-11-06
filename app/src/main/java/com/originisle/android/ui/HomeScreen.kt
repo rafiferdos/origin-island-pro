@@ -51,6 +51,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpOffset
@@ -331,7 +333,11 @@ fun HomeScreen(
 
         item {
             Column(
-                Modifier.alpha(if (castOn) 1f else 0.4f),
+                Modifier
+                    .alpha(if (castOn) 1f else 0.4f)
+                    // A dimmed section is not merely muted visually: tell accessibility services it
+                    // is inert, so they stop advertising controls that cannot be operated.
+                    .semantics { if (!castOn) disabled() },
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SectionLabel("Notifications")
@@ -402,7 +408,11 @@ fun HomeScreen(
 
         item {
             Column(
-                Modifier.alpha(if (castOn) 1f else 0.4f),
+                Modifier
+                    .alpha(if (castOn) 1f else 0.4f)
+                    // A dimmed section is not merely muted visually: tell accessibility services it
+                    // is inert, so they stop advertising controls that cannot be operated.
+                    .semantics { if (!castOn) disabled() },
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SectionLabel("Cards")
@@ -803,7 +813,11 @@ fun HomeScreen(
 
         item {
             Column(
-                Modifier.alpha(if (castOn) 1f else 0.4f),
+                Modifier
+                    .alpha(if (castOn) 1f else 0.4f)
+                    // A dimmed section is not merely muted visually: tell accessibility services it
+                    // is inert, so they stop advertising controls that cannot be operated.
+                    .semantics { if (!castOn) disabled() },
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SectionLabel("Punch-hole & Camera Cutout")
@@ -815,7 +829,11 @@ fun HomeScreen(
 
         item {
             Column(
-                Modifier.alpha(if (castOn) 1f else 0.4f),
+                Modifier
+                    .alpha(if (castOn) 1f else 0.4f)
+                    // A dimmed section is not merely muted visually: tell accessibility services it
+                    // is inert, so they stop advertising controls that cannot be operated.
+                    .semantics { if (!castOn) disabled() },
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SectionLabel("Quiet hours")

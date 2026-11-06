@@ -57,6 +57,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -324,7 +325,7 @@ class NotificationCastListener : NotificationListenerService() {
     }
 
     private val pollHandler = Handler(Looper.getMainLooper())
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     /** Last-logged outcome per notification key, so repeated updates don't flood the log. */
     private val lastOutcome = ConcurrentHashMap<String, String>()
@@ -585,6 +586,11 @@ class NotificationCastListener : NotificationListenerService() {
 
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
+        // Cancel in-flight work — the crest fetch is a network call — and start a fresh scope.
+        // A cancelled CoroutineScope is dead for good, so without the reset every later launch
+        // after a reconnect would be a silent no-op and scores would stop updating.
+        scope.cancel()
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         runCatching {
             getSystemService(MediaSessionManager::class.java)
                 ?.removeOnActiveSessionsChangedListener(sessionsChangedListener)
@@ -1223,7 +1229,11 @@ class NotificationCastListener : NotificationListenerService() {
         val competition = sub.ifBlank { "Live" }
         val clickResp = extractDeepLinkIntent(applicationContext, sbn)
         scope.launch {
-            val fresh = SportsFeed.iconsFor(match.home, match.away, competition)
+            // The crest fetch is a network call; it used to run on Dispatchers.Main, blocking the
+            // main thread for the duration of a DNS lookup plus two image downloads.
+            val fresh = withContext(Dispatchers.IO) {
+                SportsFeed.iconsFor(match.home, match.away, competition)
+            }
             val prev = lastMatchIcons[id]
             val icons = SportsFeed.MatchIcons(
                 home = fresh.home ?: prev?.home,

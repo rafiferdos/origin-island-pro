@@ -82,7 +82,8 @@ fun CircleIconButton(
         shape = CircleShape,
         color = background,
         contentColor = tint,
-        modifier = Modifier.size(44.dp).semantics { role = Role.Button },
+        // 48dp is the Material minimum touch target; 44dp was below it.
+        modifier = Modifier.size(48.dp).semantics { role = Role.Button },
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(icon, contentDescription, Modifier.size(iconSize), tint = tint)
@@ -253,7 +254,8 @@ fun SegmentedControl(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     track: Color = IsleColors.SurfaceHigh,
-    height: Dp = 44.dp,
+    // 48dp is the Material minimum touch target; the previous default was 44dp.
+    height: Dp = 48.dp,
 ) {
     Row(
         modifier
@@ -297,7 +299,8 @@ fun ChoiceChip(
     selectedContainer: Color = IsleColors.Accent,
     selectedContent: Color = Color.White,
     shape: Shape = RoundedCornerShape(12.dp),
-    height: Dp = 44.dp,
+    // 48dp is the Material minimum touch target; the previous default was 44dp.
+    height: Dp = 48.dp,
     horizontalPadding: Dp = 0.dp,
 ) {
     Box(
