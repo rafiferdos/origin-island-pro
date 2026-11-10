@@ -44,7 +44,9 @@ object DeliveryCard {
             putExtra("oi_left_content", carrier.take(16))
             putExtra("status_chip_text", eta.take(12))
             putExtra("oi_right_content", eta.take(12))
-            putExtra("icon_res", R.drawable.ic_alert)
+            putExtra("icon_res", R.drawable.ic_delivery)
+            // vivo's own animated success tick on the card icon once the order is delivered.
+            if (eta == "Delivered") putExtra("oi_icon_status_type", OriginIslandConstants.ICON_STATUS_SUCCESS)
             putExtra("oi_bg_color", CYAN)
             putExtra("oi_fg_color", "#FFFFFFFF")
             putExtra("oi_light_color", CYAN)
