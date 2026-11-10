@@ -1,0 +1,121 @@
+name: Dev build
+
+# Builds both identities (spoof = AMap package id, native = com.originisle.android) on every push
+# to the working branch and publishes them as the rolling `dev` PRE-release on GitHub.
+#
+# Pre-releases are excluded from /releases/latest, which is what the in-app update checker reads,
+# so a dev build is never offered to users as an update.
+#
+# Signing: if the repository secrets RELEASE_KEYSTORE_BASE64, RELEASE_STORE_PASSWORD,
+# RELEASE_KEY_ALIAS and RELEASE_KEY_PASSWORD are set, the APKs are release builds signed with the
+# maintainer key (they install over an official release). Without them they are debug builds
+# signed with CI's throwaway debug key: uninstall an official build before installing one.
+
+on:
+  push:
+    branches: ['claude/vibrant-noether-14sen6']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dev-build
+  cancel-in-progress: true
+
+env:
+  ANDROID_HOME: /home/runner/android-sdk
+  API_LEVEL: 36
+  BUILD_TOOLS: 35.0.0
+
+jobs:
+  publish:
+    name: Build and publish dev pre-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK
+        run: |
+          set -e
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          cd "$ANDROID_HOME/cmdline-tools"
+          curl -sL -o cmdline-tools.zip \
+            "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          unzip -q -o cmdline-tools.zip
+          mv cmdline-tools latest
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager --install "platform-tools" "platforms;android-${API_LEVEL}" "build-tools;${BUILD_TOOLS}"
+          echo "sdk.dir=${ANDROID_HOME}" > local.properties
+
+      - name: Release signing (only when the secrets exist)
+        env:
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            {
+              echo "storeFile=$RUNNER_TEMP/release.jks"
+              echo "storePassword=$STORE_PASSWORD"
+              echo "keyAlias=$KEY_ALIAS"
+              echo "keyPassword=$KEY_PASSWORD"
+            } > keystore.properties
+            echo "BUILD_TYPE=release" >> "$GITHUB_ENV"
+          else
+            echo "BUILD_TYPE=debug" >> "$GITHUB_ENV"
+          fi
+
+      - name: Assemble both identities
+        run: |
+          if [ "$BUILD_TYPE" = release ]; then
+            ./gradlew --no-daemon --console=plain :app:assembleSpoofRelease :app:assembleNativeRelease
+          else
+            ./gradlew --no-daemon --console=plain :app:assembleSpoofDebug :app:assembleNativeDebug
+          fi
+
+      - name: Collect APKs and checksums
+        run: |
+          set -e
+          version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          short=${GITHUB_SHA::7}
+          mkdir dist
+          for flavor in spoof native; do
+            src=$(ls app/build/outputs/apk/$flavor/$BUILD_TYPE/*.apk | head -n1)
+            name="origin-island-pro-${version}-dev-${short}-${flavor}.apk"
+            cp "$src" "dist/$name"
+            ( cd dist && sha256sum "$name" > "$name.sha256" )
+          done
+          rm -f keystore.properties
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          ls -l dist
+
+      - name: Publish the rolling dev pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          gh release delete dev --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          cat > notes.md <<EOF
+          Development build of \`${GITHUB_SHA::7}\` (${VERSION}, ${BUILD_TYPE}-signed), vivo X200 China / OriginOS 7.
+          Not an official release; the in-app updater ignores it.
+
+          - **spoof** APK: the normal app (AMap package id). Use this one.
+          - **native** APK: own package id (\`com.originisle.android\`), installs alongside; used to test
+            whether OriginOS 7 still needs the AMap spoof (plan task T0.3).
+
+          $( [ "$BUILD_TYPE" = debug ] && echo "Debug-signed: uninstall an official Origin Island Pro build before installing the spoof APK (re-grant notification access after)." )
+
+          Verify: \`sha256sum -c <file>.apk.sha256\`. Changes: see docs/X200-CN-OS7-PLAN.md (§P Progress).
+          EOF
+          gh release create dev dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --prerelease --latest=false --title "Dev build ${VERSION} (${GITHUB_SHA::7})" --notes-file notes.md
