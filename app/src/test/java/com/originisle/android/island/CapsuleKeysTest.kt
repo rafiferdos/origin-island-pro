@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class CapsuleKeysTest {
-
     @Test
     fun capsuleKeysMatchTheProtocol() {
         assertEquals("notification.superx.capsule.content", OriginIslandConstants.BUNDLE_KEY_CAPSULE_CONTENT)
