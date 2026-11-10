@@ -1,0 +1,100 @@
+name: Release
+
+# On every push to main: if versionName in app/build.gradle.kts has no GitHub release yet, build the
+# spoof APK signed with the maintainer key and publish it as the Latest release v<version>, with the
+# asset names the in-app updater and verify-release.yml expect. Bump versionName to ship a release.
+#
+# Needs repository secrets RELEASE_KEYSTORE_BASE64 (base64 of the .jks), RELEASE_STORE_PASSWORD,
+# RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD. Without them nothing is published: a debug-signed APK
+# would fail every user's update (signature mismatch).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  ANDROID_HOME: /home/runner/android-sdk
+  ANDROID_SDK_ROOT: /home/runner/android-sdk
+  API_LEVEL: 36
+  BUILD_TOOLS: 35.0.0
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide whether to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HAS_KEY: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' }}
+        run: |
+          gh release delete dev --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes 2>/dev/null || true
+          version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          if gh release view "v$version" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "v$version is already released; bump versionName to publish." >> "$GITHUB_STEP_SUMMARY"
+            echo "GO=false" >> "$GITHUB_ENV"
+          elif [ "$HAS_KEY" != "true" ]; then
+            echo "::warning::Release signing secrets are missing; v$version was not published."
+            echo "GO=false" >> "$GITHUB_ENV"
+          else
+            echo "GO=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Set up JDK 17
+        if: env.GO == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK
+        if: env.GO == 'true'
+        run: |
+          set -e
+          mkdir -p "$ANDROID_HOME/cmdline-tools" && cd "$ANDROID_HOME/cmdline-tools"
+          curl -sL -o t.zip "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          unzip -q -o t.zip && mv cmdline-tools latest
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager --install "platform-tools" "platforms;android-${API_LEVEL}" "build-tools;${BUILD_TOOLS}"
+          echo "sdk.dir=${ANDROID_HOME}" > "$GITHUB_WORKSPACE/local.properties"
+
+      - name: Build signed APK
+        if: env.GO == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          set -e
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$RUNNER_TEMP/release.jks" "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
+          ./gradlew --no-daemon --console=plain :app:assembleSpoofRelease
+          rm -f keystore.properties "$RUNNER_TEMP/release.jks"
+          mkdir dist
+          name="origin-island-pro-${VERSION}.apk"
+          cp app/build/outputs/apk/spoof/release/*.apk "dist/$name"
+          ( cd dist && sha256sum "$name" > "$name.sha256" )
+          "$ANDROID_HOME/build-tools/${BUILD_TOOLS}/apksigner" verify --print-certs "dist/$name" | grep -i 'SHA-256'
+
+      - name: Publish v${{ env.VERSION }} as Latest
+        if: env.GO == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="release-notes-v${VERSION}.md"
+          [ -f "$notes" ] || { echo "Origin Island Pro v${VERSION}" > "$notes"; }
+          gh release create "v${VERSION}" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "v${VERSION}" --notes-file "$notes" --latest

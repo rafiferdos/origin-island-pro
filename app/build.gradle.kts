@@ -51,8 +51,8 @@ android {
         applicationId = "com.autonavi.minimap"
         minSdk = 34
         targetSdk = 36
-        versionCode = 55
-        versionName = "2.34.0"
+        versionCode = 56
+        versionName = "2.35.0"
     }
 
     // T0.3 (docs/X200-CN-OS7-PLAN.md): two identities, so the X200 can show whether OriginOS 7
