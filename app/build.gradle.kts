@@ -55,6 +55,23 @@ android {
         versionName = "2.34.0"
     }
 
+    // T0.3 (docs/X200-CN-OS7-PLAN.md): two identities, so the X200 can show whether OriginOS 7
+    // still needs the AMap spoof. `spoof` is the shipping build and keeps the load-bearing id from
+    // defaultConfig. `native` uses the app's own id and can be installed next to the spoof build
+    // AND next to the real AMap. Release scripts build `spoof` only.
+    flavorDimensions += "identity"
+    productFlavors {
+        create("spoof") {
+            dimension = "identity"
+            isDefault = true
+        }
+        create("native") {
+            dimension = "identity"
+            applicationId = "com.originisle.android"
+            versionNameSuffix = "-native"
+        }
+    }
+
     signingConfigs {
         if (keystorePropsFile.exists()) {
             create("release") {

@@ -68,9 +68,9 @@ Then run the release helper from the repo root:
 ./scripts/release.sh
 ```
 
-It builds `:app:assembleRelease`, verifies the signature, and writes the signed APK plus its SHA-256
+It builds `:app:assembleSpoofRelease`, verifies the signature, and writes the signed APK plus its SHA-256
 checksum to `dist/`, printing the signing certificate's fingerprint. Upload **both** the APK and the
-`.sha256` file to the GitHub Release. (Plain `./gradlew :app:assembleRelease` still works; without
+`.sha256` file to the GitHub Release. (Plain `./gradlew :app:assembleSpoofRelease` still works; without
 `keystore.properties` it builds *unsigned*, which is why the script refuses to run without it.)
 
 > Switching between a debug-signed and release-signed install requires uninstalling first (Android

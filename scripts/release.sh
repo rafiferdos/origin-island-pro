@@ -49,9 +49,9 @@ fi
 
 # --- build --------------------------------------------------------------------------------
 echo "==> Building signed release (versionName=$VERSION) ..."
-./gradlew :app:assembleRelease
+./gradlew :app:assembleSpoofRelease
 
-APK_IN="app/build/outputs/apk/release/app-release.apk"
+APK_IN="app/build/outputs/apk/spoof/release/app-spoof-release.apk"
 if [[ ! -f "$APK_IN" ]]; then
   echo "ERROR: expected APK not found at $APK_IN" >&2
   exit 1

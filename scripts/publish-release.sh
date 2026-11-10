@@ -52,9 +52,9 @@ fi
 
 # --- build --------------------------------------------------------------------------------
 echo "==> Building signed release ..."
-./gradlew --no-daemon --console=plain :app:assembleRelease
+./gradlew --no-daemon --console=plain :app:assembleSpoofRelease
 
-APK_IN="app/build/outputs/apk/release/app-release.apk"
+APK_IN="app/build/outputs/apk/spoof/release/app-spoof-release.apk"
 [[ -f "$APK_IN" ]] || fail "expected APK not found at ${APK_IN}"
 
 # --- verify the certificate BEFORE publishing ---------------------------------------------
