@@ -29,12 +29,17 @@ object RideCard {
         "ru.yandex.taxi",
         "com.careem.acma",
         "com.bolt.android",
+        // China. Unverified against a device package list: plan §12.2.
+        "com.sdu.didi.psnger", // DiDi
+        "com.caocaokeji.user", // Caocao
+        "com.t3go.passenger", // T3
     )
 
     val RIDE_KEYWORDS = listOf(
         "driver is on the way", "driver arriving", "captain is on the way",
         "captain arriving", "ride confirmed", "driver accepted", "driver has arrived",
         "arriving in", "your ride", "vehicle", "license plate",
+        "司机", "已接单", "即将到达", "已到达上车点", "正在赶来", "车牌",
     )
 
     fun post(

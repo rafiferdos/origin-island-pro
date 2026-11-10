@@ -227,6 +227,7 @@ class NotificationCastListener : NotificationListenerService() {
             "com.tencent.tim",                    // TIM (QQ Office)
             "com.alibaba.android.rimet",          // DingTalk
             "com.ss.android.lark",                // Feishu / Lark
+            "com.tencent.wework", // WeCom
         )
 
         /** Turn-by-turn navigation apps. Most set [Notification.CATEGORY_NAVIGATION] and are matched
@@ -254,6 +255,8 @@ class NotificationCastListener : NotificationListenerService() {
             "net.osmand",                   // OsmAnd
             "com.sygic.aura",               // Sygic
             "com.huawei.maps.app",          // Petal Maps
+            "com.tencent.map", // Tencent Maps
+            "com.autonavi.minimap", // AMap (only reachable from the `native` build)
         )
 
         /** Wallet / bank / money apps whose notifications are treated as payments (Apple-Pay card). */
@@ -295,6 +298,9 @@ class NotificationCastListener : NotificationListenerService() {
             "de.comdirect.app",                         // comdirect
             "com.nu.production",                        // Nubank
             "com.mercadopago.wallet",                   // Mercado Pago
+            // China. Unverified against a device package list: plan §12.2.
+            "com.eg.android.AlipayGphone", // Alipay
+            "com.unionpay", // UnionPay (云闪付)
         )
 
         /** Payment verbs — any app whose notification pairs one of these with an amount is a payment. */
@@ -310,6 +316,8 @@ class NotificationCastListener : NotificationListenerService() {
             // International
             "bezahlt", "payé", "reçu", "pago", "pagamento", "betaling",
             "überwiesen", "overgemaakt",
+            // Chinese
+            "支付成功", "付款成功", "已支付", "收款", "到账", "转账", "消费", "微信支付", "交易成功",
         )
 
         /**
@@ -318,8 +326,8 @@ class NotificationCastListener : NotificationListenerService() {
          * PAYMENT_APPS list transacts in.
          */
         private val AMOUNT = Regex(
-            """(?:[৳€$£¥₹₽₺₩₪₫₴]|\b(?:Tk\.?|BDT|EUR|USD|GBP|CHF|SEK|NOK|DKK|PLN|CZK|INR|TRY|RUB|KRW|THB|PHP)\b)\s?\d[\d.,]*""" +
-                """|\d[\d.,]*\s?(?:[৳€$£¥₹₽₺₩₪₫₴]|\b(?:Tk\.?|BDT|EUR|USD|GBP|CHF|SEK|NOK|DKK|PLN|CZK|INR|TRY|RUB|KRW|THB|PHP)\b)""",
+            """(?:[৳€$£¥￥₹₽₺₩₪₫₴]|\b(?:Tk\.?|BDT|EUR|USD|GBP|CHF|SEK|NOK|DKK|PLN|CZK|INR|TRY|RUB|KRW|THB|PHP|CNY|RMB)\b)\s?\d[\d.,]*""" +
+                """|\d[\d.,]*\s?(?:[৳€$£¥￥₹₽₺₩₪₫₴元]|\b(?:Tk\.?|BDT|EUR|USD|GBP|CHF|SEK|NOK|DKK|PLN|CZK|INR|TRY|RUB|KRW|THB|PHP|CNY|RMB)\b)""",
             RegexOption.IGNORE_CASE,
         )
     }

@@ -28,4 +28,8 @@ class OtpDetectorTest {
     @Test fun keywordTooFar() = assertNull(
         OtpDetector.find("Your code was sent. " + "x".repeat(80) + " Order 88123 shipped"),
     )
+
+    @Test fun chineseCode() = assertEquals("482913", OtpDetector.find("【某银行】您的验证码为482913，5分钟内有效。"))
+
+    @Test fun chineseDynamicCode() = assertEquals("605122", OtpDetector.find("动态密码：605122，请勿泄露"))
 }

@@ -100,6 +100,16 @@ object DeliveryCard {
         "com.dpd.dpdapp",
         "uk.co.royalmail.deliveryapp",
         "com.usps",
+
+        // China (vivo X200 CN ROM). Unverified against a device package list: plan §12.2.
+        "com.sankuai.meituan", // Meituan
+        "com.sankuai.meituan.takeoutnew", // Meituan Waimai
+        "me.ele", // Ele.me
+        "com.cainiao.wireless", // Cainiao
+        "com.taobao.taobao", // Taobao
+        "com.jingdong.app.mall", // JD
+        "com.xunmeng.pinduoduo", // Pinduoduo
+        "com.sf.activity", // SF Express
     )
 
     /** Keywords indicating delivery tracking. */
@@ -114,17 +124,34 @@ object DeliveryCard {
         "rider is on the way", "rider arriving", "food is being prepared",
         "picked up your order", "order delivered", "parcel is on the way",
         "delivery hero", "delivering your order", "rider assigned", "order confirmed",
+        // Chinese
+        "派送中", "配送中", "预计送达", "已送达", "已签收", "骑手已取餐", "骑手正在", "商家已接单",
+        "正在为您配送", "快递已到", "待取件", "运输中", "已发货",
     )
+
+    private val CN_MINUTES = Regex("""(\d{1,3})\s*分钟""")
+    private val CN_CLOCK = Regex("""(?<!\d)([01]?\d|2[0-3]):([0-5]\d)(?!\d)""")
+    private val CN_ARRIVAL_WORDS = listOf("送达", "到达", "预计")
 
     /** Extract ETA or short status from notification text. */
     fun extractEta(text: String): String {
         // 1. Minute countdown: "15 min", "in 20 mins", "15m", "arriving in 12 mins"
         val minPattern = Regex("""(?:\bin\s+)?(\d{1,2})\s*(?:mins?|minutes?|m\b)""", RegexOption.IGNORE_CASE)
-        val minMatch = minPattern.find(text)
+        val minMatch = minPattern.find(text) ?: CN_MINUTES.find(text)
         if (minMatch != null) {
             val num = minMatch.groupValues[1]
             return "$num min"
         }
+
+        // 1b. Chinese 24-hour arrival time: "预计12:30送达", "12:30前送达"
+        if (CN_ARRIVAL_WORDS.any { text.contains(it) }) {
+            CN_CLOCK.find(text)?.let { return it.value }
+        }
+        if (text.contains("已送达") || text.contains("已签收")) return "Delivered"
+        if (text.contains("派送中") || text.contains("配送中")) return "On the way"
+        if (text.contains("已取餐")) return "Picked up"
+        if (text.contains("运输中")) return "In transit"
+        if (text.contains("待取件")) return "Ready"
 
         // 2. Specific clock time: "by 4:30 PM", "before 5 PM", "12:45 pm"
         val timePattern = Regex("""(?:by |before |between )?(\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM)(?:\s*[-–]\s*\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM))?)""")

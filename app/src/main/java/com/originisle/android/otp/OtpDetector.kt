@@ -15,7 +15,7 @@ object OtpDetector {
     private val KEYWORD = Regex(
         """\b(?:code|codes|otp|passcode|pin|verif\w*|one[- ]time|2fa|mfa|login|log[- ]in|sign[- ]in|""" +
             """authenticat\w*|confirm\w*|c[oó]digo|codice|kod|bestätigung\w*|v[ée]rification|""" +
-            """verificaci[oó]n|verifica|password)\b|验证码|認証|인증""",
+            """verificaci[oó]n|verifica|password)\b|验证码|校验码|动态码|动态密码|确认码|認証|인증""",
         RegexOption.IGNORE_CASE,
     )
 

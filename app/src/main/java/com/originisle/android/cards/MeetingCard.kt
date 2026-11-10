@@ -24,6 +24,7 @@ object MeetingCard {
 
     val MEETING_APPS = setOf(
         "com.google.android.calendar",
+        "com.tencent.wemeet.app", // Tencent Meeting
         "com.microsoft.office.outlook",
         "com.google.android.apps.meetings", // Google Meet
         "us.zoom.videomeetings",             // Zoom
@@ -37,6 +38,7 @@ object MeetingCard {
         "meeting", "starts in", "in 10 min", "in 5 min", "in 15 min",
         "starts now", "happening now", "zoom meeting", "google meet",
         "calendar event", "webinar", "team sync", "standup", "reminder for",
+        "会议", "即将开始", "入会",
     )
 
     fun post(

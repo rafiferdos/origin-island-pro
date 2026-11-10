@@ -80,4 +80,10 @@ class IntelligentTextSanitizerTest {
         assertEquals("Use the left 2 lanes", IntelligentTextSanitizer.extractNavigationAssist("In 300 m, use the left 2 lanes to turn left onto Gulshan Ave"))
         assertEquals("Toward Airport", IntelligentTextSanitizer.extractNavigationAssist("In 1.5 km, take exit 4 toward Airport"))
     }
+
+    @Test
+    fun `chinese licence plate`() {
+        assertEquals("京A·12345", IntelligentTextSanitizer.extractVehiclePlate("司机即将到达，车牌京A·12345 白色大众"))
+        assertEquals("粤B8K2Q9", IntelligentTextSanitizer.extractVehiclePlate("车牌 粤B8K2Q9"))
+    }
 }

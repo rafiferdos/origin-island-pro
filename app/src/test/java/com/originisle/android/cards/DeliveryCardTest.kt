@@ -34,4 +34,12 @@ class DeliveryCardTest {
     fun testEtaExtractionTime() {
         assertEquals("by 4:30 PM", DeliveryCard.extractEta("Your package will be delivered by 4:30 PM"))
     }
+
+    @Test
+    fun `chinese delivery text`() {
+        assertEquals("25 min", DeliveryCard.extractEta("骑手正在配送，约25分钟后送达"))
+        assertEquals("12:30", DeliveryCard.extractEta("您的订单预计12:30送达"))
+        assertEquals("Delivered", DeliveryCard.extractEta("您的快递已签收"))
+        assertEquals("On the way", DeliveryCard.extractEta("您的包裹派送中"))
+    }
 }
