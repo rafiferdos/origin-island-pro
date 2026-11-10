@@ -50,8 +50,8 @@ import com.originisle.android.log.CastLog
 import com.originisle.android.otp.OtpDetector
 import com.originisle.android.sports.SportsFeed
 import com.originisle.android.sports.SportsParser
-import com.originisle.android.util.IntelligentTextSanitizer
 import com.originisle.android.util.AppMute
+import com.originisle.android.util.IntelligentTextSanitizer
 import com.originisle.android.util.PriorityArbitrator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
