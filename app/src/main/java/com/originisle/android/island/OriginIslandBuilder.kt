@@ -47,32 +47,41 @@ object OriginIslandBuilder {
         defaultColor
     }
 
-    /** Intelligently resolves background color for action buttons based on their intent/label. */
-    fun resolveSemanticButtonBgColor(title: String, defaultColor: Int = 0): Int {
+    /** vivo's own call colours: red for decline / hang up, green for answer. */
+    const val NATIVE_RED = 0xFFFF3B30.toInt()
+    const val NATIVE_GREEN = 0xFF34C759.toInt()
+
+    /** The neutral button every other action gets, like a first-party island. */
+    const val NATIVE_NEUTRAL = 0xFF2C2C2E.toInt()
+
+    private val DESTRUCTIVE_WORDS =
+        listOf("decline", "reject", "hang up", "hangup", "end call", "deny", "delete", "挂断", "拒接", "拒绝", "删除")
+    private val ACCEPT_WORDS = listOf("answer", "accept", "approve", "接听", "接受", "同意", "批准")
+
+    /**
+     * Native OriginOS 7 button colour for an action title: only call-style decline (red) and
+     * accept (green) are coloured; everything else is the neutral pill. [defaultColor] is
+     * deliberately ignored: per-card brand colours are not a vivo pattern.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    fun resolveSemanticButtonBgColor(
+        title: String,
+        defaultColor: Int = 0,
+    ): Int {
         val t = title.lowercase()
         return when {
-            listOf("decline", "reject", "hang up", "end", "cancel", "deny", "drop", "stop", "dismiss", "reset", "delete")
-                .any { t.contains(it) } -> 0xFFFF3B30.toInt() // Apple / OriginOS Crimson Red
-            listOf("answer", "accept", "approve", "yes", "join", "allow", "start", "resume", "confirm", "open")
-                .any { t.contains(it) } -> 0xFF34C759.toInt() // Apple / OriginOS Emerald Green
-            listOf("pause", "snooze", "later", "retry")
-                .any { t.contains(it) } -> 0xFFFF9500.toInt() // Radiant Amber
-            !isDefaultColor(defaultColor) -> defaultColor
-            else -> 0xFF2C2C2E.toInt() // Modern dark frosted pill
+            DESTRUCTIVE_WORDS.any { t.contains(it) } -> NATIVE_RED
+            ACCEPT_WORDS.any { t.contains(it) } -> NATIVE_GREEN
+            else -> NATIVE_NEUTRAL
         }
     }
 
-    /** Intelligently resolves text color for action buttons. */
-    fun resolveSemanticButtonTextColor(title: String, defaultColor: Int = 0): Int {
-        val t = title.lowercase()
-        return when {
-            listOf("decline", "reject", "hang up", "end", "cancel", "deny", "drop", "stop", "dismiss", "reset", "delete",
-                   "answer", "accept", "approve", "yes", "join", "allow", "start", "resume", "confirm",
-                   "pause", "snooze", "later", "retry").any { t.contains(it) } -> 0xFFFFFFFF.toInt()
-            !isDefaultColor(defaultColor) -> defaultColor
-            else -> 0xFFFFFFFF.toInt()
-        }
-    }
+    /** Button text is always white on the three native fills. */
+    @Suppress("UNUSED_PARAMETER")
+    fun resolveSemanticButtonTextColor(
+        title: String,
+        defaultColor: Int = 0,
+    ): Int = 0xFFFFFFFF.toInt()
 
     /** Bundle that removes/ends a previously-posted card for [scene]. */
     fun buildEndBundle(scene: String): Bundle = BundleCodec.buildEndBundle(scene)
@@ -239,5 +248,4 @@ object OriginIslandBuilder {
         )
     }
 
-    private fun isDefaultColor(color: Int): Boolean = (color ushr 24) == 0
 }

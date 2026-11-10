@@ -232,7 +232,15 @@ class PlaygroundService : Service() {
         val bgColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_bg_color"), 0)
         val fgColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_fg_color"), 0)
         val cardBgColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_card_bg_color"), 0)
-        val lightColor = OriginIslandBuilder.parseColor(intent.getStringExtra("oi_light_color"), 0)
+        // Native style (T2.2): the island edge light is a system signal, so only cards that opt in
+        // (payment success, charging) may use it; per-card button colours are ignored and the
+        // codec falls back to the native palette in OriginIslandBuilder.resolveSemanticButtonBgColor.
+        val lightColor =
+            if (intent.getBooleanExtra("oi_light_allowed", false)) {
+                OriginIslandBuilder.parseColor(intent.getStringExtra("oi_light_color"), 0)
+            } else {
+                0
+            }
         val lightMode = intent.getIntExtra("oi_light_mode", 0)
 
         val showProgress = intent.getBooleanExtra("show_progress", false)
@@ -325,8 +333,8 @@ class PlaygroundService : Service() {
         val leftDoubleLine = intent.getStringArrayListExtra("oi_left_doubleline") ?: emptyList()
         val rightDoubleLine = intent.getStringArrayListExtra("oi_right_doubleline") ?: emptyList()
         val buttonTitles = intent.getStringArrayListExtra("oi_button_titles") ?: emptyList()
-        val buttonBgColors = intent.getIntegerArrayListExtra("oi_button_bg_colors") ?: emptyList()
-        val buttonTextColors = intent.getIntegerArrayListExtra("oi_button_text_colors") ?: emptyList()
+        val buttonBgColors = emptyList<Int>()
+        val buttonTextColors = emptyList<Int>()
 
         // capsule / right-island chip text: prefer explicit chip, else right content.
         val chip = statusChip.ifBlank { rightContent }

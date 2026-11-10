@@ -131,7 +131,7 @@ object DeliveryCard {
         val timeMatch = timePattern.find(text)
         if (timeMatch != null) return timeMatch.value.trim().take(12)
 
-        if (text.contains("delivered", ignoreCase = true)) return "Delivered ✓"
+        if (text.contains("delivered", ignoreCase = true)) return "Delivered"
         if (text.contains("today", ignoreCase = true)) return "Today"
         if (text.contains("tomorrow", ignoreCase = true)) return "Tomorrow"
         if (text.contains("out for delivery", ignoreCase = true) || text.contains("on the way", ignoreCase = true)) return "On the way"

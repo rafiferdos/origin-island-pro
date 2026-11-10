@@ -343,11 +343,11 @@ object GenericCard {
             "com.google.android.apps.nbu.paisa.user",
             -> when {
                 listOf("boarding", "flight", "gate", "depart", "terminal", "airline")
-                    .any { t.contains(it) } -> CastStyle(base, chip = "✈")
+                    .any { t.contains(it) } -> CastStyle(base, chip = "Flight")
                 listOf("train", "platform", "rail", "track", "sncf", "coach", "wagon")
-                    .any { t.contains(it) } -> CastStyle(base, chip = "🚆")
+                    .any { t.contains(it) } -> CastStyle(base, chip = "Train")
                 // otherwise treat as a payment -> green success tick
-                else -> CastStyle(base, iconStatus = OriginIslandConstants.ICON_STATUS_SUCCESS, chip = "✓")
+                else -> CastStyle(base, iconStatus = OriginIslandConstants.ICON_STATUS_SUCCESS, chip = "Done")
             }
             else -> null
         }

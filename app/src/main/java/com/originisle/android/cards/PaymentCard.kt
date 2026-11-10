@@ -32,6 +32,7 @@ object PaymentCard {
     /** Apple-style system green. */
     private const val GREEN = "#FF34C759"
     private const val WHITE = "#FFFFFFFF"
+    private const val PAID_CHIP = "Paid"
 
     private const val PROCESS_MS = 850L   // spinner phase
     private const val HOLD_MS = 6000L     // how long "Done" stays before auto-dismiss
@@ -91,7 +92,7 @@ object PaymentCard {
                 generating = 0,
                 iconStatus = OriginIslandConstants.ICON_STATUS_SUCCESS, // 0 -> green tick
                 rightTemplate = OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT, // 6
-                chip = "✓",
+                chip = PAID_CHIP,
                 sourcePkg = sourcePkg,
             )
         }, PROCESS_MS)
@@ -147,8 +148,9 @@ object PaymentCard {
             putExtra("oi_icon_status_type", iconStatus)
             // Green success accent: chip fill, chip text and the island edge glow.
             putExtra("oi_bg_color", GREEN)
-            putExtra("oi_fg_color", if (chip == "✓") WHITE else GREEN)
+            putExtra("oi_fg_color", if (chip == PAID_CHIP) WHITE else GREEN)
             putExtra("oi_light_color", GREEN)
+            putExtra("oi_light_allowed", true)
             putExtra("oi_light_mode", 1)
             putExtra("oi_force_show", true)
             putExtra("oi_dismiss_when_kill", true)

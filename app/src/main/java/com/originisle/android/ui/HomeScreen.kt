@@ -1497,7 +1497,7 @@ private fun postStatusBarTest(
         putExtra("oi_scene", "NAVIGATION")
         putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS)
         putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
-        putExtra("title", "Camera Cutout Aligned ✓")
+        putExtra("title", "Camera cutout aligned")
         putExtra("text", "Pos: ${if (isLeft) "Left Corner" else "Center"} • Gap: ${cutoutGap.toInt()}dp • Margin: ${safeMargin.toInt()}dp")
         putExtra("subtext", "Origin Island Pro Tuner")
         putExtra("source_app", "Island Tuner")

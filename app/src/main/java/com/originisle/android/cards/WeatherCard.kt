@@ -83,13 +83,13 @@ object WeatherCard {
         val tempMatch = Regex("""-?\d{1,3}\s*°\s*[CF]""").find(combined)
         if (tempMatch != null) return tempMatch.value.replace(" ", "")
 
-        if (combined.contains("storm", ignoreCase = true) || combined.contains("thunder", ignoreCase = true)) return "⛈ Storm"
-        if (combined.contains("rain", ignoreCase = true)) return "🌧 Rain"
-        if (combined.contains("snow", ignoreCase = true)) return "❄ Snow"
-        if (combined.contains("sunny", ignoreCase = true) || combined.contains("sunshine", ignoreCase = true)) return "☀ Sunny"
-        if (combined.contains("cloudy", ignoreCase = true)) return "☁ Cloudy"
-        if (combined.contains("fog", ignoreCase = true)) return "🌫 Fog"
-        if (combined.contains("wind", ignoreCase = true)) return "💨 Wind"
+        if (combined.contains("storm", ignoreCase = true) || combined.contains("thunder", ignoreCase = true)) return "Storm"
+        if (combined.contains("rain", ignoreCase = true)) return "Rain"
+        if (combined.contains("snow", ignoreCase = true)) return "Snow"
+        if (combined.contains("sunny", ignoreCase = true) || combined.contains("sunshine", ignoreCase = true)) return "Sunny"
+        if (combined.contains("cloudy", ignoreCase = true)) return "Cloudy"
+        if (combined.contains("fog", ignoreCase = true)) return "Fog"
+        if (combined.contains("wind", ignoreCase = true)) return "Wind"
         return "Alert"
     }
 }

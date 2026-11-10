@@ -27,7 +27,7 @@ class DeliveryCardTest {
     fun testEtaExtractionStatus() {
         assertEquals("Preparing", DeliveryCard.extractEta("Your food is being prepared at the restaurant"))
         assertEquals("On the way", DeliveryCard.extractEta("Rider is on the way to your location"))
-        assertEquals("Delivered ✓", DeliveryCard.extractEta("Your order has been delivered! Enjoy your meal"))
+        assertEquals("Delivered", DeliveryCard.extractEta("Your order has been delivered! Enjoy your meal"))
     }
 
     @Test

@@ -115,7 +115,7 @@ object DiscordCard {
             // Right: Message content snippet, or mention alert, or "View" badge
             val previewMode = context.getSharedPreferences(PREFS_NAME, 0)
                 .getString("cast_message_preview_mode", "smart") ?: "smart"
-            val rightSnippet = if (discord.isMention) "🔔 ${discord.message}" else discord.message
+            val rightSnippet = if (discord.isMention) "@ ${discord.message}" else discord.message
             val isShort = rightSnippet.length <= 16 && !rightSnippet.contains('\n')
 
             val showViewBadge = when (previewMode) {

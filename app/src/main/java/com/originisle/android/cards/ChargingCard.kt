@@ -107,6 +107,7 @@ object ChargingCard {
             putExtra("oi_fg_color", GREEN)
             if (glow) {
                 putExtra("oi_light_color", GREEN)
+                putExtra("oi_light_allowed", true)
                 putExtra("oi_force_show", true)
             }
             putExtra("click_resp", click)

@@ -24,7 +24,7 @@ class IntelligentTextSanitizerTest {
     fun testFormatRightCapsule() {
         assertEquals("In 10 min", IntelligentTextSanitizer.formatRightCapsule("in 10 minutes", 14))
         assertEquals("Due Tmrw", IntelligentTextSanitizer.formatRightCapsule("due tomorrow", 14))
-        assertEquals("Done ✓", IntelligentTextSanitizer.formatRightCapsule("delivered", 14))
+        assertEquals("Done", IntelligentTextSanitizer.formatRightCapsule("delivered", 14))
     }
 
     @Test
@@ -68,7 +68,7 @@ class IntelligentTextSanitizerTest {
         assertEquals("U-Turn", IntelligentTextSanitizer.formatNavigationPill("Make a U-turn"))
         assertEquals("4km Straight", IntelligentTextSanitizer.formatNavigationPill("Continue straight for 4 km"))
         assertEquals("350m", IntelligentTextSanitizer.formatNavigationPill("350 m"))
-        assertEquals("Arrived 🏁", IntelligentTextSanitizer.formatNavigationPill("You have arrived at your destination"))
+        assertEquals("Arrived", IntelligentTextSanitizer.formatNavigationPill("You have arrived at your destination"))
 
         // Cutout safe-margin constrained limits
         assertEquals("300m Left", IntelligentTextSanitizer.formatNavigationPill("In 300 m, turn left", maxChars = 10))
