@@ -236,7 +236,7 @@ private fun SearchField(query: String, onChange: (String) -> Unit) {
                 value = query,
                 onValueChange = onChange,
                 singleLine = true,
-                textStyle = TextStyle(fontFamily = JakartaSans, fontSize = 16.sp, color = IsleColors.Text),
+                textStyle = TextStyle(fontSize = 16.sp, color = IsleColors.Text),
                 cursorBrush = SolidColor(IsleColors.Accent),
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Search apps" },
             )

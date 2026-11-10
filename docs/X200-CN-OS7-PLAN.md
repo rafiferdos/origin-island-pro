@@ -20,11 +20,20 @@
 | T1.5 | ~~struck~~ | Already covered: the post-time guard runs in all 9 one-shot branches; the unguarded branches are live cards that legitimately repost |
 | T1.6 | ✅ done | Gemini code removed; the remaining constants test is now `CapsuleKeysTest` |
 | T1.7 | ✅ done | DeviceCompat + README now say OriginOS 7 / X200 China |
+| T2.1 | ✅ done | Every card calls `sceneFor`. **Changed the rule:** a specific scene is used only when `getSceneStatus` *confirms* it; unknown → `NAVIGATION` (unknown used to mean "available", which would have sent cards to scenes vivo drops). A live card keeps its first scene (`PlaygroundService.readAndPost`) |
+| T2.2 | ✅ done | Enforced centrally: `PlaygroundService` ignores per-card button colours and only passes the edge light when the card sets `oi_light_allowed` (Payment, Charging). Native palette in `OriginIslandBuilder.resolveSemanticButtonBgColor`: red decline / green accept / neutral. Fixed "Send"/"Extend" turning red. Capsule colours (`oi_bg_color`) not yet reduced: wait for T2.7 |
+| T2.3 | ✅ done | Emoji/symbols removed from island text (weather, delivery, sanitizer, payment chip `Paid`, flight/train chips) |
+| T2.4–T2.6 | ⏸ blocked | Need T0.4 device answers |
+| T3.1 | ✅ done | `IsleColors` neutrals are now composable getters over the dynamic colour scheme (same names, so no call-site churn); light/dark status variants; DayNight XML theme + `values-night` |
+| T3.2 | ✅ done | Plus Jakarta Sans removed; system font |
+| T3.3 | ◐ partial | Removed the update-dialog pulsing glow. Settings-style primitives (`SettingsScaffold` etc.) not started |
+| T3.4–T3.6 | ⬜ todo | Next code-only work: T3.6 diagnostics, then T3.4 HomeScreen split, T3.5 strings + zh-rCN |
 
-**ktlint in a sandbox without the Android SDK:** after editing tracked Kotlin files, re-anchor the
-baseline with the line-mapping script approach used in commit history ("re-anchor ktlint
-baseline"): map each `<error line=…>` through the HEAD→worktree diff and drop entries on changed
-lines, and write new code to the full standard (one statement per line, a multi-line right-hand
+**ktlint in a sandbox without the Android SDK** (dl.google.com is blocked in the cloud sandbox,
+so verify through CI: `curl -s "https://api.github.com/repos/rafiferdos/origin-island-pro/actions/runs?branch=<branch>&per_page=1"`):
+after editing tracked Kotlin files, run `python3 scripts/ktlint-baseline-shift.py` to re-anchor
+the baseline (it maps each `<error line=…>` through the HEAD→worktree diff and drops entries on
+changed lines), and write new code to the full standard (one statement per line, a multi-line right-hand
 side starts on its own line, one argument per line, trailing commas, imports sorted, ≤140 columns).
 
 ---

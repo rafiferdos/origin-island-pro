@@ -153,7 +153,10 @@ object SceneCapability {
      * is false here: posting under a scene vivo never granted is silently dropped, so a card may
      * only leave the safe carrier scene on a real "yes".
      */
-    fun isConfirmed(context: Context, scene: String): Boolean {
+    fun isConfirmed(
+        context: Context,
+        scene: String,
+    ): Boolean {
         synchronized(sceneStatus) { sceneStatus[scene]?.let { return it } }
         val answer = probeSceneStatus(context, scene) ?: return false
         synchronized(sceneStatus) { sceneStatus[scene] = answer }

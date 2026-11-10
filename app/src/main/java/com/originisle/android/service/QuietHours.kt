@@ -20,7 +20,10 @@ object QuietHours {
     private val EXEMPT = setOf(CastKind.CALL, CastKind.NAVIGATION, CastKind.TIMER, CastKind.OTP, CastKind.MEDIA)
 
     /** Whether a [kind] card may be cast while quiet hours are [active]. */
-    fun allows(kind: CastKind, active: Boolean): Boolean = !active || kind in EXEMPT
+    fun allows(
+        kind: CastKind,
+        active: Boolean,
+    ): Boolean = !active || kind in EXEMPT
 
     const val DEFAULT_START = 22 * 60
     const val DEFAULT_END = 7 * 60

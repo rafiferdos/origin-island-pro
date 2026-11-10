@@ -14,7 +14,6 @@ import com.originisle.android.island.OriginIslandConstants
  * Pure, so it is JVM-testable without a StatusBarNotification.
  */
 object NativeIslandFilter {
-
     const val PREF_SKIP_NATIVE = "skip_native_islands"
 
     private val SUPERX_PREFIXES = listOf("notification.superx.", "island.superx.")

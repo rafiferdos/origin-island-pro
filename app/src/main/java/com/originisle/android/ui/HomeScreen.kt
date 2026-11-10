@@ -561,7 +561,6 @@ fun HomeScreen(
                                 ) {
                                     Text(
                                         "Muse App Package",
-                                        fontFamily = JakartaSans,
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 13.sp,
                                         color = IsleColors.Text,
@@ -570,7 +569,6 @@ fun HomeScreen(
                                         if (raidenMusePkg.isNotBlank()) {
                                             Text(
                                                 text = "Clear",
-                                                fontFamily = JakartaSans,
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.Medium,
                                                 color = IsleColors.BadText,
@@ -587,7 +585,6 @@ fun HomeScreen(
                                         }
                                         Text(
                                             text = "Auto-detect",
-                                            fontFamily = JakartaSans,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Medium,
                                             color = IsleColors.AccentText,
@@ -616,7 +613,6 @@ fun HomeScreen(
                                     if (raidenMusePkg.isEmpty()) {
                                         Text(
                                             "e.g. ai.muse or com.muse.app",
-                                            fontFamily = JakartaSans,
                                             fontSize = 13.sp,
                                             color = IsleColors.TextSecondary,
                                         )
@@ -635,7 +631,6 @@ fun HomeScreen(
                                         },
                                         singleLine = true,
                                         textStyle = TextStyle(
-                                            fontFamily = JakartaSans,
                                             fontSize = 13.sp,
                                             color = IsleColors.Text,
                                         ),
@@ -654,7 +649,6 @@ fun HomeScreen(
                                     } else {
                                         "Set exact package name of Muse app. Substring matching is disabled."
                                     },
-                                    fontFamily = JakartaSans,
                                     fontSize = 11.sp,
                                     color = if (raidenMusePkg.isNotBlank() || confirmedInfo != null) IsleColors.GoodSubtle else IsleColors.TextTertiary,
                                 )
