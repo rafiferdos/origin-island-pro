@@ -1,12 +1,31 @@
 # Origin Island Pro: execution plan for the vivo X200 (China) on OriginOS 7
 
-> **Status:** plan only, nothing in here has been implemented yet.
+> **Status:** in progress, see §P below.
 > **Written against:** branch `claude/vibrant-noether-14sen6`, HEAD `c6fc51d` (v2.34.0).
 > **Single target device:** vivo X200 series, **Chinese ROM**, **OriginOS 7**. Global/Funtouch
 > builds, other OEMs and OriginOS 6 are **out of scope**. Don't spend effort on them, but don't
 > break the build for them either.
 > **Supersedes** `docs/GOD-LEVEL-PLAN.md` for prioritisation. That file stays as background
 > reading. Where the two disagree, this file wins.
+
+## §P Progress (update this table with every task you finish)
+
+| Task | State | Notes |
+|---|---|---|
+| T0.3 (code) | ✅ done | `spoof` / `native` product flavors; CI now runs `testSpoofDebugUnitTest` and uploads both debug APKs (artifact `debug-apks`). Device part is still pending |
+| T1.1 | ✅ done | `service/NativeIslandFilter.kt` + toggle "Skip native islands" (pref `skip_native_islands`, default on) |
+| T1.2 | ◐ partial | Charging card now **off by default** (vivo shows charging natively). `SYSTEM_ISLAND_OWNERS` waits for §12.2 package names |
+| T1.3 | ✅ done | `CallCard.isCallLike` pure classifier: keywords only count on live (ongoing / full-screen) notifications, adds Chinese |
+| T1.4 | ✅ done | `QuietHours.allows(CastKind, active)`; 2FA and Raiden now respect quiet hours |
+| T1.5 | ~~struck~~ | Already covered: the post-time guard runs in all 9 one-shot branches; the unguarded branches are live cards that legitimately repost |
+| T1.6 | ✅ done | Gemini code removed; the remaining constants test is now `CapsuleKeysTest` |
+| T1.7 | ✅ done | DeviceCompat + README now say OriginOS 7 / X200 China |
+
+**ktlint in a sandbox without the Android SDK:** after editing tracked Kotlin files, re-anchor the
+baseline with the line-mapping script approach used in commit history ("re-anchor ktlint
+baseline"): map each `<error line=…>` through the HEAD→worktree diff and drop entries on changed
+lines, and write new code to the full standard (one statement per line, a multi-line right-hand
+side starts on its own line, one argument per line, trailing commas, imports sorted, ≤140 columns).
 
 ---
 
@@ -55,9 +74,9 @@ export ANDROID_HOME=$HOME/android-sdk && mkdir -p $ANDROID_HOME/cmdline-tools &&
 ```
 
 ```bash
-./gradlew --no-daemon :app:testDebugUnitTest      # all JVM tests (Robolectric)
+./gradlew --no-daemon :app:testSpoofDebugUnitTest      # all JVM tests (Robolectric)
 ./gradlew --no-daemon :app:ktlintCheck            # style; baseline in app/config/ktlint/baseline.xml
-./gradlew --no-daemon :app:assembleDebug          # APK at app/build/outputs/apk/debug/
+./gradlew --no-daemon :app:assembleDebug          # APKs at app/build/outputs/apk/{spoof,native}/debug/
 ```
 
 If the network blocks `dl.google.com`, don't fight it: push and let CI run, then read the CI
