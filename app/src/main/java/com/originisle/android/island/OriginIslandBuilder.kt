@@ -2,12 +2,7 @@ package com.originisle.android.island
 
 import android.content.Context
 import android.graphics.Color
-import android.graphics.Typeface
 import android.os.Bundle
-import android.text.Spannable
-import android.text.SpannableString
-import android.text.style.ForegroundColorSpan
-import android.text.style.StyleSpan
 import com.originisle.android.R
 
 /**
@@ -81,40 +76,6 @@ object OriginIslandBuilder {
 
     /** Bundle that removes/ends a previously-posted card for [scene]. */
     fun buildEndBundle(scene: String): Bundle = BundleCodec.buildEndBundle(scene)
-
-    internal val GEMINI_PALETTE = intArrayOf(
-        0xFF38BDF8.toInt(), // Sky / Electric Cyan
-        0xFF818CF8.toInt(), // Radiant Indigo
-        0xFFC084FC.toInt(), // Celestial Purple
-        0xFFF472B6.toInt(), // Sunset Rose / Neon Pink
-    )
-
-    /**
-     * Creates an iridescent Google Gemini style chromatic text span.
-     * Colors each character along the cyan-indigo-purple-pink spectrum with bold typeface.
-     */
-    fun buildGeminiTextSpan(text: String): SpannableString {
-        val clean = text.trim().removePrefix("✦").removePrefix("✨").trim()
-        val fullText = if (clean.isEmpty()) "✦ View" else "✦ $clean"
-        val span = SpannableString(fullText)
-        val len = fullText.length
-        if (len <= 0) return span
-        for (i in fullText.indices) {
-            val colorIndex = (i * (GEMINI_PALETTE.size - 1) / maxOf(1, len - 1)).coerceIn(0, GEMINI_PALETTE.size - 1)
-            span.setSpan(
-                ForegroundColorSpan(GEMINI_PALETTE[colorIndex]),
-                i,
-                i + 1,
-                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
-            )
-        }
-        span.setSpan(StyleSpan(Typeface.BOLD), 0, len, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-        return span
-    }
-
-    fun isGeminiGlowEnabled(context: Context): Boolean =
-        context.getSharedPreferences(com.originisle.android.ui.PREFS_NAME, 0)
-            .getBoolean("cast_gemini_view_glow", true)
 
     /**
      * Build the full SuperX extras bundle.
