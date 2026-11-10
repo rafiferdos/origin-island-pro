@@ -1,7 +1,7 @@
 # Origin Island Pro: execution plan for the vivo X200 (China) on OriginOS 7
 
 > **Status:** in progress, see §P below.
-> **Written against:** branch `claude/vibrant-noether-14sen6`, HEAD `c6fc51d` (v2.34.0).
+> **Written against:** branch `main`, HEAD `c6fc51d` (v2.34.0).
 > **Single target device:** vivo X200 series, **Chinese ROM**, **OriginOS 7**. Global/Funtouch
 > builds, other OEMs and OriginOS 6 are **out of scope**. Don't spend effort on them, but don't
 > break the build for them either.
@@ -33,10 +33,12 @@
 | T4.8–T4.10 | ⬜ todo | Train/flight card, music, sanitizer `[n条]` prefixes: need real notification samples |
 | T5.3 | ✅ done | Long-press a Log entry → mute that app for 1 h / 8 h (`util/AppMute.kt`, checked in `isAppEnabled`) |
 | T6.3 | ✅ done | Updater already had 10 s timeouts and silent daily failures; error text now says GitHub is unreachable |
+| Focus | ℹ️ | The user is in **Bangladesh**: prioritise Bangladeshi + global apps. The Chinese-app coverage stays but gets no further work |
+| Native effects | ✅ | Only `iconStatusType` (animated ✓/✗), `generatingStatus` (spinner) and the right-island ring/loading/wave are device-confirmed. Delivery now shows the native ✓ on "Delivered". Don't add glows (`lightEffectInfo` is unconfirmed) |
 | Dev APKs | ✅ done | `.github/workflows/dev-build.yml` publishes both flavors on every push as the rolling `dev` **pre-release** (ignored by the in-app updater). Debug-signed unless the `RELEASE_*` secrets are set |
 
 **ktlint in a sandbox without the Android SDK** (dl.google.com is blocked in the cloud sandbox,
-so verify through CI: `curl -s "https://api.github.com/repos/rafiferdos/origin-island-pro/actions/runs?branch=<branch>&per_page=1"`):
+so verify through CI: `curl -s "https://api.github.com/repos/rafiferdos/origin-island-pro/actions/runs?branch=main&per_page=1"`):
 after editing tracked Kotlin files, run `python3 scripts/ktlint-baseline-shift.py` to re-anchor
 the baseline (it maps each `<error line=…>` through the HEAD→worktree diff and drops entries on
 changed lines), and write new code to the full standard (one statement per line, a multi-line right-hand

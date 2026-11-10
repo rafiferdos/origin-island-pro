@@ -1,7 +1,7 @@
 name: Dev build
 
 # Builds both identities (spoof = AMap package id, native = com.originisle.android) on every push
-# to the working branch and publishes them as the rolling `dev` PRE-release on GitHub.
+# to main and publishes them as the rolling `dev` PRE-release on GitHub.
 #
 # Pre-releases are excluded from /releases/latest, which is what the in-app update checker reads,
 # so a dev build is never offered to users as an update.
@@ -13,7 +13,7 @@ name: Dev build
 
 on:
   push:
-    branches: ['claude/vibrant-noether-14sen6']
+    branches: [main]
   workflow_dispatch:
 
 permissions:
