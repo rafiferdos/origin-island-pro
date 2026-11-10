@@ -191,6 +191,15 @@ object SceneCapability {
         else -> bestScene(context, "NAVIGATION")
     }
 
+    /** The raw probe answer for [scene]: true / false, or null when the probe API is unavailable. */
+    fun probe(
+        context: Context,
+        scene: String,
+    ): Boolean? {
+        synchronized(sceneStatus) { sceneStatus[scene]?.let { return it } }
+        return probeSceneStatus(context, scene)
+    }
+
     /** Scenes the probe has actually confirmed, for logging and diagnostics. */
     fun grantedScenes(): List<String> = synchronized(sceneStatus) { sceneStatus.filterValues { it }.keys.toList() }
 

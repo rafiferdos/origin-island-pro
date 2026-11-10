@@ -251,6 +251,11 @@ fun HomeScreen(
                             menuOpen = false
                             permissionsOpen = true
                         }
+                        MenuItem("Copy diagnostics") {
+                            menuOpen = false
+                            Diagnostics.copyToClipboard(context)
+                            updateStatus = "Diagnostics copied. Paste them into your report."
+                        }
                     }
                 }
             }
