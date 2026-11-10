@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import android.service.notification.StatusBarNotification
 import com.originisle.android.R
+import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.CopyCodeReceiver
@@ -53,7 +54,7 @@ object OtpCard {
             action = PlaygroundService.ACTION_START
             putExtra("id", id)
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_OTP)
-            putExtra("oi_scene", "NAVIGATION")
+            putExtra("oi_scene", OriginIslandBuilder.sceneFor("OTP", context))
             // Use Template 8 (Buttons) so the expanded card shows the prominent [ Copy Code ] button
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_BUTTONS) // 8
             putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT) // 6
@@ -99,7 +100,7 @@ object OtpCard {
             Intent(context, PlaygroundService::class.java)
                 .setAction(PlaygroundService.ACTION_CANCEL)
                 .putExtra("id", id)
-                .putExtra("oi_scene", "NAVIGATION"),
+                .putExtra("oi_scene", OriginIslandBuilder.sceneFor("OTP", context)),
         )
     }
 

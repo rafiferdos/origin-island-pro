@@ -145,21 +145,36 @@ object SceneCapability {
         return answer
     }
 
+    /** The carrier scene that was reliably granted on every tested device (docs/PROTOCOL.md §1). */
+    const val SAFE_SCENE = "NAVIGATION"
+
     /**
-     * Picks the first candidate scene that is actually available, so a card can prefer the most
-     * specific scene and degrade gracefully. Always returns a scene: it falls back to the first
-     * candidate when none of them answer.
+     * Whether the probe positively confirmed [scene] as granted. Unlike [isAvailable], "unknown"
+     * is false here: posting under a scene vivo never granted is silently dropped, so a card may
+     * only leave the safe carrier scene on a real "yes".
+     */
+    fun isConfirmed(context: Context, scene: String): Boolean {
+        synchronized(sceneStatus) { sceneStatus[scene]?.let { return it } }
+        val answer = probeSceneStatus(context, scene) ?: return false
+        synchronized(sceneStatus) { sceneStatus[scene] = answer }
+        return answer
+    }
+
+    /**
+     * Picks the first candidate scene the probe confirmed, so a card can prefer the most specific
+     * scene. Without a confirmation it falls back to [SAFE_SCENE] when that is a candidate, else
+     * to the last candidate. Always returns a scene.
      */
     fun bestScene(context: Context, vararg candidates: String): String {
-        if (candidates.isEmpty()) return OriginIslandConstants.SUPERX_SCENES.first()
-        candidates.forEach { if (isAvailable(context, it)) return it }
-        return candidates.first()
+        if (candidates.isEmpty()) return SAFE_SCENE
+        candidates.forEach { if (isConfirmed(context, it)) return it }
+        return if (SAFE_SCENE in candidates) SAFE_SCENE else candidates.last()
     }
 
     /**
      * The scene a given card type should use. Replaces the 44 hardcoded `"NAVIGATION"` sites.
      *
-     * Order matters: the first available candidate wins, so a card lands on the most specific
+     * Order matters: the first probe-confirmed candidate wins, so a card lands on the most specific
      * surface vivo will give it.
      */
     fun sceneFor(cardType: String, context: Context): String = when (cardType.uppercase()) {

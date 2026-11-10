@@ -211,7 +211,7 @@ object MediaCard {
             putExtra("id", id)
             putExtra("is_ongoing", true)
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_MEDIA)
-            putExtra("oi_scene", "NAVIGATION")
+            putExtra("oi_scene", OriginIslandBuilder.sceneFor("MEDIA", context))
             putExtra("title", track)
             putExtra("text", artist)
             putExtra("subtext", subtext)

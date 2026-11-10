@@ -12,6 +12,7 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.originisle.android.MainActivity
 import com.originisle.android.R
+import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.log.CastLog
@@ -384,7 +385,7 @@ object RaidenCard {
             Intent(context, PlaygroundService::class.java)
                 .setAction(PlaygroundService.ACTION_CANCEL)
                 .putExtra("id", RAIDEN_CAST_ID)
-                .putExtra("oi_scene", "NAVIGATION"),
+                .putExtra("oi_scene", OriginIslandBuilder.sceneFor("RAIDEN", context)),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val dismissAction = Notification.Action.Builder(
@@ -404,7 +405,7 @@ object RaidenCard {
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_START
             putExtra("id", RAIDEN_CAST_ID)
-            putExtra("oi_scene", "NAVIGATION")
+            putExtra("oi_scene", OriginIslandBuilder.sceneFor("RAIDEN", context))
             putExtra("is_ongoing", isLive)
             putExtra("oi_priority", priority)
             putExtra("title", "Raiden")
@@ -488,7 +489,7 @@ object RaidenCard {
         val intent = Intent(context, PlaygroundService::class.java).apply {
             action = PlaygroundService.ACTION_CANCEL
             putExtra("id", RAIDEN_CAST_ID)
-            putExtra("oi_scene", "NAVIGATION")
+            putExtra("oi_scene", OriginIslandBuilder.sceneFor("RAIDEN", context))
         }
         context.startService(intent)
     }

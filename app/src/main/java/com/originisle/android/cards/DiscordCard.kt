@@ -12,6 +12,7 @@ import android.text.TextPaint
 import android.text.TextUtils
 import androidx.core.app.NotificationCompat
 import com.originisle.android.R
+import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.IconCache
@@ -88,7 +89,7 @@ object DiscordCard {
                 if (discord.isMention) PriorityArbitrator.PRIORITY_AUTH_PROMPT
                 else PriorityArbitrator.PRIORITY_MESSAGE,
             )
-            putExtra("oi_scene", "NAVIGATION")
+            putExtra("oi_scene", OriginIslandBuilder.sceneFor("MESSAGE", context))
             putExtra(
                 "oi_template",
                 if (actions.size >= 2) OriginIslandConstants.TEMPLATE_BUTTONS

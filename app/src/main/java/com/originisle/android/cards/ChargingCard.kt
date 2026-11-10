@@ -8,6 +8,7 @@ import android.os.BatteryManager
 import android.os.Handler
 import android.os.Looper
 import com.originisle.android.R
+import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.ui.PREFS_NAME
@@ -93,7 +94,7 @@ object ChargingCard {
             putExtra("id", ID)
             // Live: our own timers decide when it goes, not the "Hide after" setting.
             putExtra("is_ongoing", true)
-            putExtra("oi_scene", "NAVIGATION")
+            putExtra("oi_scene", OriginIslandBuilder.sceneFor("CHARGING", context))
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE) // 4
             putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_PROGRESS) // 2
             putExtra("oi_progress", level)
@@ -126,7 +127,7 @@ object ChargingCard {
             Intent(context, PlaygroundService::class.java)
                 .setAction(PlaygroundService.ACTION_CANCEL)
                 .putExtra("id", ID)
-                .putExtra("oi_scene", "NAVIGATION"),
+                .putExtra("oi_scene", OriginIslandBuilder.sceneFor("CHARGING", context)),
         )
     }
 

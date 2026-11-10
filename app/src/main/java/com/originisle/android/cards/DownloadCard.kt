@@ -426,7 +426,7 @@ object DownloadCard {
             putExtra("id", id)
             putExtra("is_ongoing", true)
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_DELIVERY)
-            putExtra("oi_scene", "NAVIGATION")
+            putExtra("oi_scene", OriginIslandBuilder.sceneFor("DOWNLOAD", context))
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_PROGRESS_VISUAL)
 
             putExtra("oi_right_template", pillConfig.rightTemplate)

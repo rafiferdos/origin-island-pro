@@ -8,6 +8,7 @@ import android.graphics.drawable.Icon
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
 import com.originisle.android.R
+import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.util.IntelligentTextSanitizer
@@ -62,7 +63,7 @@ object MeetingCard {
             sourcePkg?.let { putExtra("source_pkg", it) }
             putExtra("is_ongoing", false)
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_MEETING)
-            putExtra("oi_scene", "NAVIGATION")
+            putExtra("oi_scene", OriginIslandBuilder.sceneFor("MEETING", context))
             putExtra("oi_template",
                 if (usable.isNotEmpty()) OriginIslandConstants.TEMPLATE_BUTTONS
                 else OriginIslandConstants.TEMPLATE_BASE,

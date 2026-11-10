@@ -22,33 +22,22 @@ class SceneCapabilityTest {
     private val context: Context = RuntimeEnvironment.getApplication()
 
     @Test
-    fun `bestScene prefers the first candidate`() {
-        assertEquals("TAXI", SceneCapability.bestScene(context, "TAXI", "NAVIGATION"))
-        assertEquals("MOVIE", SceneCapability.bestScene(context, "MOVIE", "NAVIGATION"))
-    }
-
-    @Test
-    fun `bestScene always returns a scene`() {
+    fun `without a probe answer bestScene stays on the safe carrier scene`() {
+        assertEquals("NAVIGATION", SceneCapability.bestScene(context, "TAXI", "NAVIGATION"))
+        assertEquals("NAVIGATION", SceneCapability.bestScene(context, "NAVIGATION", "RIDE_GUIDE"))
         assertEquals("NAVIGATION", SceneCapability.bestScene(context))
         assertEquals("ONLY", SceneCapability.bestScene(context, "ONLY"))
     }
 
     @Test
-    fun `sceneFor maps each card type to its preferred scene`() {
-        assertEquals("NAVIGATION", SceneCapability.sceneFor("NAVIGATION", context))
-        assertEquals("TAXI", SceneCapability.sceneFor("RIDE", context))
-        assertEquals("TAKEOUT", SceneCapability.sceneFor("DELIVERY", context))
-        assertEquals("METTING", SceneCapability.sceneFor("MEETING", context))
-        assertEquals("TIMER", SceneCapability.sceneFor("TIMER", context))
-        assertEquals("INCALLING", SceneCapability.sceneFor("CALL", context))
-        assertEquals("MOVIE", SceneCapability.sceneFor("MEDIA", context))
+    fun `without a probe answer every card type uses the safe carrier scene`() {
+        listOf("NAVIGATION", "RIDE", "DELIVERY", "MEETING", "TIMER", "CALL", "MEDIA", "ride", "SOMETHING_ELSE", "")
+            .forEach { assertEquals(it, "NAVIGATION", SceneCapability.sceneFor(it, context)) }
     }
 
     @Test
-    fun `sceneFor is case-insensitive and falls back for unknown types`() {
-        assertEquals("TAXI", SceneCapability.sceneFor("ride", context))
-        assertEquals("NAVIGATION", SceneCapability.sceneFor("SOMETHING_ELSE", context))
-        assertEquals("NAVIGATION", SceneCapability.sceneFor("", context))
+    fun `an unknown scene is not confirmed`() {
+        assertEquals(false, SceneCapability.isConfirmed(context, "TAXI"))
     }
 
     @Test

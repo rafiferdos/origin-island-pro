@@ -8,6 +8,7 @@ import android.graphics.drawable.Icon
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
 import com.originisle.android.R
+import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.IconCache
@@ -178,7 +179,7 @@ object GenericCard {
                 else -> PriorityArbitrator.PRIORITY_GENERIC
             }
             putExtra("oi_priority", priority)
-            putExtra("oi_scene", "NAVIGATION")
+            putExtra("oi_scene", OriginIslandBuilder.sceneFor("GENERIC", context))
             putExtra("title", title)
             // vivo silently REJECTS a SuperX post with empty content text — falling back to a plain
             // notification instead (some notifications, e.g. Maps at the very start of navigation,

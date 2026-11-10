@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
 import com.originisle.android.R
+import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.util.PriorityArbitrator
@@ -35,7 +36,7 @@ object DeliveryCard {
             putExtra("id", id)
             sourcePkg?.let { putExtra("source_pkg", it) }
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_DELIVERY)
-            putExtra("oi_scene", "NAVIGATION")
+            putExtra("oi_scene", OriginIslandBuilder.sceneFor("DELIVERY", context))
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE)
             putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT)
             putExtra("title", title.take(40))

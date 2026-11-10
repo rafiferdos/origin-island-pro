@@ -209,7 +209,9 @@ class PlaygroundService : Service() {
         val id = intent.getIntExtra("id", -1)
         if (id == -1) return
 
-        val scene = intent.getStringExtra("oi_scene").orEmptyOr("NAVIGATION")
+        // A live card keeps the scene it was first posted under: if the scene probe's answer changes
+        // between two updates, switching scene mid-card would leave a stale card in the old one.
+        val scene = originScenes[id] ?: intent.getStringExtra("oi_scene").orEmptyOr("NAVIGATION")
         val title = intent.getStringExtra("title").orEmpty()
         val text = intent.getStringExtra("text").orEmpty()
         val leftContent = intent.getStringExtra("oi_left_content").orEmpty()
@@ -436,7 +438,7 @@ class PlaygroundService : Service() {
             if (RaidenCard.RAIDEN_CAST_ID in activeIds) {
                 CastLog.add("Raiden", "Displaced", "queued behind incoming higher card (priority $priority)", false)
                 queuedRaidenIntent = lastRaidenIntent
-                endOrigin(RaidenCard.RAIDEN_CAST_ID, "NAVIGATION")
+                endOrigin(RaidenCard.RAIDEN_CAST_ID, originScenes[RaidenCard.RAIDEN_CAST_ID] ?: "NAVIGATION")
                 notificationManager.cancel(OriginIslandConstants.SUPERX_TAG, RaidenCard.RAIDEN_CAST_ID)
                 activeIds.remove(RaidenCard.RAIDEN_CAST_ID)
                 activeCardPriorities.remove(RaidenCard.RAIDEN_CAST_ID)

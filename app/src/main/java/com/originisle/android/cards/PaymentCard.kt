@@ -7,6 +7,7 @@ import android.graphics.drawable.Icon
 import android.os.Handler
 import android.os.Looper
 import com.originisle.android.R
+import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.ui.PREFS_NAME
@@ -101,7 +102,7 @@ object PaymentCard {
                 Intent(app, PlaygroundService::class.java)
                     .setAction(PlaygroundService.ACTION_CANCEL)
                     .putExtra("id", id)
-                    .putExtra("oi_scene", "NAVIGATION"),
+                    .putExtra("oi_scene", OriginIslandBuilder.sceneFor("PAYMENT", context)),
             )
         }, PROCESS_MS + HOLD_MS)
     }
@@ -125,7 +126,7 @@ object PaymentCard {
             putExtra("id", id)
             sourcePkg?.let { putExtra("source_pkg", it) }
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_PAYMENT)
-            putExtra("oi_scene", "NAVIGATION") // granted carrier scene
+            putExtra("oi_scene", OriginIslandBuilder.sceneFor("PAYMENT", context)) // granted carrier scene
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_BASE) // 4
             putExtra("oi_right_template", rightTemplate)
             putExtra("title", title)

@@ -10,6 +10,7 @@ import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
 import com.originisle.android.R
 import com.originisle.android.island.CutoutConfig
+import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.IconCache
@@ -93,7 +94,7 @@ object NavigationCard {
             putExtra("id", id)
             putExtra("is_ongoing", true)
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_NAVIGATION)
-            putExtra("oi_scene", "NAVIGATION")
+            putExtra("oi_scene", OriginIslandBuilder.sceneFor("NAVIGATION", context))
             putExtra("oi_template", OriginIslandConstants.TEMPLATE_DRIVING_NAVI)                    // 9
             putExtra("oi_right_template", OriginIslandConstants.TEMPLATE_RIGHT_ISLAND_CAPSULE_TEXT) // 6
 

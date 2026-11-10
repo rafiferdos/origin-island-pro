@@ -14,6 +14,7 @@ import android.text.TextPaint
 import android.text.TextUtils
 import androidx.core.app.NotificationCompat
 import com.originisle.android.R
+import com.originisle.android.island.OriginIslandBuilder
 import com.originisle.android.island.OriginIslandConstants
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.service.IconCache
@@ -92,7 +93,7 @@ object MailCard {
             putExtra("id", id)
             putExtra("is_ongoing", false)
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_MESSAGE)
-            putExtra("oi_scene", "NAVIGATION")
+            putExtra("oi_scene", OriginIslandBuilder.sceneFor("MAIL", context))
             putExtra(
                 "oi_template",
                 if (actions.size >= 2) OriginIslandConstants.TEMPLATE_BUTTONS

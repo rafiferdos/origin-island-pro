@@ -345,7 +345,7 @@ object CallCard {
             putExtra("id", id)
             putExtra("is_ongoing", true)
             putExtra("oi_priority", PriorityArbitrator.PRIORITY_CALL)
-            putExtra("oi_scene", "NAVIGATION")
+            putExtra("oi_scene", OriginIslandBuilder.sceneFor("CALL", context))
             putExtra("oi_force_show", true)
             putExtra("oi_dismiss_when_kill", true)
             putExtra("source_pkg", sbn.packageName)
