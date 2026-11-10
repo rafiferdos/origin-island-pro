@@ -41,7 +41,7 @@ object ChargingCard {
     fun onBatteryChanged(context: Context, intent: Intent) {
         val app = context.applicationContext
         val prefs = app.getSharedPreferences(PREFS_NAME, 0)
-        val enabled = prefs.getBoolean("cast_notifications", false) && prefs.getBoolean("cast_charging", true)
+        val enabled = prefs.getBoolean("cast_notifications", false) && prefs.getBoolean("cast_charging", false)
         val keep = prefs.getBoolean("cast_charging_keep", false)
 
         val nowPlugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
@@ -134,7 +134,7 @@ object ChargingCard {
     fun onSettingsChanged(context: Context) {
         val app = context.applicationContext
         val prefs = app.getSharedPreferences(PREFS_NAME, 0)
-        val enabled = prefs.getBoolean("cast_notifications", false) && prefs.getBoolean("cast_charging", true)
+        val enabled = prefs.getBoolean("cast_notifications", false) && prefs.getBoolean("cast_charging", false)
         val keep = prefs.getBoolean("cast_charging_keep", false)
         when {
             showing && (!enabled || !keep) -> hide(app)

@@ -97,6 +97,9 @@ fun HomeScreen(
     var lockscreenLiveCard by remember { mutableStateOf(prefs.getBoolean("cast_lockscreen_live_card", false)) }
     var autoDismissSec by remember { mutableStateOf(prefs.getInt("cast_auto_dismiss_seconds", 0)) }
     var otpOn by remember { mutableStateOf(prefs.getBoolean("cast_otp", true)) }
+    var skipNativeOn by remember {
+        mutableStateOf(prefs.getBoolean(com.originisle.android.service.NativeIslandFilter.PREF_SKIP_NATIVE, true))
+    }
     var authOn by remember { mutableStateOf(prefs.getBoolean("cast_auth", true)) }
     var meetingsOn by remember { mutableStateOf(prefs.getBoolean("cast_meetings", true)) }
     var ridesOn by remember { mutableStateOf(prefs.getBoolean("cast_rides", true)) }
@@ -113,7 +116,7 @@ fun HomeScreen(
     var raidenAlwaysOnTop by remember { mutableStateOf(prefs.getBoolean("raiden_always_on_top", false)) }
     var raidenMusePkg by remember { mutableStateOf(prefs.getString("raiden_muse_pkg", "") ?: "") }
     var privacyOn by remember { mutableStateOf(prefs.getBoolean("cast_privacy_mode", false)) }
-    var chargingOn by remember { mutableStateOf(prefs.getBoolean("cast_charging", true)) }
+    var chargingOn by remember { mutableStateOf(prefs.getBoolean("cast_charging", false)) }
     var chargingKeep by remember { mutableStateOf(prefs.getBoolean("cast_charging_keep", false)) }
     var messagePreviewMode by remember { mutableStateOf(prefs.getString("cast_message_preview_mode", "smart") ?: "smart") }
     var landingAnimOn by remember { mutableStateOf(prefs.getBoolean("cast_landing_animation", true)) }
@@ -465,6 +468,17 @@ fun HomeScreen(
                         subtitle = "Live ticking timer countdown on island",
                     ) {
                         timerOn = it; prefs.edit().putBoolean("cast_timer", it).apply()
+                    }
+                    GroupDivider()
+                    ToggleRow(
+                        icon = IsleIcons.Shield,
+                        tileColor = IsleColors.TileWeather,
+                        title = "Skip native islands",
+                        checked = skipNativeOn,
+                        subtitle = "Don't re-cast apps that already show their own island",
+                    ) {
+                        skipNativeOn = it
+                        prefs.edit().putBoolean(com.originisle.android.service.NativeIslandFilter.PREF_SKIP_NATIVE, it).apply()
                     }
                     GroupDivider()
                     ToggleRow(

@@ -521,7 +521,7 @@ class NotificationCastListener : NotificationListenerService() {
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
         when (key) {
             "cast_charging", "cast_notifications" -> {
-                val enabled = prefs.getBoolean("cast_notifications", false) && prefs.getBoolean("cast_charging", true)
+                val enabled = prefs.getBoolean("cast_notifications", false) && prefs.getBoolean("cast_charging", false)
                 if (enabled) {
                     registerBatteryReceiver()
                 } else {
@@ -570,7 +570,7 @@ class NotificationCastListener : NotificationListenerService() {
     private fun registerBatteryReceiver() {
         if (batteryReceiverRegistered) return
         val prefs = getSharedPreferences(PREFS, 0)
-        val enabled = prefs.getBoolean("cast_notifications", false) && prefs.getBoolean("cast_charging", true)
+        val enabled = prefs.getBoolean("cast_notifications", false) && prefs.getBoolean("cast_charging", false)
         if (!enabled) return
         runCatching {
             registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED), RECEIVER_NOT_EXPORTED)
@@ -684,6 +684,15 @@ class NotificationCastListener : NotificationListenerService() {
             log(sbn, "skipped — app turned off in Apps tab", false); return
         }
 
+        // The app already shows this as a native vivo island (China-ROM partner apps, vivo system
+        // apps): casting it again would put two pills on the island for one event.
+        if (prefs.getBoolean(NativeIslandFilter.PREF_SKIP_NATIVE, true) &&
+            NativeIslandFilter.isNativeIsland(sbn.tag, sbn.notification.extras.keySet(), sbn.packageName, packageName)
+        ) {
+            log(sbn, "skipped — app already shows a native island", false)
+            return
+        }
+
         val castNotifs = prefs.getBoolean("cast_notifications", false)
         val castMedia = prefs.getBoolean("cast_media_sessions", false)
         if (!castNotifs && !castMedia) { log(sbn, "skipped — casting is off", false); return }
@@ -725,9 +734,15 @@ class NotificationCastListener : NotificationListenerService() {
             }
         }
         if (!castNotifs) { log(sbn, "skipped — media only, notifications off", false); return }
+        // Evaluated once, before the kind-specific branches, so 2FA prompts and Raiden respect quiet
+        // hours too (they used to run ahead of the check). Those branches are skipped while quiet
+        // and fall through to the quiet-hours gate below, which drops them.
+        val quiet = QuietHours.isActive(prefs, currentInterruptionFilter)
 
         // Raiden Activity & Companion (Muse App)
-        if (!isCall && RaidenCard.isMuseApp(applicationContext, sbn.packageName)) {
+        if (!isCall && QuietHours.allows(QuietHours.CastKind.RAIDEN, quiet) &&
+            RaidenCard.isMuseApp(applicationContext, sbn.packageName)
+        ) {
             val raidenOn = prefs.getBoolean("cast_raiden", true)
             if (!raidenOn) {
                 log(sbn, "skipped — Raiden casting is off in settings", false)
@@ -754,7 +769,7 @@ class NotificationCastListener : NotificationListenerService() {
         }
 
         // 2FA / Device sign-in prompts (Google, Microsoft Authenticator, Steam, Okta, Duo)
-        if (!isCall && prefs.getBoolean("cast_auth", true)) {
+        if (!isCall && QuietHours.allows(QuietHours.CastKind.AUTH, quiet) && prefs.getBoolean("cast_auth", true)) {
             val hay = notificationText(sbn)
             if (AuthPromptCard.isAuthPrompt(sbn.packageName, hay)) {
                 if (lastCastPostTime.put(sbn.key, sbn.postTime) == sbn.postTime) {
@@ -823,10 +838,16 @@ class NotificationCastListener : NotificationListenerService() {
         // Quiet hours / Do Not Disturb: only what someone is actively waiting on gets through —
         // calls, navigation and timers/alarms here; media and login codes were handled above.
         val isOngoingNow = (n.flags and Notification.FLAG_ONGOING_EVENT) != 0
-        if (QuietHours.isActive(prefs, currentInterruptionFilter) &&
-            !isCall && !isNavigation(sbn, isOngoingNow) && !isTimer(sbn)
-        ) {
-            log(sbn, "skipped — quiet hours", false); return
+        val quietKind =
+            when {
+                isCall -> QuietHours.CastKind.CALL
+                isNavigation(sbn, isOngoingNow) -> QuietHours.CastKind.NAVIGATION
+                isTimer(sbn) -> QuietHours.CastKind.TIMER
+                else -> QuietHours.CastKind.OTHER
+            }
+        if (!QuietHours.allows(quietKind, quiet)) {
+            log(sbn, "skipped — quiet hours", false)
+            return
         }
 
         // Score apps: if the notification parses as a match, post a football card with crests.
