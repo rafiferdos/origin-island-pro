@@ -8,6 +8,6 @@
          mask's edges blend with the artwork instead of showing a mismatched colour. -->
     <color name="ic_launcher_background">#24282F</color>
 
-    <!-- App background, same as IsleColors.Background. -->
-    <color name="window_background">#0B0B0D</color>
+    <!-- Launch background before Compose draws (light; values-night has the dark one). -->
+    <color name="window_background">#F2F2F5</color>
 </resources>

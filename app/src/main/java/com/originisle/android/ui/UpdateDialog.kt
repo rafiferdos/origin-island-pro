@@ -3,13 +3,8 @@ package com.originisle.android.ui
 import android.content.Context
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -152,17 +147,6 @@ private fun HeaderSection(
     info: UpdateChecker.AppUpdateInfo,
     downloadState: UpdateChecker.DownloadState,
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "glow",
-    )
-
     val iconColor = when (downloadState) {
         is UpdateChecker.DownloadState.Completed -> IsleColors.Good
         is UpdateChecker.DownloadState.Error -> IsleColors.Bad
@@ -174,7 +158,7 @@ private fun HeaderSection(
         modifier = Modifier
             .size(56.dp)
             .clip(CircleShape)
-            .background(iconColor.copy(alpha = if (downloadState is UpdateChecker.DownloadState.Downloading) glowAlpha * 0.25f else 0.15f)),
+            .background(iconColor.copy(alpha = 0.15f)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -196,7 +180,6 @@ private fun HeaderSection(
             is UpdateChecker.DownloadState.Error -> "Download Interrupted"
             else -> "New Version Available"
         },
-        fontFamily = JakartaSans,
         fontWeight = FontWeight.Bold,
         fontSize = 19.sp,
         color = IsleColors.Text,
@@ -222,19 +205,16 @@ private fun VersionPillRow(
     ) {
         Text(
             text = "v$currentVersion",
-            fontFamily = JakartaSans,
             fontSize = 13.sp,
             color = IsleColors.TextSecondary,
         )
         Text(
             text = "→",
-            fontFamily = JakartaSans,
             fontSize = 13.sp,
             color = IsleColors.TextTertiary,
         )
         Text(
             text = "v${info.latestVersion}",
-            fontFamily = JakartaSans,
             fontWeight = FontWeight.Bold,
             fontSize = 13.sp,
             color = IsleColors.AccentText,
@@ -248,7 +228,6 @@ private fun VersionPillRow(
             ) {
                 Text(
                     text = UpdateChecker.formatBytes(info.apkSize),
-                    fontFamily = JakartaSans,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = IsleColors.GoodText,
@@ -282,7 +261,6 @@ private fun ReleaseNotesCard(notes: String) {
     ) {
         Text(
             text = "What's New",
-            fontFamily = JakartaSans,
             fontWeight = FontWeight.SemiBold,
             fontSize = 12.sp,
             color = IsleColors.TextSecondary,
@@ -295,7 +273,6 @@ private fun ReleaseNotesCard(notes: String) {
         ) {
             Text(
                 text = cleanNotes,
-                fontFamily = JakartaSans,
                 fontSize = 12.5.sp,
                 color = IsleColors.TextChip,
                 lineHeight = 18.sp,
@@ -350,7 +327,6 @@ private fun DownloadActionArea(
                             )
                             Text(
                                 text = "Download & Install Update",
-                                fontFamily = JakartaSans,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                                 color = Color.White,
@@ -370,7 +346,6 @@ private fun DownloadActionArea(
                     ) {
                         Text(
                             text = "Remind Me Later",
-                            fontFamily = JakartaSans,
                             fontSize = 13.sp,
                             color = IsleColors.TextSecondary,
                         )
@@ -418,14 +393,12 @@ private fun DownloadActionArea(
                     ) {
                         Text(
                             text = "${(state.progress * 100).toInt()}%",
-                            fontFamily = JakartaSans,
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = IsleColors.Text,
                         )
                         Text(
                             text = "${UpdateChecker.formatBytes(state.bytesDownloaded)} / ${UpdateChecker.formatBytes(state.totalBytes)}",
-                            fontFamily = JakartaSans,
                             fontSize = 12.sp,
                             color = IsleColors.TextSecondary,
                         )
@@ -437,7 +410,6 @@ private fun DownloadActionArea(
                         ) {
                             Text(
                                 text = "⚡ ${UpdateChecker.formatSpeed(state.speedBytesPerSec)}",
-                                fontFamily = JakartaSans,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 11.sp,
                                 color = IsleColors.AccentText,
@@ -457,7 +429,6 @@ private fun DownloadActionArea(
                     ) {
                         Text(
                             text = "Cancel Download",
-                            fontFamily = JakartaSans,
                             fontSize = 12.5.sp,
                             color = IsleColors.BadText,
                         )
@@ -497,7 +468,6 @@ private fun DownloadActionArea(
                             )
                             Text(
                                 text = "Install Update Now",
-                                fontFamily = JakartaSans,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                                 color = Color.White,
@@ -516,7 +486,6 @@ private fun DownloadActionArea(
                     ) {
                         Text(
                             text = "Close",
-                            fontFamily = JakartaSans,
                             fontSize = 13.sp,
                             color = IsleColors.TextSecondary,
                         )
@@ -531,7 +500,6 @@ private fun DownloadActionArea(
                 ) {
                     Text(
                         text = state.message,
-                        fontFamily = JakartaSans,
                         fontSize = 12.sp,
                         color = IsleColors.BadText,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -548,7 +516,6 @@ private fun DownloadActionArea(
                     ) {
                         Text(
                             text = "Retry Download",
-                            fontFamily = JakartaSans,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.5.sp,
                             color = Color.White,
