@@ -6,8 +6,8 @@ import android.os.Build
  * Whether this device can actually show Origin Island cards.
  *
  * SuperX / OriginIsland is a vivo vendor feature reached through a hidden `NotificationManager`
- * method. It does not exist on stock Android or other OEM skins, and it cannot work below
- * OriginOS 6. The app nevertheless declared `minSdk 34` and would install on anything, then
+ * method. It does not exist on stock Android or other OEM skins, and it targets OriginOS 7
+ * (vivo X200, China ROM). The app nevertheless declared `minSdk 34` and would install on anything, then
  * silently post SuperX extras that nothing rendered — the worst kind of failure, because the user
  * has no way to tell it apart from a permission they forgot to grant.
  *
@@ -46,7 +46,7 @@ object DeviceCompat {
     /** The message shown on unsupported hardware. */
     fun unsupportedMessage(): String {
         val device = model.ifBlank { manufacturer }
-        return "Origin Island needs a vivo or iQOO device running OriginOS 6 or newer. " +
+        return "Origin Island needs a vivo or iQOO device running OriginOS 7. " +
             "The island will not appear on this $device."
     }
 }

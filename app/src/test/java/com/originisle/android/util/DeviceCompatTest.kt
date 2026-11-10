@@ -41,6 +41,6 @@ class DeviceCompatTest {
     fun `the unsupported message names the requirement`() {
         val message = DeviceCompat.unsupportedMessage()
         assertTrue(message.contains("vivo"))
-        assertTrue(message.contains("OriginOS 6"))
+        assertTrue(message.contains("OriginOS 7"))
     }
 }

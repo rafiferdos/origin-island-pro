@@ -63,7 +63,7 @@ live football scores, including from European and international apps.
 - 📋 **Log tab** showing what was cast or skipped, and why
 
 > [!WARNING]
-> **vivo/iQOO + OriginOS 6 only.** Enable **OriginOS Navigation** first, and uninstall the real
+> **Built and tested for the vivo X200 (China ROM) on OriginOS 7.** Enable **OriginOS Navigation** first, and uninstall the real
 > **AMap (高德地图)** app if you have it ([why?](docs/DEV.md)).
 
 <details>
