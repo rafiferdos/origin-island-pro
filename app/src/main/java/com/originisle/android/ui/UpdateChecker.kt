@@ -155,7 +155,7 @@ object UpdateChecker {
             }
         } catch (e: Exception) {
             Log.w(TAG, "Update check failed: ${e.message}")
-            Result.Error("Couldn't check for updates")
+            Result.Error("Couldn't reach GitHub. Check your network and try again.")
         }
     }
 

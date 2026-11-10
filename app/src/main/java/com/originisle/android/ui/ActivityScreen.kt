@@ -1,7 +1,9 @@
 package com.originisle.android.ui
 
 import android.content.Context
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import com.originisle.android.island.PlaygroundService
 import com.originisle.android.log.CastLog
 import com.originisle.android.service.NotificationCastListener
+import com.originisle.android.util.AppMute
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -169,10 +175,22 @@ private fun ListenerCard(connected: Boolean, now: Long, onReconnect: () -> Unit)
     }
 }
 
+/** Long-press a log row to mute that app for a while (plan task T5.3). */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LogRow(e: CastLog.Entry) {
+    val context = LocalContext.current
+    var menu by remember { mutableStateOf(false) }
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 68.dp).padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                enabled = e.pkg.isNotEmpty(),
+                onClick = {},
+                onLongClick = { menu = true },
+            )
+            .heightIn(min = 68.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -222,7 +240,27 @@ private fun LogRow(e: CastLog.Entry) {
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            listOf(1, 8).forEach { hours ->
+                DropdownMenuItem(
+                    text = { Text("Mute ${e.app} for $hours h") },
+                    onClick = {
+                        menu = false
+                        muteApp(context, e.pkg, hours)
+                    },
+                )
+            }
+        }
     }
+}
+
+private fun muteApp(
+    context: Context,
+    pkg: String,
+    hours: Int,
+) {
+    val until = AppMute.until(System.currentTimeMillis(), hours)
+    context.getSharedPreferences(PREFS_NAME, 0).edit().putLong(AppMute.key(pkg), until).apply()
 }
 
 /** "skipped — silent notification" → "Silent notification"; the icon already says cast/skipped. */

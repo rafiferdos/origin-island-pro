@@ -17,6 +17,7 @@ object CastLog {
         val title: String,
         val outcome: String,
         val cast: Boolean,
+        val pkg: String = "",
     )
 
     private const val MAX = 200
@@ -24,8 +25,14 @@ object CastLog {
     /** Newest first. A Compose snapshot list, so the Log screen updates live. */
     val entries = mutableStateListOf<Entry>()
 
-    fun add(app: String, title: String, outcome: String, cast: Boolean) {
-        entries.add(0, Entry(System.currentTimeMillis(), app, title, outcome, cast))
+    fun add(
+        app: String,
+        title: String,
+        outcome: String,
+        cast: Boolean,
+        pkg: String = "",
+    ) {
+        entries.add(0, Entry(System.currentTimeMillis(), app, title, outcome, cast, pkg))
         while (entries.size > MAX) entries.removeAt(entries.size - 1)
     }
 

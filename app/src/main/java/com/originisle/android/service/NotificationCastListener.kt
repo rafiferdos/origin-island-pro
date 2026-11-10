@@ -51,6 +51,7 @@ import com.originisle.android.otp.OtpDetector
 import com.originisle.android.sports.SportsFeed
 import com.originisle.android.sports.SportsParser
 import com.originisle.android.util.IntelligentTextSanitizer
+import com.originisle.android.util.AppMute
 import com.originisle.android.util.PriorityArbitrator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -622,6 +623,7 @@ class NotificationCastListener : NotificationListenerService() {
     private fun isAppEnabled(prefs: SharedPreferences, pkg: String): Boolean {
         val ignored = prefs.getStringSet("cast_ignored_apps", emptySet()).orEmpty()
         if (pkg in ignored) return false
+        if (AppMute.isMuted(prefs.getLong(AppMute.key(pkg), 0L), System.currentTimeMillis())) return false
         val enabledApps = prefs.getStringSet("cast_enabled_apps", null)
         // The allow set is only authoritative when the user explicitly turned opt-in mode on. An
         // empty or absent set means "no restriction" — the historical default — which is what makes
@@ -640,7 +642,7 @@ class NotificationCastListener : NotificationListenerService() {
         if (lastOutcome.put(sbn.key, outcome) == outcome) return
         val app = appLabel(sbn.packageName)
         val title = sbn.notification.extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString().orEmpty()
-        CastLog.add(app, title, outcome, cast)
+        CastLog.add(app, title, outcome, cast, pkg = sbn.packageName)
     }
 
     /**
