@@ -72,43 +72,67 @@ object CallCard {
 
     fun isCall(sbn: StatusBarNotification): Boolean {
         val n = sbn.notification
-        val template = n.extras.getString(NotificationCompat.EXTRA_TEMPLATE).orEmpty()
-        val isCategoryCall = n.category == NotificationCompat.CATEGORY_CALL ||
-            template.contains("CallStyle", ignoreCase = true)
-        if (isCategoryCall) return true
-
         val extras = n.extras
-        val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString().orEmpty()
-        val text = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString().orEmpty()
-        val subText = extras.getCharSequence(NotificationCompat.EXTRA_SUB_TEXT)?.toString().orEmpty()
-        val bigText = extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)?.toString().orEmpty()
-        val combined = "$title $text $subText $bigText".lowercase()
+        val text =
+            listOf(
+                NotificationCompat.EXTRA_TITLE,
+                NotificationCompat.EXTRA_TEXT,
+                NotificationCompat.EXTRA_SUB_TEXT,
+                NotificationCompat.EXTRA_BIG_TEXT,
+            ).joinToString(" ") { extras.getCharSequence(it)?.toString().orEmpty() }
+        return isCallLike(
+            category = n.category,
+            template = extras.getString(NotificationCompat.EXTRA_TEMPLATE),
+            actionTitles = n.actions.orEmpty().mapNotNull { it.title?.toString() },
+            pkg = sbn.packageName,
+            ongoing = sbn.isOngoing,
+            hasFullScreenIntent = n.fullScreenIntent != null,
+            text = text,
+        )
+    }
 
-        // 1. Action button examination
-        val actionTitles = n.actions.orEmpty().mapNotNull { it.title?.toString()?.lowercase() }
-        val hasCallAction = actionTitles.any { act ->
-            listOf("hang up", "hangup", "end call", "decline", "answer", "accept call", "return to call").any { act.contains(it) }
-        }
-        if (hasCallAction && (sbn.packageName in CALL_PACKAGES || sbn.isOngoing)) {
-            return true
-        }
+    private val CALL_ACTIONS =
+        listOf(
+            "hang up", "hangup", "end call", "decline", "answer", "accept call", "return to call",
+            "挂断", "接听", "拒接", "接受",
+        )
 
-        // 2. Keyword detection
-        val callKeywords = listOf(
+    /**
+     * Text that only means "a call is happening" when the notification is also live (ongoing or
+     * full-screen). A plain message saying "missed video call" must not become a call card.
+     */
+    private val CALL_KEYWORDS =
+        listOf(
             "incoming call", "calling...", "voice call", "video call", "ringing",
             "call in progress", "ongoing call", "tap to return to call", "touch to return to call",
-            "in call", "active call", "return to call",
+            "active call", "return to call",
+            "来电", "正在通话", "通话中", "语音通话", "视频通话", "邀请你进行",
         )
-        if (callKeywords.any { combined.contains(it) }) {
-            return true
-        }
 
-        val pkg = sbn.packageName
-        if (pkg in CALL_PACKAGES && sbn.isOngoing) {
+    /** Pure call classifier behind [isCall]. */
+    fun isCallLike(
+        category: String?,
+        template: String?,
+        actionTitles: List<String>,
+        pkg: String,
+        ongoing: Boolean,
+        hasFullScreenIntent: Boolean,
+        text: String,
+    ): Boolean {
+        if (category == NotificationCompat.CATEGORY_CALL) return true
+        if (template.orEmpty().contains("CallStyle", ignoreCase = true)) return true
+
+        val live = ongoing || hasFullScreenIntent
+        val lowerActions = actionTitles.map { it.lowercase() }
+        val hasCallAction = lowerActions.any { act -> CALL_ACTIONS.any { act.contains(it) } }
+        if (hasCallAction && (pkg in CALL_PACKAGES || live)) return true
+
+        val lower = text.lowercase()
+        if (live && CALL_KEYWORDS.any { lower.contains(it) }) return true
+
+        if (pkg in CALL_PACKAGES && ongoing) {
             val lowerPkg = pkg.lowercase()
-            if (lowerPkg.contains("dialer") || lowerPkg.contains("incallui")) {
-                return true
-            }
+            if (lowerPkg.contains("dialer") || lowerPkg.contains("incallui")) return true
         }
         return false
     }

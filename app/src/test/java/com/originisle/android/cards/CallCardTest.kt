@@ -79,4 +79,35 @@ class CallCardTest {
         val text3 = "random notification text"
         assertFalse(keywords.any { text3.lowercase().contains(it) })
     }
+
+    private fun call(
+        text: String,
+        pkg: String = "com.whatsapp",
+        ongoing: Boolean = false,
+        fullScreen: Boolean = false,
+        actions: List<String> = emptyList(),
+        category: String? = null,
+    ) = CallCard.isCallLike(category, null, actions, pkg, ongoing, fullScreen, text)
+
+    @Test
+    fun `a plain missed-call message is not a call`() {
+        assertFalse(call("Missed video call"))
+        assertFalse(call("Rafi: are you in call with him?"))
+        assertFalse(call("视频通话已取消", pkg = "com.tencent.mm"))
+    }
+
+    @Test
+    fun `live call notifications are calls`() {
+        assertTrue(call("Incoming voice call", fullScreen = true))
+        assertTrue(call("语音通话中", pkg = "com.tencent.mm", ongoing = true))
+        assertTrue(call("00:12", pkg = "com.android.incallui", ongoing = true))
+        assertTrue(call("", category = "call"))
+    }
+
+    @Test
+    fun `answer and hang-up actions identify a call`() {
+        assertTrue(call("Rafi", actions = listOf("Answer", "Decline")))
+        assertTrue(call("张三", pkg = "com.tencent.mm", ongoing = true, actions = listOf("挂断")))
+        assertFalse(call("Rafi", pkg = "com.example.chat", actions = listOf("Decline invite")))
+    }
 }
