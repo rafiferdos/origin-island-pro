@@ -1,5 +1,6 @@
 package com.originisle.android.service
 
+import com.originisle.android.service.QuietHours.CastKind
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -26,4 +27,13 @@ class QuietHoursTest {
     }
 
     @Test fun equalIsOff() = assertFalse(QuietHours.inWindow(m(10), m(10), m(10)))
+
+    @Test
+    fun `quiet hours let only waited-on kinds through`() {
+        CastKind.values().forEach { assertTrue(QuietHours.allows(it, active = false)) }
+        listOf(CastKind.CALL, CastKind.NAVIGATION, CastKind.TIMER, CastKind.OTP, CastKind.MEDIA)
+            .forEach { assertTrue(QuietHours.allows(it, active = true)) }
+        listOf(CastKind.AUTH, CastKind.RAIDEN, CastKind.OTHER)
+            .forEach { assertFalse(QuietHours.allows(it, active = true)) }
+    }
 }

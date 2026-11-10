@@ -13,6 +13,15 @@ import java.util.Calendar
  *  - A daily schedule, minutes since midnight, which may wrap past midnight (22:00 → 07:00).
  */
 object QuietHours {
+    /** What a notification is, for the quiet-hours decision. */
+    enum class CastKind { CALL, NAVIGATION, TIMER, OTP, MEDIA, AUTH, RAIDEN, OTHER }
+
+    /** Kinds someone is actively waiting on: they still reach the island during quiet hours. */
+    private val EXEMPT = setOf(CastKind.CALL, CastKind.NAVIGATION, CastKind.TIMER, CastKind.OTP, CastKind.MEDIA)
+
+    /** Whether a [kind] card may be cast while quiet hours are [active]. */
+    fun allows(kind: CastKind, active: Boolean): Boolean = !active || kind in EXEMPT
+
     const val DEFAULT_START = 22 * 60
     const val DEFAULT_END = 7 * 60
 
