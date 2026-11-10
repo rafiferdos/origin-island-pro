@@ -217,12 +217,12 @@ object IntelligentTextSanitizer {
         return null
     }
 
-    /**
-     * Extract vehicle license plate from ride-hailing text (e.g. "Dhaka Metro Ga-12-3456", "DM GA 1234", "KA-01-AB-1234").
-     */
     /** Mainland China plate: province character + letter + 5-6 alphanumerics, e.g. 京A·12345. */
     private val CN_PLATE = Regex("""[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼][A-Z]·?[A-Z0-9]{5,6}""")
 
+    /**
+     * Extract vehicle license plate from ride-hailing text (e.g. "Dhaka Metro Ga-12-3456", "DM GA 1234", "KA-01-AB-1234").
+     */
     fun extractVehiclePlate(text: String): String? {
         CN_PLATE.find(text)?.let { return it.value }
         val platePattern = Regex("""\b(?:[A-Z]{2,}\s*[–-]?\s*[A-Z0-9]{1,4}\s*[–-]?\s*\d{2,4}|[A-Za-z]+(?:\s+Metro)?\s+[A-Za-z]{1,2}[–-]?\d{2}[–-]?\d{4})\b""", RegexOption.IGNORE_CASE)

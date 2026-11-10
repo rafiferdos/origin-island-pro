@@ -100,16 +100,23 @@ object DeliveryCard {
         "com.dpd.dpdapp",
         "uk.co.royalmail.deliveryapp",
         "com.usps",
-
         // China (vivo X200 CN ROM). Unverified against a device package list: plan §12.2.
-        "com.sankuai.meituan", // Meituan
-        "com.sankuai.meituan.takeoutnew", // Meituan Waimai
-        "me.ele", // Ele.me
-        "com.cainiao.wireless", // Cainiao
-        "com.taobao.taobao", // Taobao
-        "com.jingdong.app.mall", // JD
-        "com.xunmeng.pinduoduo", // Pinduoduo
-        "com.sf.activity", // SF Express
+        // Meituan
+        "com.sankuai.meituan",
+        // Meituan Waimai
+        "com.sankuai.meituan.takeoutnew",
+        // Ele.me
+        "me.ele",
+        // Cainiao
+        "com.cainiao.wireless",
+        // Taobao
+        "com.taobao.taobao",
+        // JD
+        "com.jingdong.app.mall",
+        // Pinduoduo
+        "com.xunmeng.pinduoduo",
+        // SF Express
+        "com.sf.activity",
     )
 
     /** Keywords indicating delivery tracking. */

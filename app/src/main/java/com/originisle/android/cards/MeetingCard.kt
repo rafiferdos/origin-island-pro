@@ -24,7 +24,8 @@ object MeetingCard {
 
     val MEETING_APPS = setOf(
         "com.google.android.calendar",
-        "com.tencent.wemeet.app", // Tencent Meeting
+        // Tencent Meeting
+        "com.tencent.wemeet.app",
         "com.microsoft.office.outlook",
         "com.google.android.apps.meetings", // Google Meet
         "us.zoom.videomeetings",             // Zoom

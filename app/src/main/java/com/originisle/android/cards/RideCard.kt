@@ -30,9 +30,12 @@ object RideCard {
         "com.careem.acma",
         "com.bolt.android",
         // China. Unverified against a device package list: plan §12.2.
-        "com.sdu.didi.psnger", // DiDi
-        "com.caocaokeji.user", // Caocao
-        "com.t3go.passenger", // T3
+        // DiDi
+        "com.sdu.didi.psnger",
+        // Caocao
+        "com.caocaokeji.user",
+        // T3
+        "com.t3go.passenger",
     )
 
     val RIDE_KEYWORDS = listOf(

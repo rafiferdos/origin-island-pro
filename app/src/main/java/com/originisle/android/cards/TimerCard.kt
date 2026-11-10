@@ -27,7 +27,8 @@ object TimerCard {
         "com.sec.android.app.clockpackage",
         "com.vivo.clock",
         "com.bbk.clock",
-        "com.android.BBKClock", // vivo Clock, China ROM
+        // vivo Clock, China ROM
+        "com.android.BBKClock",
         "com.coloros.alarmclock",
         "com.android.deskclock",
         "com.oneplus.deskclock",

@@ -228,7 +228,8 @@ class NotificationCastListener : NotificationListenerService() {
             "com.tencent.tim",                    // TIM (QQ Office)
             "com.alibaba.android.rimet",          // DingTalk
             "com.ss.android.lark",                // Feishu / Lark
-            "com.tencent.wework", // WeCom
+            // WeCom
+            "com.tencent.wework",
         )
 
         /** Turn-by-turn navigation apps. Most set [Notification.CATEGORY_NAVIGATION] and are matched
@@ -256,8 +257,10 @@ class NotificationCastListener : NotificationListenerService() {
             "net.osmand",                   // OsmAnd
             "com.sygic.aura",               // Sygic
             "com.huawei.maps.app",          // Petal Maps
-            "com.tencent.map", // Tencent Maps
-            "com.autonavi.minimap", // AMap (only reachable from the `native` build)
+            // Tencent Maps
+            "com.tencent.map",
+            // AMap (only reachable from the `native` build)
+            "com.autonavi.minimap",
         )
 
         /** Wallet / bank / money apps whose notifications are treated as payments (Apple-Pay card). */
@@ -300,8 +303,10 @@ class NotificationCastListener : NotificationListenerService() {
             "com.nu.production",                        // Nubank
             "com.mercadopago.wallet",                   // Mercado Pago
             // China. Unverified against a device package list: plan §12.2.
-            "com.eg.android.AlipayGphone", // Alipay
-            "com.unionpay", // UnionPay (云闪付)
+            // Alipay
+            "com.eg.android.AlipayGphone",
+            // UnionPay (云闪付)
+            "com.unionpay",
         )
 
         /** Payment verbs — any app whose notification pairs one of these with an amount is a payment. */
@@ -321,14 +326,17 @@ class NotificationCastListener : NotificationListenerService() {
             "支付成功", "付款成功", "已支付", "收款", "到账", "转账", "消费", "微信支付", "交易成功",
         )
 
+        /** ISO currency codes recognised next to an amount (see [AMOUNT]). */
+        private const val CURRENCY_CODES = """Tk\.?|BDT|EUR|USD|GBP|CHF|SEK|NOK|DKK|PLN|CZK|INR|TRY|RUB|KRW|THB|PHP|CNY|RMB"""
+
         /**
          * "৳500", "Tk 1,000", "€12.90", "12,90 €", "$5", "£3.20", "40 CHF" … first match is used as the amount.
          * Symbols and ISO codes beyond the original €$£¥ set cover the currencies the extended
          * PAYMENT_APPS list transacts in.
          */
         private val AMOUNT = Regex(
-            """(?:[৳€$£¥￥₹₽₺₩₪₫₴]|\b(?:Tk\.?|BDT|EUR|USD|GBP|CHF|SEK|NOK|DKK|PLN|CZK|INR|TRY|RUB|KRW|THB|PHP|CNY|RMB)\b)\s?\d[\d.,]*""" +
-                """|\d[\d.,]*\s?(?:[৳€$£¥￥₹₽₺₩₪₫₴元]|\b(?:Tk\.?|BDT|EUR|USD|GBP|CHF|SEK|NOK|DKK|PLN|CZK|INR|TRY|RUB|KRW|THB|PHP|CNY|RMB)\b)""",
+            """(?:[৳€$£¥￥₹₽₺₩₪₫₴]|\b(?:$CURRENCY_CODES)\b)\s?\d[\d.,]*""" +
+                """|\d[\d.,]*\s?(?:[৳€$£¥￥₹₽₺₩₪₫₴元]|\b(?:$CURRENCY_CODES)\b)""",
             RegexOption.IGNORE_CASE,
         )
     }
