@@ -25,6 +25,7 @@ concurrency:
 
 env:
   ANDROID_HOME: /home/runner/android-sdk
+  ANDROID_SDK_ROOT: /home/runner/android-sdk
   API_LEVEL: 36
   BUILD_TOOLS: 35.0.0
 
