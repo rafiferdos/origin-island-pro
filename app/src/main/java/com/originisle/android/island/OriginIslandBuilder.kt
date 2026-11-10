@@ -246,5 +246,5 @@ object OriginIslandBuilder {
                 ),
             ),
         )
-    
+    }
 }
