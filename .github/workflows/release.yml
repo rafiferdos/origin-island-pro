@@ -81,6 +81,12 @@ jobs:
           echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
           printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
             "$RUNNER_TEMP/release.jks" "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
+          # Pin the in-app update verifier to the certificate this build is signed with.
+          fp=$(keytool -list -v -keystore "$RUNNER_TEMP/release.jks" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" \
+            | grep 'SHA256:' | awk '{print $2}' | tr -d :)
+          echo "Signing certificate SHA-256: $fp" >> "$GITHUB_STEP_SUMMARY"
+          sed -i "s/\"[0-9A-F]\{64\}\"/\"$fp\"/" app/src/main/java/com/originisle/android/security/ApkVerifier.kt
+          grep -q "$fp" app/src/main/java/com/originisle/android/security/ApkVerifier.kt
           ./gradlew --no-daemon --console=plain :app:assembleSpoofRelease
           rm -f keystore.properties "$RUNNER_TEMP/release.jks"
           mkdir dist
