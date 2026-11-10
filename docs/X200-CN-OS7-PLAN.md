@@ -27,7 +27,13 @@
 | T3.1 | ✅ done | `IsleColors` neutrals are now composable getters over the dynamic colour scheme (same names, so no call-site churn); light/dark status variants; DayNight XML theme + `values-night` |
 | T3.2 | ✅ done | Plus Jakarta Sans removed; system font |
 | T3.3 | ◐ partial | Removed the update-dialog pulsing glow. Settings-style primitives (`SettingsScaffold` etc.) not started |
-| T3.4–T3.6 | ⬜ todo | Next code-only work: T3.6 diagnostics, then T3.4 HomeScreen split, T3.5 strings + zh-rCN |
+| T3.6 | ✅ done | Overflow menu → "Copy diagnostics": platform, island API presence, per-scene probe answers, permissions, last 20 decisions. Ask the user to paste it: it answers most of T0.1/T0.4a |
+| T3.4–T3.5 | ⬜ todo | HomeScreen split; strings.xml + values-zh-rCN |
+| T4.1–T4.7, T4.11 | ✅ done (packages unverified) | Meituan, Ele.me, Cainiao, Taobao, JD, PDD, SF, DiDi, Caocao, T3, Alipay, UnionPay, Tencent Maps, AMap (native build), WeCom, Tencent Meeting, vivo CN clock `com.android.BBKClock`. Chinese ETA/status parsing, CN plates, CNY amounts, Chinese OTP words. Replace guesses with §12.2 names when available |
+| T4.8–T4.10 | ⬜ todo | Train/flight card, music, sanitizer `[n条]` prefixes: need real notification samples |
+| T5.3 | ✅ done | Long-press a Log entry → mute that app for 1 h / 8 h (`util/AppMute.kt`, checked in `isAppEnabled`) |
+| T6.3 | ✅ done | Updater already had 10 s timeouts and silent daily failures; error text now says GitHub is unreachable |
+| Dev APKs | ✅ done | `.github/workflows/dev-build.yml` publishes both flavors on every push as the rolling `dev` **pre-release** (ignored by the in-app updater). Debug-signed unless the `RELEASE_*` secrets are set |
 
 **ktlint in a sandbox without the Android SDK** (dl.google.com is blocked in the cloud sandbox,
 so verify through CI: `curl -s "https://api.github.com/repos/rafiferdos/origin-island-pro/actions/runs?branch=<branch>&per_page=1"`):
